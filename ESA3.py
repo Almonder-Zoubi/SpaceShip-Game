@@ -9,6 +9,7 @@ import pygame
 import random
 from pygame.locals import *
 import os
+import sys
 pygame.init()
 
 # Display Configuration
@@ -28,21 +29,23 @@ green = (0, 255, 0)
 font = pygame.font.Font(None, 36)
 # Entities
 class Player:
-    def __init__(self, x, y, size, speed):
+    def __init__(self, x, y, width, height, speed):
         self.x = x
         self.y = y
-        self.size = size
+        self.width = width
+        self.height = height
         self.speed = speed
+        self.image = pygame.transform.scale(
+            pygame.image.load('images/rocket.png'), (self.width, self.height)
+        )
+        self.sound = pygame.mixer.Sound('sounds/crash.wav')
 
     def draw(self):
         # Draw the player's ship
-        self.image = pygame.image.load('images/rocket.png')
-        image = pygame.transform.scale(self.image, (90, 120))
-        screen.blit(image, (self.x, self.y))
-        # pygame.draw.rect(screen, white, [self.x, self.y, self.size, self.size])
-    
+        screen.blit(self.image, (self.x, self.y))
+        # pygame.draw.rect(screen, white, [self.x, self.y, self.width, self.height])
+
     def hit_sound(self):
-        self.sound = pygame.mixer.Sound('sounds/crash.wav') 
         self.sound.play()
 
     def move_left(self):
@@ -50,7 +53,7 @@ class Player:
             self.x -= self.speed
 
     def move_right(self):
-        if self.x < screen_width - self.size:
+        if self.x < screen_width - self.width:
             self.x += self.speed
 
     def move_up(self):
@@ -58,7 +61,7 @@ class Player:
             self.y -= self.speed
 
     def move_down(self):
-        if self.y < screen_height - self.size:
+        if self.y < screen_height - self.height:
             self.y += self.speed
 
 class Enemy:
@@ -81,7 +84,7 @@ class Enemy:
 
 # Action -- ALTER
 # Assignment
-player = Player(screen_width // 2, screen_height-150, 40, 6)
+player = Player(screen_width // 2 - 45, screen_height - 150, 90, 120, 6)
 enemies = []
 enemy_spawn_delay = 60
 enemy_spawn_counter = 0
@@ -109,9 +112,9 @@ def move_enemies():
         # Check collision with player
         if (
             player.x < enemy.x + enemy.size
-            and player.x + player.size > enemy.x
+            and player.x + player.width > enemy.x
             and player.y < enemy.y + enemy.size
-            and player.y + player.size > enemy.y
+            and player.y + player.height > enemy.y
         ):
             player.hit_sound()
             game_over_flag = True
@@ -141,7 +144,7 @@ def game_win():
     )
 def restart():
     global score, game_over_flag, win_flag, game_running
-    player.x = screen_width // 2 - player.size // 2
+    player.x = screen_width // 2 - player.width // 2
     player.y = screen_height - 150
     score = 0
     enemies.clear()
@@ -160,7 +163,7 @@ while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
-                quit()
+                sys.exit()
 
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
@@ -177,7 +180,7 @@ while True:
             player.move_down()
         if keys[pygame.K_ESCAPE]:
             pygame.quit()
-            quit()
+            sys.exit()
 
         # Enemy spawning
         if enemy_spawn_counter <= 0:
@@ -209,7 +212,7 @@ while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
-            quit()
+            sys.exit()
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_r:
                 restart()
