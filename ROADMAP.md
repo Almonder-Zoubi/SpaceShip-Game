@@ -3,7 +3,8 @@
 Goal: turn the simple "dodge falling pictures" prototype into a polished retro arcade shooter
 with simple arcade controls, weapons, bosses, three levels, an endless mode and a saved leaderboard.
 
-Status: Phases 1–4 done, Phase 5: all three levels playable (level select + endless missing).
+Status: Phases 1–4 done, Phase 5: all three levels playable (endless missing), Phase 7: sound done.
+Code restructured into one package per area (see CLAUDE.md).
 Details and next steps: [PROGRESS.md](PROGRESS.md).
 
 ## Phase 1 — Retro overhaul (visuals, feel, architecture) ✅
@@ -109,12 +110,30 @@ level 3 boss 5x. Rematched earlier bosses are weakened to ~1.5x so they're a war
 
 - [ ] More asteroid shapes: elongated, jagged/shattered, round, clustered; ice, metal, crystal types
 - [ ] Wider size range including huge slow rocks
-- [ ] Sound effects that match the action:
-  - [ ] Engine rumble that follows the throttle (boost louder, retro quieter)
-  - [ ] Laser hum, machine-gun bursts, hits on rock vs metal
-  - [ ] Explosions sized by what explodes (small rock / big rock / ship / boss)
-  - [ ] Boss warning siren, UI blips
-- [ ] Music per level + boss theme; volume settings
+- [x] Sound effects that match the action (synthesized in code, `game/audio/`):
+  - [x] Engine rumble that follows the throttle (boost louder, retro quieter)
+  - [x] Laser hum, machine-gun bursts, hits on rock vs metal
+  - [x] Explosions sized by what explodes (small rock / big rock / drone / ship / boss)
+  - [x] Boss warning siren, boss roar, Mothership beam, UI blips, pickups
+- [x] Music per level + boss theme + final boss theme, title theme, jingles (clear / game over / win)
+- [ ] Volume settings
+
+## Ships
+
+- [x] Four hulls with their own shape and size, picked in a hangar screen (remembered in the save):
+      ARROW (balanced), WASP (small + fast, fragile), TITAN (wide, heavy armour, slow),
+      LANCE (long + thin, laser specialist). `hp * firepower == 1` keeps boss balance exact
+- [x] Playtest the hull trade-offs — user: "so creative", no changes
+- [ ] Unlockable hulls / paint jobs (achievements), hull abilities on SHIFT (ask first)
+
+## Phase 8 — Polish ideas (suggested, see PROGRESS.md "Next steps")
+
+- [ ] Options menu: music / SFX volume, scanlines, fullscreen (saved)
+- [ ] Game feel: hit-stop and slow-mo on boss kills, state transitions, boss damage numbers
+- [ ] Level results screen with rank (S/A/B/C), combo multiplier, no-hit bonus
+- [ ] New minions: kamikaze diver, mine layer, shielded interceptor, rock turret
+- [ ] Architecture doc with UML class diagram; pytest unit tests for pure logic
+- [ ] Gamepad support, packaged app (PyInstaller)
 
 ## Later / nice to have
 

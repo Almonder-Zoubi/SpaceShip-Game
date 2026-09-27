@@ -1,0 +1,215 @@
+"""The Game: setup, main loop and update order. The rest of its behaviour lives in mixins."""
+import math
+import random
+
+import pygame
+
+from ..audio import bank
+from ..audio.player import Audio
+from ..background.background import Background
+from ..config.display import FPS, LOW_H, LOW_W, MAX_DT, SAVE_FILE, SCALE, TITLE, WIN_H, WIN_W
+from ..config.palette import SPACE, TEXT_DIM
+from ..config.tuning import (DEATH_DELAY, THROTTLE_BOOST, THROTTLE_IDLE, THROTTLE_RETRO,
+                             WORLD_SPEED_FAST, WORLD_SPEED_SLOW)
+from ..core.input import Keys
+from ..core.particles import ParticleSystem, ScreenShake
+from ..core.pixelart import opaque_surface, window_icon
+from ..core.pixelfont import PixelFont
+from ..core.storage import SaveData
+from ..levels.data import LEVELS
+from ..obstacles.art import AsteroidLibrary
+from ..player.hulls import HULLS, hull_named
+from ..player.ship import Ship
+from ..ui.hangar import HangarScreen
+from ..ui.hud import Hud
+from ..ui.screens import ScreensMixin
+from ..weapons.gun import MachineGun
+from ..weapons.laser import Laser
+from ..weapons.specials import Blast, Ultimate
+from .combat import CombatMixin
+from .dev import DevMixin
+from .events import EventsMixin
+from .level_flow import LevelFlowMixin
+from .sound import SoundMixin
+from .states import MENU_STATES, State
+from .world import WorldMixin
+
+
+class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, SoundMixin, DevMixin,
+           ScreensMixin):
+    """Owns the window, the world objects and the state machine.
+
+    Mixins (one file each in flow/ and ui/) add: key handling, level flow, world update,
+    combat, sound, dev tools and drawing. They all work on the attributes created here.
+    """
+
+    SHIP_START = (LOW_W / 2, LOW_H - 40)
+
+    def __init__(self, skip_to_boss=False, start_level=1, dev=False, save_path=SAVE_FILE):
+        self.skip_to_boss = skip_to_boss       # testing aid: start every run at the level boss
+        self.start_level = start_level - 1     # index into LEVELS (title level select)
+        self.dev = dev                         # dev menu + hotkeys; never writes the save file
+        self.save = SaveData(None if dev else save_path)
+        self.god = False                       # dev: the rocket takes no damage
+        self.dev_cursor = 0
+        pygame.mixer.pre_init(44100, -16, 2, 512)
+        pygame.init()
+        self.window = pygame.display.set_mode((WIN_W, WIN_H))
+        pygame.display.set_caption(TITLE)
+        self.canvas = opaque_surface((LOW_W, LOW_H))
+        self.clock = pygame.time.Clock()
+        self.font = PixelFont()
+        self.hud = Hud(self.font)
+        self.hangar_screen = HangarScreen(self.font)
+        self.shake = ScreenShake()
+        self.scanlines = self._make_scanlines()
+        self.show_scanlines = True
+        self._loading_screen()
+
+        rng = random.Random()
+        self.library = AsteroidLibrary(rng)
+        palettes = tuple(dict.fromkeys(p for lv in LEVELS for p in lv.difficulty.palettes))
+        self.library.prebuild(radii=range(4, 15), palettes=palettes)
+        for palette in palettes:                  # fragments: every small size in every colour
+            self.library.prebuild(radii=range(4, 9), palettes=(palette,))
+        self.background = Background(rng)
+        for level in LEVELS:                      # build every nebula now, not mid-game
+            self.background.set_nebula(level.nebula)
+        self.ship = Ship(*self.SHIP_START)
+        self.audio = Audio()
+        if bank.missing():
+            self._loading_screen("BUILDING SOUNDS (FIRST START ONLY)...")
+        self.audio.load()
+        self._sound_state = {}                    # weapon states last frame (see SoundMixin)
+        self.level_index = self.start_level
+        self.choose_hull(hull_named(self.save.ship))   # builds that hull's sprites
+        self.hangar_cursor = HULLS.index(self.hull)
+        pygame.display.set_icon(window_icon(self.ship.frames[0]))
+        self.weapons = [MachineGun(), Laser()]
+        self.blast = Blast()                      # MK III specials, charged by hitting things
+        self.ultimate = Ultimate()
+
+        self.fire = ParticleSystem(additive=True)
+        self.smoke = ParticleSystem()
+        self.shockwaves = []
+        self.flash = 0.0
+        self.hurt_flash = 0.0
+
+        self.held = Keys()
+        self.best = self.save.best
+        self.record_rank = None                # rank of the last finished run in the records
+        self.time = 0.0
+        self.retry_point = (0, 0, 0, None)
+        self.to_title()
+
+    def _loading_screen(self, text="BUILDING SPRITES..."):
+        self.canvas.fill(SPACE)
+        self.font.draw(self.canvas, text, (LOW_W // 2, LOW_H // 2), TEXT_DIM, center=True)
+        self._present()
+
+    @staticmethod
+    def _make_scanlines():
+        lines = pygame.Surface((WIN_W, WIN_H), pygame.SRCALPHA)
+        for y in range(0, WIN_H, SCALE):
+            lines.fill((0, 0, 0, 38), (0, y + SCALE - 1, WIN_W, 1))
+        return lines
+
+    @property
+    def weapon(self):
+        return self.weapons[self.weapon_index]
+
+    @property
+    def level(self):
+        return LEVELS[self.level_index]
+
+    @property
+    def wave(self):
+        return self.level.waves[self.wave_index]
+
+    @property
+    def boss_entry(self):
+        """The BossEntry being fought (or announced) in the current wave."""
+        return self.wave.bosses[self.boss_index]
+
+    def set_state(self, state):
+        self.state = state
+        self.state_time = 0.0
+
+    def set_phase(self, phase):
+        self.phase = phase
+        self.phase_time = 0.0
+
+    def run(self):
+        while self.handle_events():
+            dt = min(self.clock.tick(FPS) / 1000, MAX_DT)
+            self.update(dt, self.held)
+            self.draw()
+            self._present()
+        pygame.quit()
+
+    def update(self, dt, keys):
+        self.time += dt
+        self.state_time += dt
+        self._update_audio()                      # music + loops follow last frame's state
+        if self.state == State.PAUSED:
+            return
+
+        firing = False
+        if self.state in MENU_STATES:
+            self.ship.update(dt, Keys(), self.fire, self.smoke)
+            self.ship.y = self.SHIP_START[1] + math.sin(self.time * 2) * 2   # gentle hover
+        elif self.state == State.PLAYING:
+            firing = keys[pygame.K_SPACE]
+            self.ship.update(dt, keys, self.fire, self.smoke)
+        elif self.state in (State.WIN, State.LEVEL_CLEAR):
+            self.ship.update(dt, keys, self.fire, self.smoke, autopilot=True)
+
+        world_speed = self._world_speed()
+        self.background.update(dt, world_speed)
+        self._update_asteroids(dt, world_speed)
+        self._update_boss(dt)
+        self._update_enemies(dt)
+        self._update_weapons(dt, firing)
+        self._update_enemy_bullets(dt)
+        self._update_pickups(dt)
+        if self.state == State.PLAYING:
+            self._check_ship_collisions()
+            self._update_phase(dt, world_speed)
+        for popup in self.popups:
+            popup.update(dt)
+        self.popups = [p for p in self.popups if not p.done]
+        if self.alert:
+            self.alert[3] -= dt
+            if self.alert[3] <= 0:
+                self.alert = None
+
+        self.fire.update(dt)
+        self.smoke.update(dt)
+        for wave in self.shockwaves:
+            wave.update(dt)
+        self.shockwaves = [w for w in self.shockwaves if not w.done]
+        self.shake.update(dt)
+        self.flash = max(0.0, self.flash - dt)
+        self.hurt_flash = max(0.0, self.hurt_flash - dt)
+
+        if self.state == State.DYING and self.state_time > DEATH_DELAY:
+            self.set_state(State.GAME_OVER)
+
+    def _world_speed(self):
+        """Boosting (UP) speeds the world up, retro (DOWN) slows it."""
+        if not self.ship.alive:
+            return 0.7
+        t = self.ship.throttle
+        if t < THROTTLE_IDLE:
+            k = (t - THROTTLE_RETRO) / (THROTTLE_IDLE - THROTTLE_RETRO)
+            return WORLD_SPEED_SLOW + (1 - WORLD_SPEED_SLOW) * k
+        k = (t - THROTTLE_IDLE) / (THROTTLE_BOOST - THROTTLE_IDLE)
+        return 1 + (WORLD_SPEED_FAST - 1) * k
+
+    def _present(self):
+        ox, oy = self.shake.offset()
+        self.window.fill(SPACE)
+        self.window.blit(pygame.transform.scale(self.canvas, (WIN_W, WIN_H)), (ox * SCALE, oy * SCALE))
+        if self.show_scanlines:
+            self.window.blit(self.scanlines, (0, 0))
+        pygame.display.flip()

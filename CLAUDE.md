@@ -27,15 +27,19 @@ python3 ESA3.py
 python3 ESA3.py --boss           # skip the asteroid field, straight to the level boss
 python3 ESA3.py --level 2        # start at level 2 (with --boss: straight to the Carrier)
 python3 ESA3.py --level 3 --boss # final boss (Mothership)
-python3 ESA3.py --dev            # dev menu: any level / wave / boss, god mode, hotkeys
+python3 ESA3.py --dev            # dev menu: any level / wave / boss / ship, god mode, hotkeys
+python3 tools/build_audio.py     # re-render sounds + music after changing game/audio/ recipes
+python3 tools/build_audio.py boss gun    # ...or only some of them
 ```
 
-Headless smoke test (no window, no audio) — run after every change. It drives every state and
-mechanic (movement, lean, weapons, push, damage, death, boss flow, balance maths, 60 s combat):
+Headless smoke test (no window, no audio device) — run after every change. It drives every state
+and mechanic in named sections (controls, weapons, damage, balance, pickups, campaign, save,
+menus, hulls, dev, retry, audio, busy); each section starts from its own state:
 
 ```bash
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test [--shots DIR]
-python3 -m pyflakes ESA3.py game/     # lint (pyflakes is installed in .venv only)
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test --only hulls,audio
+python3 -m pyflakes ESA3.py game/ tests/ tools/     # lint (pyflakes is installed in .venv only)
 ```
 
 ### Verify in a real window
@@ -45,8 +49,9 @@ window. Script pattern (run with `PYTHONPATH=.`, saves what the window shows):
 
 ```python
 import sys, pygame
-from game.game import Game, Keys
-g = Game(); g.start(); g.ship.hp = 10**9          # g.distance = 10**9 to jump to the boss
+from game.flow.game import Game
+from game.core.input import Keys
+g = Game(dev=True); g.start(); g.ship.hp = 10**9  # dev=True: never writes save.json
 for i in range(180):
     g.handle_events(); dt = g.clock.tick(60) / 1000
     g.update(dt, Keys(pygame.K_SPACE, pygame.K_UP)); g.draw(); g._present()
@@ -55,57 +60,77 @@ pygame.image.save(g.window, sys.argv[1]); pygame.quit()
 
 ## Architecture
 
-`ESA3.py` is only the entry point. All code lives in the `game/` package:
+`ESA3.py` is only the entry point. All code lives in the `game/` package, one folder per area.
+Every folder's `__init__.py` docstring lists what its modules do.
 
-| Module | Responsibility |
-|---|---|
-| `settings.py` | Resolution, tuning constants, colour palettes, `Difficulty` dataclass |
-| `pixelart.py` | Helpers: sprite-from-strings, `CharCanvas` (shape drawing for big sprites), dithering, noise, glow |
-| `sprites.py` | Ship sprite (+ banked and RotSprite lean frames), procedural `AsteroidArt` / `AsteroidLibrary`, boss sprites (`mirrored`, `outlined`) |
-| `particles.py` | `ParticleSystem` (flames, smoke, debris), `Shockwave`, `ScreenShake` |
-| `background.py` | Dithered nebula, drifting planet, 3-layer parallax starfield with speed streaks |
-| `ship.py` | `Ship`: direct arrow controls, diagonal lean (±30°), throttle, health, flames/exhaust/RCS |
-| `entities.py` | `Asteroid`: hp, hit flash, pixel-exact `contains()` / `collides_with()` |
-| `weapons.py` | `Weapon` base, `MachineGun`, `Laser`, `Charged` base → `Blast`, `Ultimate` (+`Missile`), `Hit` (damage + push direction), `raycast()` |
-| `boss.py` | `BossSpec` (balance maths), `Boss` base (multi-phase + roar, drone launch), `Gunship` (boss 1), `Carrier` (boss 2), `Mothership` (boss 3, beam) |
-| `enemies.py` | `EnemyBullet`, `shoot()`, `Enemy` base, `Drone`, `drone_formation()` |
-| `pickups.py` | `Pickup` base, `RepairKit`, `FullRepair`, `PowerCore` |
-| `levels.py` | `Level` → `Wave` → `BossEntry` data, `LEVELS` (asteroid mix, ship model, nebula, waves) |
-| `spawner.py` | `AsteroidSpawner` — driven by a `Difficulty` |
-| `pixelfont.py` | 5x7 bitmap font (no TTF — keeps the retro look) |
-| `hud.py` | Health bar, level progress, score/hi-score, weapon + laser heat, banners |
-| `storage.py` | `SaveData` — records + unlocked levels in `save.json` (git-ignored); `path=None` = memory only |
-| `audio.py` | Music + SFX, silently degrades when no audio device exists |
-| `game.py` | `Game` — main loop, states (TITLE, PLAYING, PAUSED, DYING, GAME_OVER, LEVEL_CLEAR, WIN), level phases (FIELD, WARNING, BOSS, CLEARED), boss rush, pickups, damage/explosions, `Keys`, `run_smoke_test()` |
+| Folder | Modules | Responsibility |
+|---|---|---|
+| `config/` | `display`, `palette`, `tuning`, `loadouts` | Resolution + paths, shared colours, gameplay numbers, ship models `MK1..MK3` (`Loadout`) |
+| `core/` | `pixelart`, `pixelfont`, `particles`, `input`, `storage` | Engine helpers: sprite-from-rows, `CharCanvas`, `mirrored`/`outlined`, RotSprite, dithering, noise, glow; 5x7 font; `ParticleSystem`/`Shockwave`/`ScreenShake`; `Keys` + key groups; `SaveData` (`save.json`) |
+| `background/` | `nebula`, `planet`, `starfield`, `background` | One layer per module; `Background` draws them back to front |
+| `player/` | `hulls`, `art`, `ship` | `Hull` shapes (ARROW, WASP, TITAN, LANCE: rows, nozzles, barrels, stat multipliers); MK paint jobs + banked/lean frames; `Ship` (controls, lean, throttle, flames, health) |
+| `weapons/` | `base`, `gun`, `laser`, `specials` | `Hit`, `Weapon`, `raycast()`; `MachineGun`; `Laser`; `Charged` → `Blast`, `Ultimate` (+`Missile`) |
+| `obstacles/` | `art`, `asteroid`, `spawner` | Procedural `AsteroidArt`/`AsteroidLibrary`; `Asteroid` (hp, push, pixel-exact hits); `AsteroidSpawner` (driven by a `Difficulty`) |
+| `minions/` | `bullets`, `base`, `drone` | `EnemyBullet`, `shoot()`, `bullet()`; `Enemy` base; `Drone` sprite + class + `drone_formation()` |
+| `bosses/` | `spec`, `base`, `art`, `gunship`, `carrier`, `mothership` | `BossSpec` balance maths; `Boss` base (phases, roar, drones); shared hull colours; **one file per boss = its sprite, muzzles/vents and class** |
+| `pickups/` | `art`, `base`, `types` | Sprites; `Pickup` base; `RepairKit`, `FullRepair`, `PowerCore` |
+| `levels/` | `model`, `data` | `Difficulty`, `Level`, `Wave`, `BossEntry` (incl. music track); `LEVELS` |
+| `audio/` | `synth`, `sfx`, `music`, `bank`, `player` | Pure-Python chiptune synth; SFX recipes (`SOUNDS`); songs as chords + melodies (`SONGS`); WAV cache in `sounds/generated/`; `Audio` (`play`, `loop`, `music`) |
+| `ui/` | `hud`, `popup`, `hangar`, `screens` | HUD + banners; floating popups; hangar (ship choice); `ScreensMixin` draws every state |
+| `flow/` | `game`, `states`, `events`, `level_flow`, `world`, `combat`, `sound`, `dev` | `Game` = setup, main loop, update order. The rest is one **mixin per responsibility**: key handling (one `_keys_<state>` method per state), level/wave/phase flow + hull choice, world update + hazards, player hits, music/loops, dev tools |
+
+Other folders: `tests/smoke.py` (headless smoke test, `run_smoke_test(shots, seed, only)`),
+`tools/build_audio.py` (renders `game/audio` recipes to WAV).
+
+Where to look when debugging:
+- A key does the wrong thing → `flow/events.py`, the `_keys_<state>` handler.
+- Something about one boss → its file in `bosses/`. Balance → `bosses/spec.py` + `levels/data.py`.
+- Damage / score / charge → `flow/combat.py` (player hits) or `flow/world.py` (hits on the ship).
+- Wrong music or a sound missing → `flow/sound.py` (state → track, loops) or the event's own call.
 
 ## Conventions
 
 - **Low-res canvas**: all game logic and drawing use `LOW_W x LOW_H` (320x240) pixel coordinates.
   The canvas is scaled x`SCALE` with nearest-neighbour in `Game._present()`. Never draw on the window directly.
 - **Frame-rate independent**: every `update(dt)` takes seconds; speeds are px/second.
-- **No image files for game art.** Sprites are generated in code (`sprites.py`) so they stay
-  consistent in palette and pixel size. Colours come from `settings.py`; don't inline new RGB tuples elsewhere.
+- **No image files for game art.** Sprites are generated in code, next to the class that uses
+  them, so they stay consistent in palette and pixel size. Shared colours come from
+  `config/palette.py`; a sprite's own colour key (e.g. a boss hull) lives next to its drawing.
+- **No audio files by hand either.** Sounds and music are recipes in `game/audio/` (`sfx.py`,
+  `music.py`); `sounds/generated/` is a git-ignored cache that the game renders on first start
+  (~9 s) and `tools/build_audio.py` re-renders. Play with `game.audio.play("name")`; unknown
+  names raise an `AssertionError`, so typos fail in the smoke test even without a sound device.
+  Music follows the state in `flow/sound.py`; a level's / boss's track is data (`Level.music`,
+  `BossEntry.music`).
 - **Surfaces**: sprites use `pygame.SRCALPHA`; anything opaque (canvas, backgrounds, glow) must use
   `pixelart.opaque_surface()`, never a bare `pygame.Surface()`. On macOS the display format has an
   alpha channel and a bare surface turns sprites into black boxes. The headless dummy driver does
   NOT reproduce this — check visual changes in a real window too.
 - Flames/glow use additive blending (`BLEND_ADD`); smoke and debris use normal blending.
 - Collision is pixel-perfect via `pygame.mask`.
-- Tuning numbers belong in `settings.py`, not in logic code.
+- Tuning numbers belong in `config/tuning.py` (ship models in `config/loadouts.py`), not in logic code.
 - **Controls are deliberately simple**: the rocket moves directly with the arrows (diagonal =
   two arrows) and only *leans* up to 30° on UP+LEFT/RIGHT. Drift/360° rotation was tried and
   rejected as too hard — don't reintroduce it. Use `Ship.to_world(lx, ly)` / `Ship.nose()` to place things relative to the ship.
+- **Hulls** (`player/hulls.py`): shape + engine/barrel positions + multipliers on the level's
+  `Loadout` (`Hull.apply`). Keep `hp * firepower == 1` so every hull is equally strong in the boss
+  damage race (the smoke test checks it); trade speed, size and weapon focus instead. Weapons
+  read barrels and the nose from `ship.hull`, never hard-coded offsets.
 - **Boss balance**: never hand-pick boss HP or bullet damage. Give a `BossSpec(strength,
   fight_time, player=<Loadout of that level>)`; HP and damage are derived so the boss is `strength`
   times stronger in a damage race. Pickups and POWER levels are the player's edge on top.
-- **Levels are data** (`levels.py`). A new level = a `Level` entry; a new ship model = a `Loadout`
-  in settings + a palette in `sprites.SHIP_PALETTES`.
+- **Levels are data** (`levels/data.py`). A new level = a `Level` entry; a new ship model = a
+  `Loadout` in `config/loadouts.py` + a paint job in `player/art.SHIP_PALETTES`; a new hull = a
+  `Hull` in `player/hulls.py` added to `HULLS`.
+- **Game mixins**: a new area of game behaviour gets its own mixin in `flow/` (added to the
+  `Game` bases), not more methods in `flow/game.py`. Mixins share state through `self`; the
+  attributes are created in `Game.__init__` / `new_run()`.
 - Weapons never apply damage themselves: `update()` returns `Hit`s and `Game` applies them,
   so new target types (enemies, bosses) only need `x`, `y`, `bound`, `contains()` (+ `damage()`).
 - Input: `Game.held` (a `Keys` set filled from KEYDOWN/KEYUP) — not `pygame.key.get_pressed()`,
   which is unreliable on macOS. Tests pass `Keys(...)` directly to `Game.update()`.
-- Big sprites (bosses) are drawn as a left half on a `CharCanvas`, then `mirrored()` + `outlined()`.
-  Keep muzzle/vent coordinates next to the sprite definition in `sprites.py`.
+- Big sprites (bosses) are drawn as a left half on a `CharCanvas`, then `mirrored()` + `outlined()`
+  (`bosses/art.build_boss_sprite`). Keep muzzle/vent coordinates next to the sprite, in the boss's file.
 - Heading/lean: angles in radians clockwise from "nose up"; `Ship.angle`, `forward`, `right`.
 - Code comments/docstrings in English; keep them short.
 - Never write the player's `save.json` from tests or scripts: pass `save_path=` (temp file) or
@@ -114,5 +139,6 @@ pygame.image.save(g.window, sys.argv[1]); pygame.quit()
 
 ## Legacy assets
 
-`images/` and `astroids/` hold the original clip-art PNGs from the first version. They are no longer
-loaded. `sounds/` is still used.
+`images/` and `astroids/` hold the original clip-art PNGs from the first version, and
+`sounds/crash.wav` + `sounds/nes.mp3` the original audio. None of them are loaded any more
+(the game's audio is synthesized, see `game/audio/`).

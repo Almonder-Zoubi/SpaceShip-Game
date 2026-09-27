@@ -1,0 +1,49 @@
+"""Data classes that describe a level: difficulty, waves and the bosses at their end."""
+from dataclasses import dataclass
+
+from ..bosses.spec import BossSpec
+from ..config.loadouts import Loadout
+
+
+@dataclass(frozen=True)
+class Difficulty:
+    """Everything the spawner needs; levels / endless mode will vary these."""
+    spawn_interval: float        # seconds between spawns (average)
+    speed_min: float             # px/s
+    speed_max: float
+    radius_min: int              # asteroid radius in px
+    radius_max: int
+    drift: float                 # max sideways speed px/s
+    palettes: tuple = ("grey", "brown", "slate")
+    formation_interval: float = 0     # seconds between drone formations (0 = none)
+
+
+@dataclass(frozen=True)
+class BossEntry:
+    """One boss of a wave's boss rush: which class, with which balance numbers."""
+    boss_class: type
+    spec: BossSpec
+    music: str = "boss"          # track name in audio/music.py
+
+    def create(self):
+        return self.boss_class(self.spec)
+
+
+@dataclass(frozen=True)
+class Wave:
+    """Asteroid field (with minions if the level's Difficulty has them), then its bosses."""
+    length: float                # seconds of flight through the field
+    bosses: tuple = ()           # BossEntry, fought in order after the field
+    name: str = ""               # subtitle of the "WAVE n" announcement
+
+
+@dataclass(frozen=True)
+class Level:
+    number: int
+    name: str
+    loadout: Loadout             # ship model the player flies in this level
+    difficulty: Difficulty
+    nebula: tuple                # background cloud colours
+    waves: tuple                 # Wave, played in order; the last boss is the level boss
+    music: str = "level1"        # asteroid-field track (audio/music.py)
+    upgrade_notes: tuple = ()    # new features, shown under the stat changes on "level clear"

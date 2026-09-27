@@ -4,20 +4,34 @@ Update this file at the end of every work session: what changed, what's next, op
 
 ## Status
 
-**Branch:** `levels` (branched from `main` at `33cb7a0 "end level boss to win"`). Levels 2+3 uncommitted.
-**Current phase:** all 3 levels playable (user: "perfect"), dev mode + minimal save done →
-next: see "Next steps". See [ROADMAP.md](ROADMAP.md).
+**Branch:** `restructure` (branched from `main` at `4310c46`), committed by the user after the
+playtest; the next work starts on a new branch.
+**Current phase:** all 3 levels playable, code split into one package per area, 4 selectable
+hulls, full soundtrack + SFX — user playtest: "so perfect", sounds "great", ships "so creative".
+Next: see "Next steps" (the user will also bring their own ideas). See [ROADMAP.md](ROADMAP.md).
+
+**Starting a new session?** Read this file's Snapshot + Decisions, then CLAUDE.md (module map,
+"where to look when debugging", conventions). Run the smoke test once before changing anything.
 
 ## Snapshot — what the game is right now
 
-- **Flow:** title → LEVEL 1 (asteroid field 75 s → WARNING, hull repaired → Gunship) → LEVEL 1 CLEAR
+- **Code layout:** one package per area under `game/` (config, core, background, player, weapons,
+  obstacles, minions, bosses, pickups, levels, audio, ui, flow); `Game` = mixins, one per
+  responsibility. Module map + "where to look when debugging" in CLAUDE.md.
+- **Flow:** title → HANGAR (pick a hull, ENTER launches) → LEVEL 1 (asteroid field 75 s → WARNING, hull repaired → Gunship) → LEVEL 1 CLEAR
   screen (ship upgrade to MK II, ENTER) → LEVEL 2 "CRIMSON BELT" (rust rocks + drone formations,
   80 s → Gunship rematch 1.5x → WARNING → CARRIER 4x) → LEVEL 2 CLEAR (MK III) → LEVEL 3
   "DARK NEBULA" in 3 waves (HUD "LEVEL 3-1"): wave 1 rocks + drones 45 s; wave 2 rocks + drones
   40 s → Carrier 1.5x; wave 3 rocks + drones 40 s → FINAL BOSS MOTHERSHIP 5x → WIN.
   Score carries over. 0 HP → GAME OVER → R retries the *current* level with its starting score.
   Levels are data in `levels.py` (`Level` → `Wave`s → `BossEntry`s).
-- **Ship models** (`Loadout` in settings): MK I 100 HP / gun 5 / laser 80; MK II (level 2, blue
+- **Hulls** (`player/hulls.py`, picked in the hangar, remembered in `save.json`): ARROW 17x25
+  (the original rocket, x1), WASP 13x17 (hp x0.8, firepower x1.25, speed x1.15, one engine),
+  TITAN 27x25 (hp x1.4, firepower x0.71, speed x0.85, 3 engines, barrels on the pods),
+  LANCE 13x33 (laser x1.3, speed x0.95, one big engine). They multiply the level's MK model and
+  get its paint job; `hp * firepower == 1` keeps every boss's strength exact. Level-clear screen
+  computes the upgrade numbers for the chosen hull.
+- **Ship models** (`Loadout` in `config/loadouts.py`): MK I 100 HP / gun 5 / laser 80; MK II (level 2, blue
   paint) 150 HP / gun 7 / laser 110 dps, cooler laser, faster; MK III (level 3, violet) 200 HP /
   gun 9 / laser 140 + BLAST + ULTIMATE. Boss balance uses the level's model.
 - **BLAST (MK III):** meter fills from damage to rocks/drones (+kill bonus, x3 for drones).
@@ -52,7 +66,7 @@ next: see "Next steps". See [ROADMAP.md](ROADMAP.md).
   rocket dies in ~13 s. Patterns: aimed 5-shot fan (charge glow), alternating turret shots,
   enraged below 50% (+30% speed, 14-bullet ring, per-bullet damage scaled to keep 3x). Ramming 20.
 - **Dev mode** (`--dev`): DEV MENU lists every start point (each wave's field and each boss,
-  e.g. "LEVEL 3-2 CARRIER 1.5X"), G god mode. In game: N skip (field end / warning / entry /
+  e.g. "LEVEL 3-2 CARRIER 1.5X"), LEFT/RIGHT picks the hull, G god mode. In game: N skip (field end / warning / entry /
   next boss phase through the normal damage path), 1 fill BLAST+ULT, 2 power up, 3 repair,
   G god, Esc back to the menu. R after game over retries the same start point. "DEV" badge in
   the HUD; dev runs keep records in memory only (never written).
@@ -60,7 +74,14 @@ next: see "Next steps". See [ROADMAP.md](ROADMAP.md).
   (score, level reached, date) + unlocked levels. Written on game over / win (records) and
   level clear (unlock). Title: LEFT/RIGHT picks any unlocked level; TOP SCORES alternate with
   the controls every 6 s; GAME OVER / WIN show "NEW HIGH SCORE!" or "RECORD #n".
-- **Tech:** 320x240 canvas ×3, all art generated in code, pixel-perfect masks, startup ~1.0 s,
+- **Audio** (`game/audio/`, all synthesized in pure Python): music per state — title theme,
+  one track per level (A minor heroic / D minor gallop / E minor spacey), boss theme, final boss
+  theme (Mothership), silence during WARNING, jingles for level clear / game over / win.
+  25 SFX: gun, laser hum loop, overheat, switch, BLAST, ULTIMATE, missile hits, rock/metal hits,
+  small/big rock breaks, drone / ship / boss explosions, ship hurt, enemy shots, boss roar,
+  Mothership beam, warning siren, pickup, power-up, menu blips, engine loop (follows the throttle).
+  Rendered to `sounds/generated/` (git-ignored) on first start (~9 s) or by `tools/build_audio.py`.
+- **Tech:** 320x240 canvas ×3, all art generated in code, pixel-perfect masks, startup ~1.2 s,
   worst frame ~4.6 ms (Gunship), 2.0 ms (Mothership + BLAST + ULTIMATE, real window). Smoke test covers everything above
   (`run_smoke_test(seed=N)` for a reproducible run).
 
@@ -73,9 +94,39 @@ next: see "Next steps". See [ROADMAP.md](ROADMAP.md).
 - Bosses are **3–5x stronger than the rocket** (damage race, see `BossSpec`): level 1 boss 3x,
   level 2 boss 4x, level 3 boss 5x. Earlier bosses re-appear **weakened (~1.5x)** as a warm-up.
 - **3 levels**: L1 = Boss 1; L2 = Boss 1 (weak) → Boss 2; L3 = Boss 1 (weak) → Boss 2 (weak) → Boss 3.
-- Later: leaderboard with saved scores, more asteroid shapes/sizes, realistic sound effects.
+- **Code layout is one package per area** (bosses, minions, obstacles, background, flow ...),
+  `Game` split into mixins — keep new code in that shape (user wants easy debugging / extending).
+- **4 hulls + hangar approved as they are** (ARROW, WASP, TITAN, LANCE; stats unchanged after the
+  playtest). Keep `hp * firepower == 1`.
+- **Synthesized audio approved** (music per level / boss, SFX, engine loop). Keep audio as code
+  recipes in `game/audio/`, not hand-made files.
+- Later: leaderboard with saved scores, more asteroid shapes/sizes.
 
 ## Log
+
+### 2026-09-27 — Restructure into packages, 4 hulls + hangar, synthesized soundtrack + SFX
+- User asked for: every area in its own folder (bosses, minions, background, obstacles, flow ...)
+  for easier debugging and development; new sound effects and background music; new rocket
+  ships with different shapes and dimensions.
+- Restructure (behaviour unchanged, verified by the smoke test before adding features):
+  `settings.py` → `config/` (display, palette, tuning, loadouts); `sprites.py` split to where
+  each sprite is used (each boss file = sprite + muzzles + class); `game.py` (1445 lines) →
+  `flow/game.py` + mixins (events with one `_keys_<state>` handler per state, level_flow, world,
+  combat, sound, dev) + `ui/screens.py`; smoke test → `tests/smoke.py` in 14 named sections
+  (`--only a,b`). Largest module now ~300 lines.
+- Hulls: `Hull` dataclass (rows, nozzles, barrels, multipliers, `apply(loadout)`); `Ship.equip`
+  takes a hull; gun barrels / nose / missile launch points read from the hull. `State.HANGAR`,
+  `ui/hangar.py` (2x previews, stat bars vs the other hulls), `SaveData.ship`.
+- Audio: `synth.py` (pulse/triangle/saw/sine/noise, ADSR, echo, DC block, step sequencer,
+  seamless loops), `sfx.py`, `music.py` (songs as chord progressions + 8th-note melodies),
+  `bank.py` (WAV cache), `player.py` (`play`, `loop`, `music`; rate limits for bursty sounds).
+  `Level.music` / `BossEntry.music` are data. Old `nes.mp3` / `crash.wav` no longer used.
+- Fixed a flaky smoke check that existed on `main` (4/150 runs): the "gun kills a small rock"
+  rock sat between the two barrel streams; it's now on a barrel's line (0/450 failures).
+- Perf: startup 1.2 s (same as `main` on this machine), boss fights 0.8 ms worst update+draw.
+  Verified in a real macOS window (hangar, TITAN vs Carrier, LANCE), audio enabled.
+- User playtest: "so perfect" — sounds great, ships creative. No balance or mix changes asked
+  for. User commits the branch and continues on a new one.
 
 ### 2026-09-27 — Dev mode + minimal storage
 - User: level 3 "really perfect and sweet". Asked for a dev mode to start any level for
@@ -188,13 +239,49 @@ next: see "Next steps". See [ROADMAP.md](ROADMAP.md).
 
 ## Next steps
 
-1. Phase 6 extras (ask the user): 3-letter name entry for records, per-mode tables once
-   endless mode exists, saved settings (scanlines).
-2. Endless mode (Phase 5), Phase 7 (asteroid variety, sound effects).
+Suggestions, roughly in order of value for effort. Items marked **ask** change controls or
+rules, so check with the user first (see "Working with the user" in CLAUDE.md). The user will
+bring their own ideas too — those come first.
+
+**Quick wins (polish)**
+1. **Options menu** (from title + pause): music volume, SFX volume, scanlines, fullscreen;
+   saved in `save.json` (`SaveData` already has the pattern). Closes the last Phase 6/7 items.
+2. **Game feel:** short hit-stop + slow-motion on a boss kill, a flash/zoom on phase changes,
+   screen transitions (wipe) between states, damage numbers on bosses (reuse `ui/popup.py`).
+3. **Level results screen:** time, accuracy, damage taken, kills → rank S/A/B/C and bonus points.
+
+**Bigger features**
+4. **Endless mode** (ROADMAP Phase 5): `Difficulty` ramps over time, a random boss (weakened →
+   stronger) every few minutes, own leaderboard. The level/wave data model already fits:
+   generate `Wave`s on the fly instead of reading `LEVELS`.
+5. **Score depth:** combo multiplier for kills in quick succession (resets on hit), no-hit boss
+   bonus, 3-letter arcade name entry for records (Phase 6).
+6. **New obstacles** (`obstacles/`): ice rocks (shatter into many shards), metal rocks (tough,
+   drop POWER), explosive rocks (chain blast hurts nearby rocks and drones), huge slow rocks,
+   comet with a trail. Each = art palette + `Asteroid` subclass.
+7. **New minions** (`minions/`): kamikaze diver, mine layer, shielded interceptor (only
+   vulnerable from the side), turret on a big rock. Each = sprite + `Enemy` subclass + a
+   formation; mix them into levels via `Difficulty`.
+8. **Unlocks / progression:** hulls or paint jobs unlocked by achievements (e.g. TITAN after
+   level 1, gold paint for a no-hit boss) — stored in `save.json`, shown locked in the hangar.
+9. **Hull abilities** — **ask** (adds a key): one special per hull on SHIFT, e.g. WASP short
+   dash with i-frames, TITAN shield bubble, LANCE overcharged beam, ARROW repair drone.
+10. **Level 4 / new boss:** a new `Level` + a boss file in `bosses/` + a song in `audio/music.py`.
+
+**For the coursework / quality**
+11. **Architecture doc with a UML class diagram** (Mermaid in a `docs/ARCHITECTURE.md`):
+    inheritance (`Boss` → Gunship/Carrier/Mothership, `Enemy` → Drone, `Weapon` → ...,
+    `Pickup` → ...) and the `Game` mixins. Shows the OOP design at a glance for grading.
+12. **Unit tests** (pytest) for pure logic next to the smoke test: `BossSpec`, `Hull.apply`,
+    `SaveData`, synth (`chord`, `freq`, `Song` lengths), `raycast`.
+13. **Gamepad support** (pygame joystick → the same `Keys` set) and a **packaged build**
+    (PyInstaller app for macOS/Windows, so it runs without installing Python).
 
 ## Open questions
 
-- Is the Gunship fight fun at 3x / 40 s? (needs the user's playtest)
-- Should the old clip-art in `images/` and `astroids/` be deleted, or kept for the assignment history?
-- Decided: health comes from repair-kit pickups (small + full); weapons upgrade per level (MK II).
-- Level 2 balance (Carrier 4x, kit frequency, POWER bonuses) needs the user's playtest.
+- Should `sounds/generated/` be committed (7.6 MB, instant first start) instead of rendered on
+  first start (~9 s)? Currently git-ignored.
+- Delete the unused `sounds/crash.wav` + `sounds/nes.mp3` and the old clip-art in `images/` /
+  `astroids/`, or keep them for the assignment history?
+- Decided: health comes from repair-kit pickups (small + full); weapons upgrade per level.
+- Decided (playtests): Gunship 3x, level 2 balance, level 3, hulls and audio all approved.
