@@ -1,5 +1,6 @@
 """Level flow: starting runs, the field -> warning -> boss -> cleared cycle, waves, level clear."""
 import random
+from dataclasses import replace
 
 from ..config.display import LOW_W
 from ..config.palette import ACCENT
@@ -9,7 +10,6 @@ from ..minions.diver import diver_squad
 from ..minions.drone import drone_formation
 from ..obstacles.spawner import AsteroidSpawner
 from ..pickups.types import FullRepair, RepairKit
-from ..player.hulls import HULLS
 from .states import Phase, State
 
 
@@ -23,6 +23,7 @@ class LevelFlowMixin:
         loadout = self.loadout_for(level)
         self.ship.equip(loadout, self.hull)
         self.ship.reset(*self.SHIP_START)
+        self._reset_progress()
         self.background.set_nebula(level.nebula)
         self.asteroids = []
         self.spawner = AsteroidSpawner(self.library, level.difficulty)
@@ -71,12 +72,12 @@ class LevelFlowMixin:
         self.set_state(State.PLAYING)
 
     def loadout_for(self, level):
-        """The level's ship model as flown with the chosen hull."""
-        return self.hull.apply(level.loadout)
-
-    def open_hangar(self):
-        self.hangar_cursor = HULLS.index(self.hull)
-        self.set_state(State.HANGAR)
+        """The level's ship model as flown with the chosen hull; BLAST + ULTIMATE only once
+        the player owns them (the level 2 gift)."""
+        loadout = self.hull.apply(level.loadout)
+        if not self.inventory.owns("SPECIALS"):
+            loadout = replace(loadout, blast=False, ultimate=False)
+        return loadout
 
     def choose_hull(self, hull):
         """Pick a hull (remembered in the save file) and build its sprites for every level now,
@@ -126,9 +127,11 @@ class LevelFlowMixin:
             elif self.wave_index + 1 < len(self.level.waves):
                 self._next_wave()
             elif self.level_index + 1 < len(LEVELS):
-                self.save.unlock(self.level.number + 1)
+                self._bank_level()
+                self.save.unlock(self.level_index + 2)
                 self.set_state(State.LEVEL_CLEAR)
             else:
+                self._bank_level()
                 self.record_rank = self.save.add_record(self.score, self.level.number)
                 self.set_state(State.WIN)
 

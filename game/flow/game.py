@@ -16,12 +16,15 @@ from ..core.particles import ParticleSystem, ScreenShake
 from ..core.pixelart import opaque_surface, window_icon
 from ..core.pixelfont import PixelFont
 from ..core.storage import SaveData
-from ..levels.data import LEVELS
+from ..levels.data import LEVEL_KEYS, LEVELS
 from ..minions.diver import Diver
 from ..obstacles.art import AsteroidLibrary
-from ..player.hulls import HULLS, hull_named
+from ..player.hulls import ARROW, hull_named
 from ..player.ship import Ship
+from ..progression.inventory import Inventory
+from ..ui.gifts import GiftScreen
 from ..ui.hangar import HangarScreen
+from ..ui.item_art import ItemArt
 from ..ui.hud import Hud
 from ..ui.screens import ScreensMixin
 from ..weapons.gun import MachineGun
@@ -30,18 +33,20 @@ from ..weapons.specials import Blast, Ultimate
 from .combat import CombatMixin
 from .dev import DevMixin
 from .events import EventsMixin
+from .hangar import HangarMixin
 from .level_flow import LevelFlowMixin
+from .progression import ProgressionMixin
 from .sound import SoundMixin
 from .states import MENU_STATES, State
 from .world import WorldMixin
 
 
-class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, SoundMixin, DevMixin,
-           ScreensMixin):
+class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixin, HangarMixin,
+           SoundMixin, DevMixin, ScreensMixin):
     """Owns the window, the world objects and the state machine.
 
     Mixins (one file each in flow/ and ui/) add: key handling, level flow, world update,
-    combat, sound, dev tools and drawing. They all work on the attributes created here.
+    combat, progression (coins, rank, payout), hangar + gifts, sound, dev tools and drawing. They all work on the attributes created here.
     """
 
     SHIP_START = (LOW_W / 2, LOW_H - 40)
@@ -50,7 +55,7 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, SoundMixin, Dev
         self.skip_to_boss = skip_to_boss       # testing aid: start every run at the level boss
         self.start_level = start_level - 1     # index into LEVELS (title level select)
         self.dev = dev                         # dev menu + hotkeys; never writes the save file
-        self.save = SaveData(None if dev else save_path)
+        self.load_profile(SaveData(None if dev else save_path))
         self.god = False                       # dev: the rocket takes no damage
         self.dev_cursor = 0
         pygame.mixer.pre_init(44100, -16, 2, 512)
@@ -61,7 +66,9 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, SoundMixin, Dev
         self.clock = pygame.time.Clock()
         self.font = PixelFont()
         self.hud = Hud(self.font)
-        self.hangar_screen = HangarScreen(self.font)
+        art = ItemArt()
+        self.hangar_screen = HangarScreen(self.font, art)
+        self.gift_screen = GiftScreen(self.font, art)
         self.shake = ScreenShake()
         self.scanlines = self._make_scanlines()
         self.show_scanlines = True
@@ -87,8 +94,8 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, SoundMixin, Dev
         self.audio.load()
         self._sound_state = {}                    # weapon states last frame (see SoundMixin)
         self.level_index = self.start_level
-        self.choose_hull(hull_named(self.save.ship))   # builds that hull's sprites
-        self.hangar_cursor = HULLS.index(self.hull)
+        ship = self.save.ship if self.inventory.owns(self.save.ship) else ARROW.name
+        self.choose_hull(hull_named(ship))           # builds that hull's sprites
         pygame.display.set_icon(window_icon(self.ship.frames[0]))
         self.weapons = [MachineGun(), Laser()]
         self.blast = Blast()                      # MK III specials, charged by hitting things
@@ -108,6 +115,11 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, SoundMixin, Dev
         self.time = 0.0
         self.retry_point = (0, 0, 0, None)
         self.to_title()
+
+    def load_profile(self, save):
+        """Use this save file: bank, ranks and the inventory (dev mode owns everything)."""
+        self.save = save
+        self.inventory = Inventory(save, LEVEL_KEYS, everything=self.dev)
 
     def _loading_screen(self, text="BUILDING SPRITES..."):
         self.canvas.fill(SPACE)
@@ -198,6 +210,7 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, SoundMixin, Dev
         self.shockwaves = [w for w in self.shockwaves if not w.done]
         self.shake.update(dt)
         self.flash = max(0.0, self.flash - dt)
+        self._update_progress(dt)
         self.hurt_flash = max(0.0, self.hurt_flash - dt)
 
         if self.state == State.DYING and self.state_time > DEATH_DELAY:

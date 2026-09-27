@@ -40,6 +40,8 @@ class DevMixin:
                 weapon.power_up()
         elif key == pygame.K_3:
             self.ship.hp = self.ship.max_hp
+        elif key == pygame.K_4:
+            self.collect_coins(50)
         else:
             return False
         return True

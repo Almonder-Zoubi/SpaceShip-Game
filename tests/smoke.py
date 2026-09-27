@@ -31,8 +31,10 @@ from game.levels.data import LEVELS
 from game.minions.diver import Diver
 from game.minions.drone import drone_formation
 from game.obstacles.asteroid import Asteroid, IceRock
-from game.pickups.types import FullRepair, PowerCore, RepairKit
+from game.pickups.types import BigCoin, Coin, FullRepair, PowerCore, RepairKit
 from game.player.hulls import ARROW, HULLS, TITAN, WASP
+from game.progression.economy import level_payout
+from game.progression.results import RANKS, LevelStats, better_rank
 from game.weapons.base import Hit
 
 FIRE = Keys(pygame.K_SPACE)
@@ -45,6 +47,7 @@ class Harness:
         self.shots_dir = shots_dir
         self.save_path = os.path.join(tempfile.mkdtemp(), "save.json")   # never the player's
         self.game = Game(save_path=self.save_path)
+        self.game.inventory.grant_all()     # sections below test levels 1-4 with every item
         self.dt = 1 / FPS
         self.field = LEVELS[0].difficulty
 
@@ -97,6 +100,15 @@ class Harness:
             return None
         with open(self.save_path) as f:
             return json.load(f)["records"]
+
+    def next_level(self):
+        """Results screen -> ENTER -> (gift) -> hangar -> SPACE launches the next level."""
+        self.post(pygame.K_RETURN)
+        if self.game.state == State.REWARD:
+            self.game.state_time = 1.0
+            self.post(pygame.K_RETURN)
+        assert self.game.state == State.HANGAR, self.game.state
+        self.post(pygame.K_SPACE)
 
     def die(self):
         game = self.game
@@ -329,7 +341,7 @@ def test_campaign(h):
     h.shot("level_clear")
 
     # Level 2: upgraded ship, crimson field with drone formations.
-    h.post(pygame.K_RETURN)
+    h.next_level()
     assert game.state == State.PLAYING and game.level.number == 2
     assert game.score > 0, "score carries over"
     assert game.ship.loadout == MK2 and game.ship.hp == MK2.max_hp == game.ship.max_hp
@@ -404,7 +416,7 @@ def test_campaign(h):
     h.shot("level2_clear")
 
     # Level 3: MK III with BLAST and ULTIMATE, three waves.
-    h.post(pygame.K_RETURN)
+    h.next_level()
     assert game.level.number == 3 and game.ship.loadout == MK3 and game.wave_index == 0
     assert game.blast.charge == 0 and game.ultimate.charge == 0
     game.ship.hp = 10 ** 9
@@ -517,7 +529,7 @@ def test_campaign(h):
     run(seconds(1.2))
     h.shot("level3_clear")
     score = game.score
-    h.post(pygame.K_RETURN)
+    h.next_level()
     assert game.level.number == 4 and game.ship.loadout == MK4 and game.score == score
 
 
@@ -635,6 +647,193 @@ def test_save(h):
     game.choose_hull(ARROW)
 
 
+def test_economy(h):
+    """Coins are pending until a level is won; rank and payout; save file v2 + migration."""
+    game = h.game
+    # Rank: a clean fast run is S, a battered slow one C; the better rank is kept.
+    stats = LevelStats(max_hp=100)
+    stats.destroyed, stats.escaped, stats.boss_time, stats.boss_par = 60, 40, 30, 40
+    assert stats.rank() == "S", stats.ratings()
+    stats.damage_taken, stats.boss_time, stats.destroyed = 160, 120, 10
+    assert stats.rank() == "C", stats.ratings()
+    assert better_rank("B", "A") == "A" and better_rank(None, "C") == "C"
+    # Payout: first clear gets the bonus, a replay pays half.
+    first = level_payout(40, 2, "A", first_clear=True)
+    replay = level_payout(40, 2, "A", first_clear=False)
+    assert first.clear_bonus == 150 and first.total == 40 + 150 + 100
+    assert replay.replay and replay.total == round((40 + 150) * 0.5)
+
+    # A version 1 save file loads with an empty bank and keeps records / unlocks / ship.
+    with open(h.save_path, "w") as f:
+        json.dump({"records": [{"score": 900, "level": 2, "date": "2026-01-01"}],
+                   "unlocked": 3, "ship": "WASP"}, f)
+    old = SaveData(h.save_path)
+    assert old.unlocked == 3 and old.ship == "WASP" and old.best == 900
+    assert old.coins == 0 and old.cleared == {}
+    with open(h.save_path, "w") as f:
+        json.dump({"version": 2, "coins": "lots", "cleared": {"1-1": "A"}}, f)
+    assert SaveData(h.save_path).coins == 0, "a broken value falls back to a fresh save"
+    fresh = SaveData(h.save_path)
+    fresh._reset()
+    fresh.save()
+    game.load_profile(SaveData(h.save_path))
+
+    # Coins picked up in a level are pending; death loses them, the bank stays.
+    game.choose_hull(ARROW)
+    game.start(0)
+    assert game.pending_coins == 0 and game.save.coins == 0
+    game.pickups = [Coin(game.ship.x, game.ship.y), BigCoin(game.ship.x, game.ship.y)]
+    h.run(2, clear_rocks=True)
+    assert game.pending_coins == 6 and game.save.coins == 0, game.pending_coins
+    rock = h.rock_ahead(12)
+    game.asteroids = [rock]
+    game._damage_rock(Hit(rock, 10 ** 6, rock.x, rock.y, 0, -1, 0))
+    assert game.stats.destroyed == 1
+    game.ship.hp, game.ship.invulnerable_time = 100, 0
+    game.hurt_ship(30, 0, 0)
+    assert game.stats.damage_taken == 30
+    h.run(20, clear_rocks=True)
+    h.shot("coins_hud")
+    h.die()
+    assert game.state == State.GAME_OVER and game.save.coins == 0
+    h.shot("coins_lost")
+    h.post(pygame.K_r)
+    assert game.pending_coins == 0, "a retry starts without the lost coins"
+
+    # Winning the level banks pending coins + boss coins (collected even if still flying)
+    # + clear bonus, keeps the rank, and shows the results screen.
+    game.start(0, 0, 0, 0)
+    game.ship.hp = 10 ** 9
+    h.run(h.seconds(WARNING_TIME + 3.5), clear_rocks=True)
+    assert game.boss and game.boss.fighting
+    game.collect_coins(10)
+    h.kill(game.boss)
+    h.run(h.seconds(game.boss.DEATH_TIME + 1.7), clear_rocks=True)
+    assert game.state == State.LEVEL_CLEAR, game.state
+    payout = game.payout
+    assert payout.pending >= 10 + 30 // 2 and not payout.replay and payout.first_clear
+    assert game.level_rank in RANKS and game.save.cleared == {"1-1": game.level_rank}
+    assert game.save.coins == payout.total and SaveData(h.save_path).coins == payout.total
+    assert game.stats.boss_par == game.boss.spec.fight_time and game.stats.boss_time > 0
+    h.run(h.seconds(1.3))
+    h.shot("results_rank")
+    h.run(h.seconds(3.0))
+    assert game.tally() == payout.total
+    h.shot("results")
+    bank = game.save.coins
+    game.start(0, 0, 0, 0)                               # a replay pays half
+    game.ship.hp = 10 ** 9
+    h.run(h.seconds(WARNING_TIME + 3.5), clear_rocks=True)
+    h.kill(game.boss)
+    h.run(h.seconds(game.boss.DEATH_TIME + 1.7), clear_rocks=True)
+    assert game.state == State.LEVEL_CLEAR and game.payout.replay
+    assert game.save.coins == bank + game.payout.total
+    game.save._reset()
+    game.save.save()
+    game.load_profile(SaveData(h.save_path))
+    game.inventory.grant_all()
+    game.to_title()
+
+
+def test_inventory(h):
+    """A new player owns ARROW + gun; gifts (1 of 2, the other goes to the shop); the hangar
+    equips, buys and launches; old saves get the gifts of the levels they cleared."""
+    game = h.game
+    fresh = SaveData(h.save_path)
+    fresh._reset()
+    fresh.save()
+    game.load_profile(SaveData(h.save_path))
+    inv = game.inventory
+    assert game.save.owned == ["ARROW", "GUN"] and inv.status("LASER") == "LOCKED"
+    game.choose_hull(ARROW)
+    game.start(2)                                        # no BLAST / ULT / laser yet
+    assert not game.ship.loadout.blast and not game.ship.loadout.ultimate
+    game.switch_weapon()
+    assert game.weapon.name == "GUN", "R does nothing with only the gun"
+
+    # Level 1 won -> gift: choose WASP, LASER goes to the shop -> hangar on the WASP.
+    game.start(0, 0, 0, 0)
+    game.ship.hp = 10 ** 9
+    h.run(h.seconds(WARNING_TIME + 3.5), clear_rocks=True)
+    h.kill(game.boss)
+    h.run(h.seconds(game.boss.DEATH_TIME + 1.7 + 1.2), clear_rocks=True)
+    assert game.state == State.LEVEL_CLEAR
+    h.post(pygame.K_RETURN)
+    assert game.state == State.REWARD and [i.id for i in game.gift_options] == ["LASER", "WASP"]
+    h.run(h.seconds(0.6))
+    h.post(pygame.K_RIGHT)
+    h.run(10)
+    h.shot("gift")
+    h.post(pygame.K_RETURN)
+    assert game.state == State.HANGAR and inv.owns("WASP") and game.hull is WASP
+    assert inv.status("LASER") == "SHOP" and game.save.gifts == ["1-1"]
+    assert game.hangar_item.id == "WASP" and game.next_launch[0] == 1
+    h.run(10)
+    h.shot("hangar_new_ship")
+    assert not inv.gift_options("1-1"), "a gift is given once"
+
+    # Shop: ENTER asks, ENTER buys; not enough credits is refused; locked says how to unlock.
+    h.post(pygame.K_RIGHT)                               # WEAPONS tab
+    while game.hangar_item.id != "LASER":
+        h.post(pygame.K_DOWN)
+    coins = game.save.coins
+    game.save.coins = 10
+    h.post(pygame.K_RETURN)
+    h.post(pygame.K_RETURN)
+    assert not inv.owns("LASER") and game.hangar_message[0] == "NOT ENOUGH CREDITS"
+    game.save.coins = coins
+    assert coins >= 200, coins
+    h.post(pygame.K_RETURN)
+    assert game.hangar_confirm == "LASER" and not inv.owns("LASER")
+    h.run(10)
+    h.shot("hangar_buy")
+    h.post(pygame.K_RETURN)
+    assert inv.owns("LASER") and game.save.coins == coins - 200
+    assert SaveData(h.save_path).owned == game.save.owned, "purchases are saved"
+    h.post(pygame.K_LEFT)
+    while game.hangar_item.id != "TITAN":
+        h.post(pygame.K_DOWN)
+    h.post(pygame.K_RETURN)
+    assert game.hull is WASP and "LEVEL 3" in game.hangar_message[0]
+    h.run(10)
+    h.shot("hangar_locked")
+
+    # SPACE launches level 2 with the WASP; the laser switches in now.
+    score = game.score
+    h.post(pygame.K_SPACE)
+    assert game.state == State.PLAYING and game.level.number == 2 and game.score == score
+    assert game.ship.hull is WASP
+    game.switch_weapon()
+    assert game.weapon.name == "LASER"
+
+    # Level 2 won -> the fixed gift BLAST + ULTIMATE.
+    game.start(1, 0, 0, 1)
+    game.ship.hp = 10 ** 9
+    h.run(h.seconds(WARNING_TIME + 3.5), clear_rocks=True)
+    h.kill(game.boss)
+    h.run(h.seconds(game.boss.DEATH_TIME + 1.7 + 1.2), clear_rocks=True)
+    h.post(pygame.K_RETURN)
+    assert game.state == State.REWARD and len(game.gift_options) == 1
+    h.run(h.seconds(0.6))
+    h.post(pygame.K_RETURN)
+    assert inv.owns("SPECIALS") and game.loadout_for(LEVELS[2]).blast
+
+    # An older save (no inventory) that reached level 3 gets the gifts of levels 1 and 2.
+    with open(h.save_path, "w") as f:
+        json.dump({"version": 2, "unlocked": 3, "ship": "WASP", "coins": 70}, f)
+    game.load_profile(SaveData(h.save_path))
+    inv = game.inventory
+    assert all(inv.owns(i) for i in ("ARROW", "GUN", "LASER", "WASP", "SPECIALS"))
+    assert inv.status("TITAN") == "LOCKED" and game.save.gifts == ["1-1", "1-2"]
+    assert SaveData(h.save_path).owned is not None, "the rebuilt inventory is saved"
+    game.save._reset()
+    game.save.save()
+    game.load_profile(SaveData(h.save_path))
+    game.inventory.grant_all()
+    game.choose_hull(ARROW)
+    game.to_title()
+
+
 def test_title_menus(h):
     """Title: level select with LEFT/RIGHT, scores alternate in; ENTER -> hangar -> launch."""
     game = h.game
@@ -649,17 +848,19 @@ def test_title_menus(h):
     game.draw()
     h.shot("title_records")
     h.post(pygame.K_RETURN)
-    assert game.state == State.HANGAR and game.hangar_cursor == HULLS.index(game.hull)
-    h.post(pygame.K_RIGHT)
+    assert game.state == State.HANGAR and game.hangar_item.id == game.hull.name
+    h.post(pygame.K_DOWN)
     h.run(30)
     h.shot("hangar")
     h.post(pygame.K_ESCAPE)
     assert game.state == State.TITLE, "ESC leaves the hangar"
     h.post(pygame.K_UP)                                  # arrows open the hangar too
     assert game.state == State.HANGAR
-    while HULLS[game.hangar_cursor] is not WASP:
-        h.post(pygame.K_RIGHT)
-    h.post(pygame.K_RETURN)
+    while game.hangar_item.id != "WASP":
+        h.post(pygame.K_DOWN)
+    h.post(pygame.K_RETURN)                              # ENTER equips ...
+    assert game.state == State.HANGAR and game.hull is WASP
+    h.post(pygame.K_RETURN)                              # ... and ENTER again launches
     assert game.state == State.PLAYING and game.level.number == 3 and game.score == 0
     assert game.hull is WASP and game.ship.hull is WASP and game.save.ship == "WASP"
     assert game.ship.max_hp == round(MK3.max_hp * WASP.hp)
@@ -707,7 +908,8 @@ def test_dev(h):
     """Dev mode: a menu of every start point, ship choice, god mode, hotkeys, nothing saved."""
     game = h.game
     records_before = h.saved_records()
-    game.dev, game.save = True, SaveData(None)
+    game.dev = True
+    game.load_profile(SaveData(None))
     game.to_title()
     assert game.state == State.DEV_MENU
     items = game.dev_items()
@@ -753,7 +955,8 @@ def test_dev(h):
     h.die()
     assert game.state == State.GAME_OVER and game.save.records != [] and game.save.path is None
     assert h.saved_records() == records_before, "dev runs don't touch the file"
-    game.dev, game.save = False, SaveData(h.save_path)
+    game.dev = False
+    game.load_profile(SaveData(h.save_path))
 
 
 def test_retry(h):
@@ -837,7 +1040,7 @@ SECTIONS = (
     ("weapons", test_weapons),
     ("damage", test_damage), ("balance", test_balance), ("pickups", test_pickups),
     ("campaign", test_campaign), ("level4", test_level4), ("save", test_save), ("menus", test_title_menus),
-    ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
+    ("economy", test_economy), ("inventory", test_inventory), ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
     ("busy", test_busy),
 )
 

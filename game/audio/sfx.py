@@ -157,6 +157,26 @@ def power_up():
     return mix(arp, tone("triangle", 200, 800, 0.36, 0.4, power=0.5))
 
 
+def coin():
+    """Coin pickup: the classic two-note 'ding'."""
+    return seq(tone("square", freq("B5"), None, 0.04, 0.28, duty=0.25),
+               tone("square", freq("E6"), None, 0.12, 0.28, duty=0.25))
+
+
+def rank():
+    """Results screen: the rank stamp lands — a thump and a bright chord."""
+    thump = mix(tone("sine", 110, 45, 0.25, 0.7), lowpass(noise(0.12, 3000, 500, 0.5), 0.5))
+    chord = mix(*(tone("square", freq(n), None, 0.35, 0.14, duty=0.25, attack=0.01)
+                  for n in ("C5", "E5", "G5", "C6")))
+    return mix(thump, at(0.04, chord))
+
+
+def denied():
+    """Menu: can't do that (locked, not enough credits) — a low double buzz."""
+    buzz = tone("square", 140, 120, 0.09, 0.3, duty=0.5, power=0.5)
+    return seq(buzz, silence(0.03), buzz)
+
+
 def select():
     return tone("square", 880, None, 0.04, 0.3, duty=0.25)
 
@@ -181,6 +201,7 @@ SOUNDS = {
     "ship_explode": ship_explode, "boss_explode": boss_explode, "enemy_shot": enemy_shot,
     "boss_roar": boss_roar, "beam": beam, "warning": warning, "pickup": pickup,
     "power_up": power_up, "select": select, "confirm": confirm, "engine": engine_loop,
-    "lock_on": lock_on, "dive": dive, "ice_break": ice_break,
+    "lock_on": lock_on, "dive": dive, "ice_break": ice_break, "coin": coin, "rank": rank,
+    "denied": denied,
 }
 LOOPS = ("laser", "engine")         # played on their own channel, looping

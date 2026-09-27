@@ -2,8 +2,8 @@
 import pygame
 
 from ..config.display import LOW_H, LOW_W
-from ..config.palette import (ACCENT, DANGER, EMPTY, GOOD, INK, SPACE, TEXT, TEXT_DIM,
-                              TEXT_SHADOW)
+from ..config.palette import (ACCENT, COIN, DANGER, EMPTY, GOOD, INK, RANK_COLORS, SPACE, TEXT,
+                              TEXT_DIM, TEXT_SHADOW)
 from ..flow.states import Phase, State
 from ..levels.data import LEVELS
 
@@ -26,7 +26,7 @@ class ScreensMixin:
             pickup.draw(c)
         if self.state == State.PLAYING and self.ship.alive and self.mouse.aim:
             self._draw_reticle(c, *self.mouse.aim)
-        if self.ship.alive and self.state not in (State.DEV_MENU, State.HANGAR):   # menus need room
+        if self.ship.alive and self.state not in (State.DEV_MENU, State.HANGAR, State.REWARD):
             self.ship.draw_flames(c)
             self.ship.draw(c)
         for weapon in self.weapons:
@@ -63,14 +63,25 @@ class ScreensMixin:
         if s == State.DEV_MENU:
             self._draw_dev_menu(c, blink)
             return
+        if s in (State.HANGAR, State.REWARD):           # dim the ambient rocks behind the menu
+            shade = pygame.Surface((LOW_W, LOW_H), pygame.SRCALPHA)
+            shade.fill((*SPACE, 170))
+            c.blit(shade, (0, 0))
         if s == State.HANGAR:
-            self._draw_hangar(c, blink)
+            self.hangar_screen.draw(c, self.hangar_view(), self.time, blink)
+            return
+        if s == State.REWARD:
+            self.gift_screen.draw(c, self.gift_options, self.gift_cursor, self.level.number,
+                                  LEVELS[self.level_index + 1].loadout.colors, self.time, blink)
             return
         loadout = self.ship.loadout
         self.hud.draw(c, self.ship, self.score, max(self.best, self.score),
                       self.distance / self.wave.length, self.weapon, self.time, boss=self.boss,
                       level=self._level_label(), blast=self.blast if loadout.blast else None,
-                      ultimate=self.ultimate if loadout.ultimate else None)
+                      ultimate=self.ultimate if loadout.ultimate else None,
+                      galaxy=self.galaxy.number, switchable=self.inventory.owns("LASER"),
+                      coins=None if self.payout else   # results screen counts them
+                      (self.save.coins, self.pending_coins, self.coin_flash))
         if self.dev:                                    # dev runs are marked, never recorded
             self.font.draw(c, "DEV GOD" if self.god else "DEV", (6, 24), DANGER,
                            shadow=TEXT_SHADOW)
@@ -92,11 +103,11 @@ class ScreensMixin:
             self.font.draw(c, f"SCORE {self.score}", (LOW_W // 2, LOW_H // 2 + 40),
                            TEXT_DIM, shadow=TEXT_SHADOW, center=True)
             self._draw_record_rank(c, LOW_H // 2 + 52)
-        elif s == State.LEVEL_CLEAR and self.state_time > 0.8:
-            self._draw_level_clear(c, blink)
-        elif s == State.WIN and self.state_time > 0.8:
-            self.hud.banner(c, "YOU WIN!", "PRESS R TO PLAY AGAIN", title_color=GOOD, blink_on=blink)
-            self._draw_record_rank(c, LOW_H // 2 + 40)
+            if self.pending_coins:                      # coins only count when a level is won
+                self.font.draw(c, f"{self.pending_coins} CREDITS LOST", (LOW_W // 2, LOW_H // 2 + 64),
+                               DANGER, shadow=TEXT_SHADOW, center=True)
+        elif s in (State.LEVEL_CLEAR, State.WIN) and self.state_time > 0.8:
+            self._draw_results(c, blink, win=s == State.WIN)
 
     def _draw_warning(self, c):
         """Classic boss alert: blinking red stripes and WARNING, 'hull repaired' note."""
@@ -123,26 +134,68 @@ class ScreensMixin:
             self.font.draw(c, "HULL REPAIRED", (LOW_W // 2, 160), GOOD, shadow=TEXT_SHADOW,
                            center=True)
 
-    def _draw_level_clear(self, c, blink):
-        """'LEVEL 1 CLEAR' and the ship upgrade waiting in the next level."""
+    def _draw_results(self, c, blink, win):
+        """Level results: stats with rating bars, the rank stamp, coins counted into the bank,
+        then the ship upgrade waiting in the next level (or the record after a win)."""
         f = self.font
-        nxt = LEVELS[self.level_index + 1]
-        panel = pygame.Rect(0, 0, 220, 128)
-        panel.midtop = (LOW_W // 2, 44)
+        panel = pygame.Rect(35, 8, 250, 218)
         shade = pygame.Surface(panel.size, pygame.SRCALPHA)
-        shade.fill((*INK, 200))
+        shade.fill((*INK, 210))
         c.blit(shade, panel)
         pygame.draw.rect(c, TEXT_DIM, panel, 1)
-        f.draw(c, f"LEVEL {self.level.number} CLEAR", (LOW_W // 2, 52), GOOD, scale=2,
-               shadow=TEXT_SHADOW, center=True)
-        f.draw(c, f"SCORE {self.score}", (LOW_W // 2, 72), TEXT_DIM, shadow=TEXT_SHADOW, center=True)
+        left, right, mid = panel.left + 10, panel.right - 10, LOW_W // 2
+        title = "YOU WIN!" if win else f"LEVEL {self.level.number} CLEAR"
+        f.draw(c, title, (mid, 14), GOOD, scale=2, shadow=TEXT_SHADOW, center=True)
+        f.draw(c, f"SCORE {self.score}", (mid, 34), TEXT_DIM, shadow=TEXT_SHADOW, center=True)
+
+        stats = self.stats
+        ratings = stats.ratings()
+        boss = (f"{int(stats.boss_time)}S / {int(stats.boss_par)}S" if stats.boss_par else "-")
+        seen = stats.destroyed + stats.escaped
+        rows = (("DAMAGE TAKEN", f"{int(stats.damage_taken)} HP", ratings["damage"]),
+                ("BOSS TIME", boss, ratings["speed"]),
+                ("DESTROYED", f"{round(100 * stats.destroyed / seen) if seen else 100}%",
+                 ratings["destroyed"]))
+        for i, (label, value, rating) in enumerate(rows):
+            y = 48 + i * 10
+            f.draw(c, label, (left, y), TEXT, shadow=TEXT_SHADOW)
+            f.draw(c, value, (left + 136 - f.size(value)[0], y), TEXT_DIM, shadow=TEXT_SHADOW)
+            self.hud._bar(left + 142, y + 1, 40, 4, c, rating, GOOD if rating > 0.6 else ACCENT)
+        if self.state_time > self.RANK_TIME:            # the rank lands like a stamp
+            scale = 7 if self.state_time < self.RANK_TIME + 0.12 else 5
+            color = RANK_COLORS[self.level_rank]
+            f.draw(c, self.level_rank, (right - 22, 62 - scale * 7 // 2), color, scale=scale,
+                   shadow=TEXT_SHADOW, center=True)
+            f.draw(c, "RANK", (right - 22, 84), TEXT_DIM, shadow=TEXT_SHADOW, center=True)
+
+        p = self.payout
+        lines = [("PICKED UP", f"+{p.pending}"),
+                 (f"CLEAR BONUS {self.level_rank}", f"+{p.clear_bonus}")]
+        lines.append(("REPLAY PAYS 50%", "X0.5") if p.replay else ("FIRST CLEAR", f"+{p.first_clear}"))
+        for i, (label, value) in enumerate(lines):
+            y = 96 + i * 10
+            f.draw(c, label, (left, y), TEXT, shadow=TEXT_SHADOW)
+            f.draw(c, value, (right - f.size(value)[0], y), COIN[2], shadow=TEXT_SHADOW)
+        tally = self.tally()
+        f.draw(c, f"TOTAL +{p.total}", (left, 131), TEXT, shadow=TEXT_SHADOW)
+        bank = f"CR {self.bank_before + tally}"
+        f.draw(c, bank, (right - f.size(bank, 2)[0], 127), TEXT if 0 < tally < p.total else COIN[2],
+               scale=2, shadow=TEXT_SHADOW)
+        c.fill(TEXT_DIM, (left, 147, right - left, 1))
+
+        if win:
+            self._draw_record_rank(c, 160)
+            if blink and self.state_time > 1.0:
+                f.draw(c, "R: PLAY AGAIN", (mid, 214), TEXT, shadow=TEXT_SHADOW, center=True)
+            return
+        nxt = LEVELS[self.level_index + 1]
         if nxt.loadout != self.level.loadout:
-            f.draw(c, f"SHIP UPGRADE: {self.hull.name} {nxt.loadout.name}", (LOW_W // 2, 88),
-                   ACCENT, shadow=TEXT_SHADOW, center=True)
+            f.draw(c, f"SHIP UPGRADE: {self.hull.name} {nxt.loadout.name}", (mid, 154), ACCENT,
+                   shadow=TEXT_SHADOW, center=True)
             for i, note in enumerate(self._upgrade_notes(nxt)):
-                f.draw(c, note, (LOW_W // 2, 102 + i * 10), TEXT, shadow=TEXT_SHADOW, center=True)
+                f.draw(c, note, (mid, 166 + i * 10), TEXT, shadow=TEXT_SHADOW, center=True)
         if blink and self.state_time > 1.0:
-            f.draw(c, f"ENTER: LEVEL {nxt.number}", (LOW_W // 2, 158), TEXT, shadow=TEXT_SHADOW,
+            f.draw(c, f"ENTER: LEVEL {nxt.number}", (mid, 214), TEXT, shadow=TEXT_SHADOW,
                    center=True)
 
     def _upgrade_notes(self, nxt):
@@ -154,10 +207,6 @@ class ScreensMixin:
         return (f"HULL {old.max_hp} > {new.max_hp}   GUN {_num(old.gun_damage)} > "
                 f"{_num(new.gun_damage)}",
                 f"LASER +{laser}%{cooler}") + nxt.upgrade_notes
-
-    def _draw_hangar(self, c, blink):
-        self.hangar_screen.draw(c, self.hangar_cursor, LEVELS[self.start_level].loadout,
-                                LEVELS[self.start_level].number, self.time, blink)
 
     def _draw_record_rank(self, c, y):
         if self.record_rank == 1:
@@ -225,7 +274,7 @@ class ScreensMixin:
                shadow=TEXT_SHADOW, center=True)
         f.draw(c, "IN GAME:  N SKIP   1 CHARGE   2 POWER", (LOW_W // 2, 210), TEXT_DIM,
                shadow=TEXT_SHADOW, center=True)
-        f.draw(c, "3 REPAIR   G GOD   ESC MENU", (LOW_W // 2, 221), TEXT_DIM,
+        f.draw(c, "3 REPAIR   4 COINS   G GOD   ESC MENU", (LOW_W // 2, 221), TEXT_DIM,
                shadow=TEXT_SHADOW, center=True)
 
 

@@ -78,6 +78,8 @@ class CombatMixin:
         self.audio.play(rock.break_sound())
         if scored:
             self.score += r * POINTS_PER_RADIUS
+            self.stats.destroyed += 1
+            self._drop_rock_coins(rock)
             if r >= 10 and random.random() < ROCK_KIT_CHANCE:
                 self.pickups.append(RepairKit(rock.x, rock.y))
         if rock.splits:
@@ -117,6 +119,8 @@ class CombatMixin:
             self.enemies.remove(enemy)
         if scored and self.state == State.PLAYING:
             self.score += enemy.points
+            self.stats.destroyed += 1
+            self._drop_minion_coins(enemy)
             if random.random() < DRONE_KIT_CHANCE:
                 self.pickups.append(RepairKit(enemy.x, enemy.y))
 
@@ -145,6 +149,7 @@ class CombatMixin:
         self.pickups.append(PowerCore(b.x - 14, y, vx=-35, vy=50))
         kit = FullRepair if b.phase == b.PHASES - 1 else RepairKit
         self.pickups.append(kit(b.x + 14, y, vx=35, vy=50))
+        self._drop_boss_coins(b, phase_change=True)
         self.audio.play("boss_roar")
         mood = "IS FURIOUS!" if b.phase == b.PHASES - 1 else "IS ANGRY!"
         self.alert = [f"PHASE {b.phase + 1}", f"{b.spec.name} {mood}", DANGER, BOSS_ROAR_TIME + 0.8]
@@ -160,6 +165,8 @@ class CombatMixin:
         self.audio.play("boss_explode")
         if self.state == State.PLAYING:
             self.score += POINTS_BOSS
+            self._record_boss_time(b)
+            self._drop_boss_coins(b)
             self.set_phase(Phase.CLEARED)
 
     def _charge(self, damage, killed, minion=False):

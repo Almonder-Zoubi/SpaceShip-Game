@@ -64,21 +64,27 @@ class EventsMixin:
             self.start_level = (self.start_level + step) % self.selectable_levels
             self.audio.play("select")
         elif key in START_KEYS or key in MOVE_KEYS:
-            self.open_hangar()
+            self.open_hangar(self.start_level)
         elif key == pygame.K_ESCAPE:
             return False
 
     def _keys_hangar(self, key):
         if key in LEFT_KEYS + RIGHT_KEYS:
-            step = 1 if key in RIGHT_KEYS else -1
-            self.hangar_cursor = (self.hangar_cursor + step) % len(HULLS)
-            self.audio.play("select")
+            self.hangar_switch_tab(1 if key in RIGHT_KEYS else -1)
+        elif key in UP_KEYS + DOWN_KEYS:
+            self.hangar_move(1 if key in DOWN_KEYS else -1)
+        elif key == pygame.K_SPACE:
+            self.hangar_launch()
         elif key in START_KEYS:
-            self.choose_hull(HULLS[self.hangar_cursor])
-            self.audio.play("confirm")
-            self.start(self.start_level)
+            self.hangar_select()
         elif key == pygame.K_ESCAPE:
-            self.set_state(State.TITLE)
+            self.to_title()
+
+    def _keys_reward(self, key):
+        if key in LEFT_KEYS + RIGHT_KEYS:
+            self.gift_move(1 if key in RIGHT_KEYS else -1)
+        elif key in START_KEYS and self.state_time > 0.5:
+            self.take_gift()
 
     def _keys_dev_menu(self, key):
         items = self.dev_items()
@@ -125,7 +131,7 @@ class EventsMixin:
 
     def _keys_level_clear(self, key):
         if key in START_KEYS and self.state_time > 1.0:
-            self.start(self.level_index + 1, self.score)
+            self.after_level_clear()
         elif key == pygame.K_ESCAPE:
             self.to_title()
 
@@ -137,7 +143,12 @@ class EventsMixin:
 
     # --- actions -----------------------------------------------------------------------
     def switch_weapon(self):
-        self.weapon_index = (self.weapon_index + 1) % len(self.weapons)
+        """R: the next weapon the player owns (nothing happens with only the gun)."""
+        owned = [i for i, w in enumerate(self.weapons) if self.inventory.owns(w.name)]
+        if len(owned) < 2:
+            return
+        later = [i for i in owned if i > self.weapon_index]
+        self.weapon_index = later[0] if later else owned[0]
         self.audio.play("switch")
 
     def fire_ultimate(self):

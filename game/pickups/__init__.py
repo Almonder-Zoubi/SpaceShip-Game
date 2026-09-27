@@ -1,1 +1,1 @@
-"""Pickups that float down the screen: repair kits and weapon power cores."""
+"""Pickups that float down the screen: repair kits, weapon power cores and coins."""

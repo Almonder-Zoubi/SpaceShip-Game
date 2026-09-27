@@ -31,7 +31,8 @@ The **first start takes ~10 s longer**: the game synthesizes its music and sound
 | `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test` | headless self-test |
 | `python3 -m pyflakes ESA3.py game/ tests/ tools/` | lint |
 
-`save.json` (project root, git-ignored) holds your records, unlocked levels and chosen ship.
+`save.json` (project root, git-ignored) holds your records, unlocked levels, chosen ship, coin bank
+and best rank per level (version 2; a version 1 file loads with an empty bank).
 Delete it to start fresh. Tests and `--dev` never write it.
 
 ---
@@ -78,6 +79,7 @@ is the planned NEMESIS mode, ROADMAP Phase 9).
 | Gunship / Carrier / Mothership | attack order per phase (a fixed cycle), movement path | ring offsets, Carrier rain, gap position in bullet walls | aimed fans, walls leave a gap near you, beam follows you |
 | Leviathan | attack cycle per phase | where it swims (random waypoints), which plate sheds bullets | ripple shots aimed at you, dives lock onto your position |
 | Pickups | kit every 13–20 s | timing, position, drop chances, full vs small kit | kits and power cores drift to you |
+| Coins | boss coins (30 + 10 x level, half for a rematch), clear bonus, rank rules | which rock / minion drops coins, how many | coins drift to you; boss coins home in |
 
 So two runs never look the same, but a boss always "plays by the same rules". That is
 intentional: it lets players learn the patterns.
@@ -98,6 +100,7 @@ loop. Its behaviour is split into **mixins**, one file each, all working on the 
 | `LevelFlowMixin` | `flow/level_flow.py` | start / retry a level, field -> warning -> boss -> cleared, waves, level clear |
 | `WorldMixin` | `flow/world.py` | move rocks, enemies, bullets, pickups; hazards that hurt the ship |
 | `CombatMixin` | `flow/combat.py` | the player's hits: damage, kills, splitting, score, BLAST / ULT charge |
+| `ProgressionMixin` | `flow/progression.py` | pending coins, `LevelStats`, rank + payout into the bank when a level is won |
 | `SoundMixin` | `flow/sound.py` | which music plays in which state, engine / laser loops |
 | `DevMixin` | `flow/dev.py` | dev menu items, god mode, hotkeys |
 | `ScreensMixin` | `ui/screens.py` | drawing every frame and every state's overlay |
@@ -117,7 +120,8 @@ run():  handle_events()          keys/mouse -> self.held, self.mouse, state hand
 ### States and phases
 
 - **State** (`flow/states.py`): TITLE -> HANGAR -> PLAYING -> (PAUSED / DYING -> GAME_OVER)
-  -> LEVEL_CLEAR -> ... -> WIN. Plus DEV_MENU.
+  -> LEVEL_CLEAR (results) -> REWARD (gift, first clear only) -> HANGAR -> PLAYING ... -> WIN.
+  Plus DEV_MENU.
 - **Phase** while PLAYING: FIELD (asteroids, progress bar) -> WARNING (hull repaired) ->
   BOSS -> CLEARED, repeated for every boss of a wave and every wave of a level.
 
@@ -141,6 +145,8 @@ classDiagram
     Pickup <|-- RepairKit
     Pickup <|-- FullRepair
     Pickup <|-- PowerCore
+    Pickup <|-- Coin
+    Coin <|-- BigCoin
     Level *-- Wave
     Wave *-- BossEntry
     BossEntry --> BossSpec
@@ -254,8 +260,18 @@ colours shared by several things go in `config/palette.py`.
 ### A new player ship (hull)
 
 `player/hulls.py`: draw its rows, then `Hull("NAME", "BLURB", rows, nozzles=..., barrels=...,
-hp=..., firepower=...)`, keeping `hp * firepower == 1`. Add it to `HULLS`; it shows up in the
-hangar. Nozzles = x-offsets of the engines, barrels = gun positions relative to the centre.
+hp=..., firepower=...)`, keeping `hp * firepower == 1`. Add it to `HULLS`, and add an
+`Item(id=<hull name>, kind=SHIP, ...)` with blurb and price to `progression/items.py` (plus a
+`GIFTS` entry for the level that gives it); it then shows up in the hangar. Nozzles = x-offsets of the engines, barrels = gun positions relative to the centre.
+
+### A new item (inventory, gift, shop)
+
+`progression/items.py` is the catalog: an `Item` (id = the name the game uses, kind = tab,
+two blurb lines of at most 21 characters, shop price), `STARTER` (owned by a new player) and
+`GIFTS` (level key -> 1 or 2 item ids). `Inventory` (`progression/inventory.py`) answers
+`owns()` / `status()` and handles `claim()` and `buy()`. The game gates on it in one place per
+thing: `LevelFlowMixin.loadout_for()` (BLAST + ULT), `switch_weapon()` (laser), `choose_hull()`
+calls from the hangar. A weapon icon goes in `ui/item_art.ICON_ROWS`.
 
 ### A new sound or song
 

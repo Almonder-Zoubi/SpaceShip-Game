@@ -13,11 +13,13 @@ from .art import KIT_SMALL_ROWS, build_pickup
 class Pickup:
     """Base class: falls with a gentle sway, drifts to a nearby ship, gets collected.
 
-    Subclasses set `rows`, `glow` and implement apply(game) -> popup text.
+    Subclasses set `rows`, `glow` and implement apply(game) -> popup text (or None).
     """
 
     rows = KIT_SMALL_ROWS
     glow = HEAL
+    sound = "pickup"
+    fanfare = True                # popup text + shockwave when collected (coins: just a sparkle)
     magnet = PICKUP_MAGNET        # px; closer than this and the pickup flies to the ship
     _images = {}                  # sprite cache per subclass
 

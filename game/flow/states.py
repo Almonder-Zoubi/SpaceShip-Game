@@ -4,7 +4,8 @@ from enum import Enum, auto
 
 class State(Enum):
     TITLE = auto()
-    HANGAR = auto()      # choose a hull, ENTER launches
+    HANGAR = auto()      # inventory before every level: equip, buy, SPACE launches
+    REWARD = auto()      # gift after a first level clear: choose 1 of 2
     DEV_MENU = auto()    # --dev: pick any level / wave / boss to start from
     PLAYING = auto()
     PAUSED = auto()
@@ -23,4 +24,4 @@ class Phase(Enum):
 
 
 # Menus with the ambient demo behind them (rocks fall, the ship hovers).
-MENU_STATES = (State.TITLE, State.HANGAR, State.DEV_MENU)
+MENU_STATES = (State.TITLE, State.HANGAR, State.REWARD, State.DEV_MENU)

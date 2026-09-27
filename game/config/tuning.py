@@ -121,3 +121,25 @@ POINTS_BOSS = 5000
 LEVEL_LENGTH = 75                # seconds of flight (at normal speed) to finish
 DEATH_DELAY = 1.4                # seconds of explosion before "game over"
 WARNING_TIME = 3.0               # "WARNING" before the boss enters
+
+# --- Coins (CREDITS) ----------------------------------------------------------
+# Coins picked up in a level are "pending" and only go to the bank when the level is won.
+COIN_ROCK_CHANCE = ((10, 0.45), (8, 0.25), (0, 0.06))   # (min radius, chance of 1 coin)
+COIN_MINION = (1, 3)             # coins from a destroyed drone / diver (random range)
+COIN_BOSS_BASE = 30              # boss death burst: base + per level number
+COIN_BOSS_PER_LEVEL = 10
+COIN_BOSS_PHASE = 5              # every boss phase change drops one big coin
+COIN_BIG = 5                     # value of a big coin
+COIN_MAGNET = 46                 # px: coins drift to the ship from a bit further than kits
+COIN_CLEAR_BASE = 50             # level clear: base x level number, then x rank multiplier
+COIN_FIRST_CLEAR = 100           # one-time bonus for the first clear of a level
+COIN_REPLAY = 0.5                # replaying a cleared level pays this share
+COIN_TALLY_RATE = 160            # coins per second counted into the bank on the results screen
+
+# --- Level rank ---------------------------------------------------------------
+# Three ratings 0..1, weighted: took little damage, killed bosses fast, destroyed what came.
+RANK_WEIGHTS = {"damage": 0.45, "speed": 0.30, "destroyed": 0.25}
+RANK_DAMAGE_ZERO = 1.5           # damage taken (in multiples of max HP) that rates 0
+RANK_DESTROYED_FULL = 0.6        # share of rocks + minions destroyed that rates 1
+RANK_THRESHOLDS = (("S", 0.85), ("A", 0.65), ("B", 0.45), ("C", 0.0))
+RANK_BONUS = {"S": 2.0, "A": 1.5, "B": 1.0, "C": 0.5}

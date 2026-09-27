@@ -1,4 +1,4 @@
-"""Pickup sprites as character rows."""
+"""Pickup sprites as character rows (coins: one row set per spin frame)."""
 from ..core.pixelart import sprite_from_rows
 
 KIT_SMALL_ROWS = (
@@ -33,6 +33,59 @@ POWER_ROWS = (
     "..KCBCK..",
     "...KCK...",
     "....K....",
+)
+# A coin spins: face, narrower, edge (played face, narrow, edge, narrow).
+COIN_FRAMES = (
+    ("..KKK..",
+     ".KYYYK.",
+     "KYWYYyK",
+     "KYYWYyK",
+     "KYYYYyK",
+     ".KyyyK.",
+     "..KKK.."),
+    (".KKK.",
+     "KYWyK",
+     "KYYyK",
+     "KYWyK",
+     "KYYyK",
+     "KYyyK",
+     ".KKK."),
+    (".K.",
+     "KWK",
+     "KYK",
+     "KYK",
+     "KYK",
+     "KyK",
+     ".K."),
+)
+BIG_COIN_FRAMES = (
+    ("...KKK...",
+     ".KKYYYKK.",
+     ".KYWYYyK.",
+     "KYWYyyYyK",
+     "KYYyYYyyK",
+     "KYYyyyYyK",
+     ".KYYYYyK.",
+     ".KKyyyKK.",
+     "...KKK..."),
+    ("..KKK..",
+     ".KYWYK.",
+     "KYWyYyK",
+     "KYyYyyK",
+     "KYyyYyK",
+     "KYYYYyK",
+     "KYYyyyK",
+     ".KyyyK.",
+     "..KKK.."),
+    (".KKK.",
+     "KWYyK",
+     "KWyyK",
+     "KYYyK",
+     "KYyyK",
+     "KYYyK",
+     "KYyyK",
+     "KYyyK",
+     ".KKK."),
 )
 PICKUP_COLORS = {
     "K": (18, 14, 30), "W": (250, 250, 245), "L": (170, 176, 196), "R": (228, 44, 64),

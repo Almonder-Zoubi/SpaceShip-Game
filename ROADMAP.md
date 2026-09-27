@@ -4,7 +4,9 @@ Goal: turn the simple "dodge falling pictures" prototype into a polished retro a
 with simple arcade controls, weapons, bosses, four levels, an endless mode and a saved leaderboard.
 
 Status: Phases 1–4 done, Phase 5: all four levels playable (endless missing), Phase 7: sound done,
-mouse control added. Next big feature (proposed): Phase 9 — NEMESIS, a boss that learns.
+mouse control added. Next big direction (user, 2026-09-27): **Phase 10 — galaxies of 10
+levels, meta progression (gifts, coins, upgrades, wingmen, inventory, skins)**, designed in
+[docs/DESIGN.md](docs/DESIGN.md). Phase 9 (NEMESIS) is parked behind it.
 Code restructured into one package per area (see CLAUDE.md).
 Details and next steps: [PROGRESS.md](PROGRESS.md).
 
@@ -185,6 +187,55 @@ perks, analysis), `ui/analysis.py`, states `ARENA_INTRO` / `ARENA_PERK`, `SaveDa
 - [ ] N4 Counter abilities, generations / unlock tree, perks between rounds
 - [ ] N5 Playtest tuning, reset-brain option, polish (own music + NEMESIS sprite that
       visibly changes per generation)
+
+## Phase 10 — Galaxies & meta progression (G1 + G2 done, next: G3)
+
+The user's goals: levels grouped into **galaxies of 10** (galaxy 1 = levels 1–10, 1–4 done);
+creative bosses + minions; richer backgrounds, hit and fire effects; new guns, lasers,
+rockets; **one reward per cleared level** (existing hulls / weapons become the first gifts);
+temporary boosts and new features per galaxy; **wingmen**; an **inventory** to equip and
+improve gear; **coins** to spend on upgrades; **skins**. Retro look, modern pull: "exciting,
+never boring". Full design, numbers and open questions: [docs/DESIGN.md](docs/DESIGN.md).
+
+Rules that carry over: simple controls (new gear is automatic, no new keys without asking),
+`BossSpec` balance against the level's *par* loadout (upgrades / wingmen = capped player
+edge, ~+30%), `hp * firepower == 1` for hulls, all art + audio in code.
+
+- [x] G0 Design approved: the user answered DESIGN.md section 14 (now "Decisions")
+
+**Systems first** (the user's order), each testable on levels 1–4:
+- [x] G1 Foundation: `Galaxy` model + `GALAXIES`, save file v2 (profile + migration from v1),
+      coin pickup, pending coins in the HUD (banked only on level clear), level results
+      screen with rank S/A/B/C + payout — done, waiting for the user's playtest
+- [x] G2 Rewards + HANGAR 2.0: new players start with ARROW + gun; reward screen ("choose
+      1 of 2 gifts", the other goes to the shop); existing hulls / laser / BLAST+ULT as gifts;
+      inventory tabs (ships, weapons now; upgrades / wingmen / skins tabs come with G3 / G6 / G8);
+      shop — done, waiting for the user's playtest
+- [ ] G3 Upgrades: 5 tracks x 5 tiers on top of par, `POWER %` in the hangar, balance check
+      in the smoke test (maxed build still >= ~3.5x on a 5x boss)
+- [ ] G4 Game feel pass: juice tiers (shake / hit-stop / particles), boss damage numbers,
+      boss name cards, radio cards, options (volume, reduce shake / flashes)
+- [ ] G5 Boosts + combo / FEVER (OVERDRIVE, SHIELD, MAGNET, SLOW-MO, TWIN)
+- [ ] G6 Wingmen: `Wingman` base, PIP + GUARDIAN first, knocked out for a few seconds
+      (never destroyed), XP levels
+- [ ] G7 Weapons: primary slots (2, R switches) + secondary slot; SCATTER, ROCKET POD first,
+      then PLASMA, SIDE CANNONS, ARC
+- [ ] G8 Skins: paint jobs, engine trails, tracer / beam colours, death styles, achievements
+
+**Then test everything:**
+- [ ] G9 Full playtest levels 1–4 with all systems (fresh save + migrated save): gift table,
+      coin payouts, prices, upgrade feel, wingman strength; tune, then the user's go
+
+**Then new levels:**
+- [ ] G10 Level 5 SOLAR FORGE: magma rocks (chain blasts), mine layer, HELIOS, sun event layer
+- [ ] G11 Level 6 GHOST NEBULA: fog banks, phantom, WRAITH (teleports, decoys)
+- [ ] G12 Level 7 CRYSTAL VEIL: crystal rocks refract lasers, prism turret, KALEIDOS
+- [ ] G13 Level 8 IRON GRAVEYARD: wrecks (coins), salvager, SCRAPJAW (throws its armour)
+- [ ] G14 Level 9 EVENT HORIZON: black hole (pulls everything incl. the ship, curved shots,
+      SLINGSHOT zone, WHITE HOLE flip), comets, interceptor, THE TWINS
+- [ ] G15 Level 10 SWARM HEART: spores, larvae (boids), boss rush, OVERMIND (camera scroll,
+      galaxy boss + escape), warp cut-scene, galaxy 1 medal
+- [ ] G16 Galaxy 2 THE VEIL (elite enemies, modifiers, 2nd wingman slot, first abilities) — design first
 
 ## Later / nice to have
 

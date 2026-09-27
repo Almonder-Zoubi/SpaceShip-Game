@@ -4,15 +4,62 @@ Update this file at the end of every work session: what changed, what's next, op
 
 ## Status
 
-**Branch:** `mouse-level4` (branched from `main` at `c2ee37a`), not committed yet — waiting for
-the user's playtest.
-**Current phase:** 4 levels playable + mouse control (new this session, **not playtested yet**).
-Before: levels 1–3, 4 hulls, soundtrack — user: "so perfect", "working wonderfully".
-Next: user playtest of mouse + level 4; then the user's NEMESIS idea (ROADMAP Phase 9, a
-proposed design waiting for the user's go). See [ROADMAP.md](ROADMAP.md).
+**Branch:** `design` (from `682a781` "level 4 and a complete guide.md"). Design work only so
+far; no game code changed on this branch.
+**Current phase:** 4 levels playable + mouse control. New direction from the user: **galaxies of
+10 levels + meta progression** (gifts per level, coins, upgrades, wingmen, inventory, skins,
+new weapons, bosses and effects). Designed in [docs/DESIGN.md](docs/DESIGN.md), milestones
+G0–G15 in [ROADMAP.md](ROADMAP.md) Phase 10.
+Design approved (answers in DESIGN.md section 14). G1 (coins, rank) playtested: "feels ok",
+215–250 CR per level is good. **G2 done** (gifts 1 of 2, HANGAR 2.0 + shop, new players start
+with ARROW + gun), not committed, waiting for the user's playtest. Next: **G3 upgrades**
+(coins' main sink). Systems first, then a full playtest of levels 1–4, then level 5.
+NEMESIS (Phase 9) is parked behind Phase 10.
 
 **Starting a new session?** Read this file's Snapshot + Decisions, then CLAUDE.md (module map,
 "where to look when debugging", conventions). Run the smoke test once before changing anything.
+
+## Handoff — next session starts G3 (upgrades)
+
+State at hand-off (2026-09-27): branch `design`, G1 + G2 committed and pushed, full smoke test
+green, lint clean. G1 playtested by the user ("feels ok"); **G2 not playtested yet**: ask the
+user how the gift screen, hangar controls (ENTER equip / ENTER again or SPACE launch) and
+prices feel before tuning anything.
+
+Working headless (cloud): `pip install -r requirements.txt` (only pygame), then
+`SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test [--only a,b]
+[--shots DIR]` and `python3 -m pyflakes ESA3.py game/ tests/ tools/`. The first start renders
+the sounds into `sounds/generated/` (git-ignored, ~9 s). The "real window" check in CLAUDE.md
+needs macOS: if you can't run it, say so and ask the user to look (canvas / sprites must never
+use a bare `pygame.Surface()`; use `opaque_surface()` or SRCALPHA). Screenshots from
+`--shots` are fine for layout checks.
+
+G3 plan (DESIGN.md 6.3, ROADMAP Phase 10 G3). Suggested shape:
+1. `config/tuning.py`: `UPGRADE_COSTS = (100, 200, 350, 550, 800)` and per-tier bonuses:
+   ARMOR +6% HP, GUNS +6% gun damage, LASER +6% laser DPS, ENGINE +4% speed, CHARGE +10%
+   BLAST/ULT charge rate. Full tiers ≈ +30% power over par.
+2. `progression/upgrades.py` (pure logic): tracks, `cost(tier)`, `apply(loadout, tiers)` ->
+   `dataclasses.replace(...)`; `power_ratio()` for the hangar's `POWER 112%`.
+3. `SaveData.upgrades` = {track: tier}, validated on load (missing = all 0); buying lives next
+   to `Inventory.buy()` (or an `Upgrades` class using the same save).
+4. `LevelFlowMixin.loadout_for()` applies upgrades **after** the hull. `BossSpec` must keep
+   using the level's *par* loadout (`Level.loadout`), never the upgraded one — that is the
+   balance rule. CHARGE goes into `CombatMixin._charge()` / `_charge_ultimate()`.
+5. Hangar: add an UPGRADES tab. `progression.items.TABS` + `HangarView` currently assume
+   every tab lists `Item`s; the upgrade tab lists tracks (name, 5 tier pips, next cost,
+   ENTER buys with the same confirm step). Show `POWER n%` vs the next level's par.
+6. Smoke test: new `upgrades` section (costs, buy + saved, loadout values, confirm / refused,
+   old saves load with 0 tiers) and a balance check: a maxed build against a 5x boss must
+   still be >= ~3.5x in the `BossSpec` damage race. `Harness` gives every item via
+   `inventory.grant_all()`; decide whether tests start with 0 tiers (they should, so the
+   existing balance assertions stay exact).
+7. Docs: DESIGN 6.3 numbers, ROADMAP G3 checkbox, PROGRESS log + snapshot, CLAUDE.md module
+   map, GUIDE (a new-upgrade recipe). Ask the user before changing controls.
+
+Things only the local machine had (not in the repo): Claude's local memory said "controls stay
+simple: no drift / 360°; hazards like the level 9 black hole may push the ship" — the same
+rules are in "Decisions" below. The optional agent skills (`game-feel`, `level-design`) were
+not installed (see the log).
 
 ## Snapshot — what the game is right now
 
@@ -89,9 +136,19 @@ proposed design waiting for the user's go). See [ROADMAP.md](ROADMAP.md).
   enraged below 50% (+30% speed, 14-bullet ring, per-bullet damage scaled to keep 3x). Ramming 20.
 - **Dev mode** (`--dev`): DEV MENU (scrolls, 10 rows) lists every start point (each wave's field and each boss,
   e.g. "LEVEL 3-2 CARRIER 1.5X"), LEFT/RIGHT picks the hull, G god mode. In game: N skip (field end / warning / entry /
-  next boss phase through the normal damage path), 1 fill BLAST+ULT, 2 power up, 3 repair,
+  next boss phase through the normal damage path), 1 fill BLAST+ULT, 2 power up, 3 repair, 4 +50 coins,
   G god, Esc back to the menu. R after game over retries the same start point. "DEV" badge in
   the HUD; dev runs keep records in memory only (never written).
+- **Coins + rank** (G1): coins drop from rocks, minions and bosses, count as *pending* (HUD
+  "CR 1240 +86") and go into the bank only when the level is won. The results screen rates
+  damage taken, boss time vs par and share destroyed -> rank S/A/B/C, then pays pending +
+  50 x level x rank bonus (+100 on the first clear, a replay pays 50%). Levels are grouped
+  into galaxies (`GALAXIES`, galaxy 1 = ORION REACH).
+- **Inventory + gifts** (G2): a new player owns ARROW + machine gun. First clear of level 1:
+  choose LASER or WASP; level 2: BLAST + ULTIMATE; level 3: TITAN or LANCE; the gift not
+  taken is sold in the shop (200–350 CR). Between levels (and from the title) the HANGAR
+  shows SHIPS / WEAPONS tabs: equip, buy with coins, see how locked items unlock, SPACE
+  launches.
 - **Save** (`storage.SaveData`, `save.json` in the project root, git-ignored): top 5 records
   (score, level reached, date) + unlocked levels. Written on game over / win (records) and
   level clear (unlock). Title: LEFT/RIGHT picks any unlocked level; TOP SCORES alternate with
@@ -125,8 +182,98 @@ proposed design waiting for the user's go). See [ROADMAP.md](ROADMAP.md).
 - **Synthesized audio approved** (music per level / boss, SFX, engine loop). Keep audio as code
   recipes in `game/audio/`, not hand-made files.
 - Later: leaderboard with saved scores, more asteroid shapes/sizes.
+- **Galaxies + meta progression** (Phase 10, [docs/DESIGN.md](docs/DESIGN.md)): 10 levels per
+  galaxy. After each level the player **chooses 1 of 2 gifts**, the other goes to the shop.
+  **New players start with ARROW + machine gun only** (existing saves keep their unlocks).
+  **Coins count only when the level is won** (pending coins lost on death / retry / quit; the
+  bank is never lost). Wingmen are **knocked out for a few seconds, never destroyed** (may
+  change after playtests). Upgrades and wingmen are a capped edge on top of the level's par
+  loadout; `BossSpec` stays. **Build order: systems first, then playtest levels 1–4 with all
+  systems, then level 5 onward.**
+- **Black hole (level 9) may pull the ship** (user: "make it insane"): an extra velocity on top
+  of the direct controls, capped so thrust always escapes. This is not the rejected drift.
+- Camera scroll is allowed for the Overmind fight (level 10).
+- **Abilities later:** advanced levels (galaxy 2+) unlock abilities / features that help win;
+  the key is decided then.
 
 ## Log
+
+### 2026-09-27 — G2: gifts, HANGAR 2.0, shop, starter inventory
+- User playtested G1: "feels ok", coins per level (215–250) good. Asked for G2.
+- `progression/items.py`: `Item` catalog (ids = hull / weapon names, 2 blurb lines <= 21
+  chars, price), `STARTER` = ARROW + GUN, `GIFTS`: L1 LASER | WASP, L2 BLAST + ULTIMATE
+  (fixed; level 3 is built around them — moved from L3 in the draft), L3 TITAN | LANCE, L4 none
+  until wingmen (G6). DESIGN.md table updated. Prices LASER 200, WASP 250, TITAN / LANCE 350.
+- `progression/inventory.py` `Inventory`: owns / status (OWNED, SHOP, LOCKED) / unlock hint /
+  gift options / claim (other option -> shop) / buy / grant_all. A save without an inventory
+  (v1, or v2 from G1) gets STARTER + every gift of the levels before `unlocked` (the user's
+  save: everything, WASP kept). `SaveData` stores `owned`, `shop`, `gifts`.
+- Gating: `loadout_for()` drops BLAST + ULT without SPECIALS; `switch_weapon()` only cycles
+  owned weapons (HUD hides "R SWITCH" without the laser); the hangar only equips owned hulls.
+- Flow: results -> ENTER -> `State.REWARD` (gift cards, first clear only) -> HANGAR before the
+  next level (was: straight into the level). Title -> HANGAR as before.
+- HANGAR 2.0 (`ui/hangar.py` + `flow/hangar.py` `HangarMixin`): tabs SHIPS / WEAPONS
+  (LEFT/RIGHT), list (UP/DOWN), preview box (live ship with flames / 3x weapon icon / dark
+  silhouette when locked), ship stat bars or weapon numbers, blurb, bank. ENTER: equip; ENTER on
+  the equipped ship launches; shop item asks "BUY X FOR N CR? ENTER", then buys; locked says
+  "GIFT AFTER LEVEL N". SPACE launches. Menu background dimmed. New SFX `denied`.
+- `ui/item_art.py` (shared by hangar and gift screen), `ui/gifts.py`.
+- Smoke test: every section starts with all items (`grant_all`); `next_level()` helper (results
+  -> gift -> hangar -> launch); new `inventory` section (starter gating, gift choice, shop
+  refused / confirm / buy + saved, locked hint, launch, fixed gift, old-save migration).
+  Full test + 4 seeds pass, lint clean. Real macOS window: hangar (locked silhouette) and gift
+  cards render correctly.
+
+### 2026-09-27 — G1: galaxies, coins, rank + results screen, save file v2
+- `levels`: `Galaxy` (number, name, levels, `key(level)` -> "1-3"); `GALAXIES`, `LEVELS` = all
+  levels in play order, `galaxy_of()`. HUD shows "G1 LEVEL 3-2". `save.unlocked` now counts
+  levels in play order (same numbers for galaxy 1).
+- New pure-logic package `game/progression/`: `results.LevelStats` (damage taken, boss time vs
+  `BossSpec.fight_time`, share destroyed -> weighted score -> S/A/B/C), `economy` (drops,
+  `Payout`: pending + 50 x level x rank bonus + 100 first clear; replay pays 50%).
+- `pickups`: spinning `Coin` (1) / `BigCoin` (5); `Pickup.sound` / `fanfare` replace the
+  isinstance checks in `world.py`. Rocks (6–45% by size), minions (1–3), boss phase change (5),
+  boss death (30 + 10 x level, half for a rematch) drop coins; boss coins home in; coins still
+  on screen when the level is won are collected.
+- `flow/progression.py` `ProgressionMixin`: pending coins (lost on death / retry / quit, shown as
+  "N CREDITS LOST" on game over), stats hooks, `_bank_level()`, results tally + stamp sound.
+- Results screen (level clear + win): 3 rated stats with bars, rank stamp, picked up / clear
+  bonus / first clear or replay, bank counting up. SFX `coin`, `rank`. Dev hotkey 4 = +50 coins.
+- `SaveData` v2: `version`, `coins`, `cleared` {key: best rank}; v1 files load with an empty
+  bank (so the user's current save starts at 0 CR, levels and records kept); broken values ->
+  fresh save. The first clear with the coin system pays the first-clear bonus.
+- Smoke test: new `economy` section (rank maths, payout, v1 migration, pending lost on death,
+  retry, win banks + results, replay half). Full test passes (6 seeds for economy); lint clean.
+  Real macOS window: coins + results render correctly, worst frame 5.5 ms.
+
+### 2026-09-27 — Design branch: galaxies, progression, new content (docs only)
+- User's direction (new branch `design`): design levels 5–10 so that every 10 levels form a
+  galaxy; creative bosses + minions; backgrounds, colours, planets, hit and fire effects; new
+  guns / lasers / rockets; each cleared level unlocks one thing (a skill, ship or gun), with
+  what already exists coming as gifts the player can choose from; temporary boosts (e.g. faster
+  fire) and new features per galaxy; wingmen that level up; an inventory to equip and improve
+  gear; coins collected during and after levels to spend on upgrades; skins and gear effects.
+  Goal: retro feel, modern expectations, "exciting so it does not bore them".
+- Wrote [docs/DESIGN.md](docs/DESIGN.md): pillars, galaxy structure + story (IRON FLEET ->
+  LEVIATHAN -> the SWARM), levels 5–10 (SOLAR FORGE / HELIOS, GHOST NEBULA / WRAITH, CRYSTAL
+  VEIL / KALEIDOS, IRON GRAVEYARD / SCRAPJAW, EVENT HORIZON / THE TWINS, SWARM HEART /
+  OVERMIND), 6 minions, galaxies 2–5 sketch, weapons (SCATTER, PLASMA, ARC, RAIL + automatic
+  secondaries), gift table per level, coins economy, upgrades on top of the *par* loadout
+  (keeps `BossSpec` valid, capped +30%), boosts + combo/FEVER, 5 wingmen, HANGAR 2.0 mock-up,
+  skins, colour/readability rules, juice tiers, code map, 8 open questions.
+- ROADMAP: new Phase 10 with milestones G0–G15. CLAUDE.md links the design doc.
+- Skills: searched for agent skills. The official plugin marketplace has nothing for
+  pygame / 2D arcade design (the `unity` plugin is Unity-only). Vetted
+  `gamedev-skills/awesome-gamedev-agent-skills` (Apache-2.0): `game-feel` and
+  `level-design` are useful (engine-neutral principles, Godot code); `pygame-core`
+  contradicts this repo (`key.get_pressed()`, image files, pygame-ce), `roguelike` is
+  turn-based, `game-ui-ux` is about responsive layouts. Copying the two good ones into
+  `.claude/skills/` was **blocked by the permission check** — left for the user to decide.
+  Their key ideas (juice tiers, sawtooth pacing, teach -> test) are in DESIGN.md anyway.
+- User answered the 8 design questions (see Decisions). DESIGN.md updated: coins banked only
+  on a win (pending counter), black hole redesigned "insane" (pulls the ship too, curved
+  shots, SLINGSHOT x3 zone, WHITE HOLE flip, Twins fight around it), abilities for galaxy 2+.
+  ROADMAP Phase 10 reordered: systems G1–G8, playtest levels 1–4 (G9), levels 5–10 (G10–G15).
 
 ### 2026-09-27 — Mouse control, level 4 "FROZEN RIFT", LEVIATHAN; NEMESIS design
 - User: game "working wonderfully". Asked for mouse control (move by tracking the mouse, left
@@ -290,6 +437,11 @@ Suggestions, roughly in order of value for effort. Items marked **ask** change c
 rules, so check with the user first (see "Working with the user" in CLAUDE.md). The user will
 bring their own ideas too — those come first.
 
+**Now: Phase 10 (the user's direction, design approved).** Follow ROADMAP Phase 10:
+systems G1 -> G8, playtest G9, then levels G10 -> G15. Several items below are now part of it:
+level results screen + rank (G1), unlocks (G2), game feel + options (G4), new minions /
+obstacles (G8–G13), score combo (G5).
+
 **Quick wins (polish)**
 1. **Options menu** (from title + pause): music volume, SFX volume, scanlines, fullscreen;
    saved in `save.json` (`SaveData` already has the pattern). Closes the last Phase 6/7 items.
@@ -327,6 +479,8 @@ bring their own ideas too — those come first.
 
 ## Open questions
 
+- Skills: allow copying `game-feel` + `level-design` from awesome-gamedev-agent-skills
+  (Apache-2.0) into `.claude/skills/`? The permission check blocked it.
 - Playtest: does mouse steering feel right? Knobs in `config/tuning.py`: `MOUSE_FOLLOW` (how
   eagerly it chases the pointer), `MOUSE_LEAN` (how fast a move must be to boost / lean).
   Should the pointer mark the ship's centre (now) or sit above the nose? Right click = switch?

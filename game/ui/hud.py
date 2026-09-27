@@ -1,9 +1,9 @@
-"""Heads-up display (health, score, weapon, boss bar) and banners."""
+"""Heads-up display (health, score, coins, weapon, boss bar) and banners."""
 import pygame
 
 from ..config.display import LOW_H, LOW_W
-from ..config.palette import (ACCENT, DANGER, EMPTY, GOOD, INK, LASER, POWER, TEXT, TEXT_DIM,
-                              TEXT_SHADOW)
+from ..config.palette import (ACCENT, COIN, DANGER, EMPTY, GOOD, INK, LASER, POWER, TEXT,
+                              TEXT_DIM, TEXT_SHADOW)
 from ..config.tuning import POWER_MAX, SHIP_MAX_HP
 
 
@@ -12,10 +12,13 @@ class Hud:
         self.font = font
 
     def draw(self, surf, ship, score, best, progress, weapon, time, boss=None, level="1",
-             blast=None, ultimate=None):
+             blast=None, ultimate=None, galaxy=1, coins=None, switchable=True):
+        """coins: (bank, pending, flash) — pending coins are only banked when the level is won."""
         blink = int(time * 6) % 2 == 0
         self._health(surf, ship, blink)
-        self.font.draw(surf, f"LEVEL {level}", (6, 15), TEXT_DIM, shadow=TEXT_SHADOW)
+        self.font.draw(surf, f"G{galaxy} LEVEL {level}", (6, 15), TEXT_DIM, shadow=TEXT_SHADOW)
+        if coins:
+            self._coins(surf, *coins)
         if blast:
             self._meter(surf, LOW_H - 22, "BLAST", blast, ACCENT, blink, "HOLD SPACE")
         if ultimate:
@@ -29,7 +32,19 @@ class Hud:
         f.draw(surf, text, (LOW_W - 6 - f.size(text)[0], 5), TEXT, shadow=TEXT_SHADOW)
         text = f"HI {best:06d}"
         f.draw(surf, text, (LOW_W - 6 - f.size(text)[0], 15), TEXT_DIM, shadow=TEXT_SHADOW)
-        self._weapon(surf, weapon, blink)
+        self._weapon(surf, weapon, blink, switchable)
+
+    def _coins(self, surf, bank, pending, flash):
+        """Right side under the score: 'CR 1240' and the pending '+86' (flashes on pickup)."""
+        f = self.font
+        x = LOW_W - 6
+        if pending:
+            text = f"+{pending}"
+            x -= f.size(text)[0]
+            f.draw(surf, text, (x, 25), TEXT if flash > 0 else COIN[2], shadow=TEXT_SHADOW)
+            x -= 6
+        text = f"CR {bank}"
+        f.draw(surf, text, (x - f.size(text)[0], 25), TEXT_DIM, shadow=TEXT_SHADOW)
 
     def _bar(self, x, y, w, h, surf, ratio, color):
         pygame.draw.rect(surf, INK, (x - 1, y - 1, w + 2, h + 2))
@@ -70,7 +85,7 @@ class Hud:
             tall = boss.PHASES > 1
             surf.fill(TEXT if tall else INK, (x + int(w * mark), 11 if tall else 12, 1, 6 if tall else 4))
 
-    def _weapon(self, surf, weapon, blink):
+    def _weapon(self, surf, weapon, blink, switchable):
         x, y = 6, LOW_H - 12
         self.font.draw(surf, weapon.name, (x, y), TEXT, shadow=TEXT_SHADOW)
         if weapon.name == "LASER":
@@ -81,7 +96,8 @@ class Hud:
             else:
                 color = LASER[2] if weapon.heat < 0.7 else ACCENT
             self._bar(x + 34, y + 1, 40, 4, surf, weapon.heat, color)
-        self.font.draw(surf, "R SWITCH", (x, y - 10), TEXT_DIM, shadow=TEXT_SHADOW)
+        if switchable:
+            self.font.draw(surf, "R SWITCH", (x, y - 10), TEXT_DIM, shadow=TEXT_SHADOW)
         if weapon.power:                                # POWER pips from boss phase rewards
             self.font.draw(surf, "PWR", (x + 54, y - 10), POWER[2], shadow=TEXT_SHADOW)
             for i in range(POWER_MAX):

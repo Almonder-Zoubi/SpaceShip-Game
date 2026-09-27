@@ -1,9 +1,17 @@
-"""Minimal save file: top records, unlocked levels and the chosen ship, stored as JSON."""
+"""Save file (JSON): top records, unlocked levels, the chosen ship, coins, level ranks and the
+inventory.
+
+Version 2 added the profile: coins in the bank, best rank per cleared level, owned items,
+shop items and claimed gifts. Older files load with an empty bank; their inventory is rebuilt
+from the unlocked levels (progression.inventory). Broken values fall back to a fresh save."""
 import datetime
 import json
 import os
 
+from ..progression.results import RANKS, better_rank
+
 MAX_RECORDS = 5
+VERSION = 2
 
 
 class SaveData:
@@ -15,6 +23,11 @@ class SaveData:
         self.records = []        # [{"score": int, "level": int, "date": "YYYY-MM-DD"}], best first
         self.unlocked = 1        # highest level the player may start from
         self.ship = "ARROW"      # hull picked in the hangar last time
+        self.coins = 0           # the bank (coins only get here when a level is won)
+        self.cleared = {}        # level key ("1-3" = galaxy 1, level 3) -> best rank
+        self.owned = None        # item ids (None = not stored yet: Inventory rebuilds it)
+        self.shop = []           # gifts not chosen: for sale now
+        self.gifts = []          # level keys whose gift was claimed
         self.load()
 
     @property
@@ -32,8 +45,19 @@ class SaveData:
             self.records = sorted(records, key=lambda r: -r["score"])[:MAX_RECORDS]
             self.unlocked = max(1, int(data.get("unlocked", 1)))
             self.ship = str(data.get("ship", "ARROW"))
+            self.coins = max(0, int(data.get("coins", 0)))
+            self.cleared = {str(k): v for k, v in dict(data.get("cleared", {})).items()
+                            if v in RANKS}
+            owned = data.get("owned")
+            self.owned = None if owned is None else _strings(owned)
+            self.shop, self.gifts = _strings(data.get("shop", [])), _strings(data.get("gifts", []))
         except (OSError, ValueError, TypeError, KeyError, AttributeError):
-            self.records, self.unlocked, self.ship = [], 1, "ARROW"   # unreadable: start fresh
+            self._reset()                               # unreadable: start fresh
+
+    def _reset(self):
+        self.records, self.unlocked, self.ship = [], 1, "ARROW"
+        self.coins, self.cleared = 0, {}
+        self.owned, self.shop, self.gifts = None, [], []
 
     def save(self):
         if not self.path:
@@ -41,8 +65,10 @@ class SaveData:
         tmp = self.path + ".tmp"                        # write, then swap: never half a file
         try:
             with open(tmp, "w", encoding="utf-8") as f:
-                json.dump({"records": self.records, "unlocked": self.unlocked, "ship": self.ship},
-                          f, indent=2)
+                json.dump({"version": VERSION, "records": self.records,
+                           "unlocked": self.unlocked, "ship": self.ship, "coins": self.coins,
+                           "cleared": self.cleared, "owned": self.owned, "shop": self.shop,
+                           "gifts": self.gifts}, f, indent=2)
             os.replace(tmp, self.path)
         except OSError:
             pass                                        # read-only folder: play on without saving
@@ -71,3 +97,20 @@ class SaveData:
         if name != self.ship:
             self.ship = name
             self.save()
+
+    def clear_level(self, key, rank, coins):
+        """A won level: bank its coins and keep the best rank. Returns True on a first clear."""
+        first = key not in self.cleared
+        self.cleared[key] = better_rank(self.cleared.get(key), rank)
+        self.coins += int(coins)
+        self.save()
+        return first
+
+    def is_cleared(self, key):
+        return key in self.cleared
+
+
+def _strings(values):
+    if not isinstance(values, list):
+        raise ValueError("expected a list")
+    return [str(v) for v in values]

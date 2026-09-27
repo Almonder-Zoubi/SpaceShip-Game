@@ -20,13 +20,20 @@ from a small pure-Python synthesizer.
 | R | Switch weapon: machine gun / laser (laser overheats) |
 | P | Pause |
 | C | Toggle CRT scanlines |
-| Enter | Start (opens the hangar) / launch / restart |
-| Left / Right | Title: choose an unlocked level. Hangar: choose your ship |
+| Enter | Start (opens the hangar) / equip or buy in the hangar (again = launch) / restart |
+| Left / Right | Title: choose an unlocked level. Hangar: switch tab (ships / weapons). Gift: choose |
+| Up / Down | Hangar: pick an item |
+| Space | Hangar: launch |
 | T | Ultimate missile storm (from level 3) |
 | Esc | Back to menu / quit |
 
-Pick a ship in the **hangar**: the balanced ARROW, the tiny fast WASP, the heavily armoured
-TITAN or the laser-focused LANCE. Every ship is upgraded between levels (MK I → MK II → MK III → MK IV).
+You start with the balanced ARROW and a machine gun. Destroyed rocks, drones and bosses drop
+**coins**, but they only go into your bank when you win the level. Every cleared level shows
+your **rank** (S/A/B/C) and pays out, and the first clear gives a **gift**: choose the LASER or the
+tiny fast WASP, get BLAST + ULTIMATE, choose the armoured TITAN or the laser-focused LANCE. The
+gift you don't take is sold in the shop. The **hangar** before every level is your inventory:
+equip ships, buy items with coins, launch. Every ship is also upgraded between levels
+(MK I → MK II → MK III → MK IV). Levels belong to galaxies of 10 (galaxy 1: ORION REACH).
 
 Fly to the end of the asteroid field (progress bar at the top). Asteroids drain your health
 bar — bigger rocks hurt more and take longer to destroy; shooting them slows their fall, and big
@@ -68,17 +75,19 @@ game/            # the game package, one folder per area (see CLAUDE.md for the 
   obstacles/     #   asteroids and their spawner
   minions/       #   drones, kamikaze divers and enemy bullets
   bosses/        #   Gunship, Carrier, Mothership, Leviathan (+ balance maths)
-  pickups/       #   repair kits, power cores
-  levels/        #   level data
+  pickups/       #   repair kits, power cores, coins
+  levels/        #   level data, grouped into galaxies
+  progression/   #   rank, coins / payout, item catalog + gifts, inventory (pure logic)
   audio/         #   synthesizer, sound effects, music, playback
-  ui/            #   HUD, hangar, menus and result screens
-  flow/          #   the Game: main loop, states, level flow, combat, sound, dev mode
+  ui/            #   HUD, hangar, gift cards, menus and result screens
+  flow/          #   the Game: main loop, states, level flow, combat, coins, hangar, sound, dev
 tests/smoke.py   # headless smoke test
 tools/           # build_audio.py: render sounds and music to WAV
 sounds/generated/    # rendered audio cache (git-ignored, rebuilt on first start)
 images/, astroids/, sounds/*.wav|mp3   # legacy assets from v1 (no longer used)
-docs/GUIDE.md    # developer guide: assets, architecture, workflow, how to add levels / bosses / modes
+docs/GUIDE.md    # developer guide: assets, architecture, workflow, how to add levels / bosses / items
+docs/DESIGN.md   # design bible: galaxies, levels 5-10, bosses, weapons, gifts, coins, wingmen, skins
 CLAUDE.md        # architecture, conventions and workflow for contributors / Claude
-ROADMAP.md       # planned phases: bosses, levels, endless mode, leaderboard, sound
+ROADMAP.md       # planned phases (Phase 10 = galaxies + meta progression, G1..G16)
 PROGRESS.md      # current snapshot, decisions, log and next steps
 ```

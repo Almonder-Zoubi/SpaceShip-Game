@@ -48,3 +48,15 @@ class Level:
     waves: tuple                 # Wave, played in order; the last boss is the level boss
     music: str = "level1"        # asteroid-field track (audio/music.py)
     upgrade_notes: tuple = ()    # new features, shown under the stat changes on "level clear"
+
+
+@dataclass(frozen=True)
+class Galaxy:
+    """Ten levels with one palette family, faction and finale (see docs/DESIGN.md)."""
+    number: int
+    name: str
+    levels: tuple                # Level, numbered 1.. inside the galaxy
+
+    def key(self, level):
+        """Save-file key of one of its levels, e.g. "1-3"."""
+        return f"{self.number}-{level.number}"

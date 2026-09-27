@@ -1,9 +1,8 @@
 """World update: moving rocks, minions, the boss, enemy bullets and pickups; hazards to the ship."""
-from ..config.palette import FLAME, HEAL, POWER, SMOKE, SPARK
+from ..config.palette import FLAME, SMOKE, SPARK
 from ..config.tuning import (BULLET_KNOCKBACK, POINTS_DODGE, ROCK_DAMAGE_BASE,
                              ROCK_DAMAGE_PER_RADIUS)
 from ..core.particles import Shockwave
-from ..pickups.types import PowerCore
 from ..ui.popup import Popup
 from .states import MENU_STATES, Phase, State
 
@@ -23,6 +22,7 @@ class WorldMixin:
             if rock.offscreen:
                 if self.state == State.PLAYING:
                     self.score += POINTS_DODGE
+                    self.stats.escaped += 1
             else:
                 kept.append(rock)
         self.asteroids = kept
@@ -46,6 +46,8 @@ class WorldMixin:
             enemy.update(dt, self)
             if enemy.offscreen:
                 self.enemies.remove(enemy)
+                if self.state == State.PLAYING:
+                    self.stats.escaped += 1
             elif (self.state == State.PLAYING and ship.alive and not ship.invulnerable
                   and enemy.collides_with(ship)):
                 self._destroy_enemy(enemy, scored=False)
@@ -79,10 +81,11 @@ class WorldMixin:
             pickup.update(dt, self.ship)
             if pickup.collected and self.state == State.PLAYING:
                 text = pickup.apply(self)
-                power = isinstance(pickup, PowerCore)
-                color = POWER[1] if power else HEAL[1]
-                self.audio.play("power_up" if power else "pickup")
-                self.popups.append(Popup(text, pickup.x, pickup.y - 14, color))
+                self.audio.play(pickup.sound)
+                if not pickup.fanfare:                   # coins: a small sparkle
+                    self.fire.burst(pickup.x, pickup.y, 4, 40, 0.25, pickup.glow, size=(1, 1))
+                    continue
+                self.popups.append(Popup(text, pickup.x, pickup.y - 14, pickup.glow[1]))
                 self.fire.burst(pickup.x, pickup.y, 16, 70, 0.4, pickup.glow, size=(1, 2))
                 self.shockwaves.append(Shockwave(pickup.x, pickup.y, max_radius=16, duration=0.3,
                                                  color=pickup.glow[1]))
@@ -103,6 +106,7 @@ class WorldMixin:
             return
         hp = self.ship.hp
         died = self.ship.take_hit(damage, from_x, from_y, **kwargs)
+        self.stats.damage_taken += max(0, hp - self.ship.hp)
         if self.ship.hp < hp and not died:
             self.audio.play("ship_hurt")
         self.shake.add(0.45)
