@@ -78,7 +78,7 @@ class HangarScreen:
         if item.kind == SHIP:
             self._ship_stats(surf, hull_named(item.id), view)
         else:
-            self._weapon_stats(surf, item.id, view.model())
+            self._weapon_stats(surf, item.id, view.model(), len(view.items))
         self._blurb(surf, item.blurb)
         if not view.message and status == LOCKED:
             f.draw(surf, f"LOCKED: {view.unlock_hint}", (LOW_W // 2, 186), TEXT_DIM,
@@ -225,7 +225,7 @@ class HangarScreen:
             self._bar_row(surf, y0 + i * 10, label, value / top, text,
                           TEXT_DIM if label == "SIZE" else GOOD)   # size: smaller is better
 
-    def _weapon_stats(self, surf, item_id, base):
+    def _weapon_stats(self, surf, item_id, base, rows):
         f = self.font
         lines = {
             "GUN": (f"DAMAGE {round(base.gun_damage, 1):g} X {1 / GUN_INTERVAL:.0f}/S",
@@ -233,8 +233,9 @@ class HangarScreen:
             "LASER": (f"BEAM {base.laser_dps:.0f} DPS", "PIERCES THE FIRST TARGET"),
             "SPECIALS": (f"BLAST {BLAST_DPS} DPS FOR {BLAST_TIME:g} S",
                          f"ULTIMATE {round(ULT_TIME / ULT_INTERVAL)} MISSILES"),
+            "OVERDRIVE": ("FALLS LIKE A REPAIR KIT", "FIRE RATE X2, WHITE FLAMES"),
         }[item_id]
-        y0 = LIST_Y + 3 * ROW_H + 10
+        y0 = LIST_Y + rows * ROW_H + 10
         for i, line in enumerate(lines):
             f.draw(surf, line, (LIST_X, y0 + i * 11), TEXT_DIM, shadow=TEXT_SHADOW)
 

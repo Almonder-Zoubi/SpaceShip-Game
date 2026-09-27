@@ -188,7 +188,7 @@ perks, analysis), `ui/analysis.py`, states `ARENA_INTRO` / `ARENA_PERK`, `SaveDa
 - [ ] N5 Playtest tuning, reset-brain option, polish (own music + NEMESIS sprite that
       visibly changes per generation)
 
-## Phase 10 — Galaxies & meta progression (G1–G4 done)
+## Phase 10 — Galaxies & meta progression (G1–G5 done)
 
 The user's goals: levels grouped into **galaxies of 10** (galaxy 1 = levels 1–10, 1–4 done);
 creative bosses + minions; richer backgrounds, hit and fire effects; new guns, lasers,
@@ -217,7 +217,8 @@ edge, ~+30%), `hp * firepower == 1` for hulls, all art + audio in code.
 - [x] G4 Game feel pass: juice tiers (shake / hit-stop / particles), boss damage numbers,
       boss name cards, radio cards, options (volume, reduce shake / flashes) — options live
       in the pause menu (P, then arrows)
-- [ ] G5 Boosts + combo / FEVER (OVERDRIVE, SHIELD, MAGNET, SLOW-MO, TWIN)
+- [x] G5 Boosts + combo / FEVER (OVERDRIVE, SHIELD, MAGNET, SLOW-MO; TWIN comes with the
+      wingmen in G6)
 - [ ] G6 Wingmen: `Wingman` base, PIP + GUARDIAN first, knocked out for a few seconds
       (never destroyed), XP levels
 - [ ] G7 Weapons: primary slots (2, R switches) + secondary slot; SCATTER, ROCKET POD first,

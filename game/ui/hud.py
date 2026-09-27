@@ -2,9 +2,12 @@
 import pygame
 
 from ..config.display import LOW_H, LOW_W
-from ..config.palette import (ACCENT, COIN, DANGER, EMPTY, GOOD, INK, LASER, POWER, TEXT,
-                              TEXT_DIM, TEXT_SHADOW)
-from ..config.tuning import POWER_MAX, SHIP_MAX_HP
+from ..config.palette import (ACCENT, BOOST_COLORS, COIN, DANGER, EMPTY, GOOD, INK, LASER,
+                              POWER, RAINBOW, TEXT, TEXT_DIM, TEXT_SHADOW)
+from ..config.tuning import (COMBO_STEP, FEVER_TIME, MAGNET_TIME, OVERDRIVE_TIME, POWER_MAX,
+                             SHIELD_HITS, SHIP_MAX_HP, SLOWDOWN_TIME)
+
+BOOST_TIMES = {"OVERDRIVE": OVERDRIVE_TIME, "MAGNET": MAGNET_TIME, "SLOW-MO": SLOWDOWN_TIME}
 
 
 class Hud:
@@ -12,8 +15,11 @@ class Hud:
         self.font = font
 
     def draw(self, surf, ship, score, best, progress, weapon, time, boss=None, level="1",
-             blast=None, ultimate=None, galaxy=1, coins=None, switchable=True):
-        """coins: (bank, pending, flash) — pending coins are only banked when the level is won."""
+             blast=None, ultimate=None, galaxy=1, coins=None, switchable=True, boosts=None,
+             combo=None):
+        """coins: (bank, pending, flash) — pending coins are only banked when the level is won.
+        boosts: ({name: seconds left}, shield hits, fever seconds); combo: (count, mult,
+        0..1 time left)."""
         blink = int(time * 6) % 2 == 0
         self._health(surf, ship, blink)
         self.font.draw(surf, f"G{galaxy} LEVEL {level}", (6, 15), TEXT_DIM, shadow=TEXT_SHADOW)
@@ -33,6 +39,35 @@ class Hud:
         text = f"HI {best:06d}"
         f.draw(surf, text, (LOW_W - 6 - f.size(text)[0], 15), TEXT_DIM, shadow=TEXT_SHADOW)
         self._weapon(surf, weapon, blink, switchable)
+        if boosts:
+            self._boosts(surf, *boosts, time)
+        if combo and combo[0] >= COMBO_STEP:
+            self._combo(surf, *combo, time)
+
+    def _boosts(self, surf, timed, shield, fever, time):
+        """Active boosts under the level label: name + a draining bar."""
+        f = self.font
+        rows = [(name, BOOST_COLORS[name][2], left / BOOST_TIMES[name])
+                for name, left in timed.items()]
+        if shield:
+            rows.append(("SHIELD", BOOST_COLORS["SHIELD"][2], shield / SHIELD_HITS))
+        if fever:
+            rows.append(("FEVER", RAINBOW[int(time * 12) % len(RAINBOW)], fever / FEVER_TIME))
+        for i, (name, color, ratio) in enumerate(rows):
+            y = 25 + i * 9
+            f.draw(surf, name, (6, y), color, shadow=TEXT_SHADOW)
+            self._bar(64, y + 2, 24, 3, surf, ratio, color)
+
+    def _combo(self, surf, count, mult, ratio, time):
+        """Right side under the coins: 'X4' big-ish, the count and the combo timer."""
+        f = self.font
+        color = RAINBOW[mult % len(RAINBOW)] if mult > 1 else TEXT
+        text = f"X{mult}"
+        f.draw(surf, text, (LOW_W - 6 - f.size(text, 2)[0], 35), color, scale=2,
+               shadow=TEXT_SHADOW)
+        label = f"COMBO {count}"
+        f.draw(surf, label, (LOW_W - 6 - f.size(label)[0], 51), TEXT_DIM, shadow=TEXT_SHADOW)
+        self._bar(LOW_W - 46, 60, 40, 2, surf, ratio, color)
 
     def _coins(self, surf, bank, pending, flash):
         """Right side under the score: 'CR 1240' and the pending '+86' (flashes on pickup)."""

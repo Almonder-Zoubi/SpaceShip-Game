@@ -26,6 +26,7 @@ class LevelFlowMixin:
         self.ship.reset(*self.SHIP_START)
         self._reset_progress()
         self._reset_juice()
+        self._reset_boosts()
         self.background.set_nebula(level.nebula)
         self.asteroids = []
         self.spawner = AsteroidSpawner(self.library, level.difficulty)

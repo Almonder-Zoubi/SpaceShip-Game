@@ -1,8 +1,10 @@
 """Drawing a frame: world layers, HUD, and the full-screen overlays of every state."""
+import math
+
 import pygame
 
 from ..config.display import LOW_H, LOW_W
-from ..config.palette import (ACCENT, COIN, DANGER, EMPTY, GOOD, INK, RANK_COLORS, SPACE, TEXT,
+from ..config.palette import (ACCENT, BOOST_COLORS, COIN, DANGER, EMPTY, GOOD, INK, RANK_COLORS, SPACE, TEXT,
                               TEXT_DIM, TEXT_SHADOW)
 from ..flow.states import Phase, State
 from ..levels.data import LEVELS
@@ -29,6 +31,8 @@ class ScreensMixin:
         if self.ship.alive and self.state not in (State.DEV_MENU, State.HANGAR, State.REWARD):
             self.ship.draw_flames(c)
             self.ship.draw(c)
+            if self.shield and self.state == State.PLAYING:
+                self._draw_shield(c)
         for weapon in self.weapons:
             weapon.draw(c)
         self.blast.draw(c)
@@ -46,6 +50,17 @@ class ScreensMixin:
         if self.flash > 0:
             v = int(255 * min(1.0, self.flash / 0.12))
             c.fill((v, v, v), special_flags=pygame.BLEND_ADD)
+
+    def _draw_shield(self, c):
+        """SHIELD bubble: a shimmering ring, one pip per hit it can still take."""
+        ship = self.ship
+        colors = BOOST_COLORS["SHIELD"]
+        r = max(ship.w, ship.h) // 2 + 4 + self.shield_wobble(self.time)
+        pygame.draw.circle(c, colors[3], (int(ship.x), int(ship.y)), r + 1, 1)
+        pygame.draw.circle(c, colors[2], (int(ship.x), int(ship.y)), r, 1)
+        for i in range(self.shield):
+            a = self.time * 3 + i * math.tau / 3
+            c.fill(colors[0], (int(ship.x + math.cos(a) * r), int(ship.y + math.sin(a) * r), 2, 2))
 
     def _draw_reticle(self, c, x, y):
         """Mouse target: four small ticks around the point (drawn under the ship)."""
@@ -80,6 +95,8 @@ class ScreensMixin:
                       level=self._level_label(), blast=self.blast if loadout.blast else None,
                       ultimate=self.ultimate if loadout.ultimate else None,
                       galaxy=self.galaxy.number, switchable=self.inventory.owns("LASER"),
+                      boosts=(self.boosts, self.shield, self.fever),
+                      combo=(self.combo, self.combo_mult, self.combo_ratio(self.combo_time)),
                       coins=None if self.payout else   # results screen counts them
                       (self.save.coins, self.pending_coins, self.coin_flash))
         if self.dev:                                    # dev runs are marked, never recorded

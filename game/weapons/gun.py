@@ -38,7 +38,7 @@ class MachineGun(Weapon):
     def update(self, dt, firing, ship, targets, fire):
         self.cooldown -= dt
         if firing and self.cooldown <= 0:
-            self.cooldown = GUN_INTERVAL
+            self.cooldown = GUN_INTERVAL / self.rate
             self._volley(ship, fire)
         return self._move_bullets(dt, targets, fire)
 

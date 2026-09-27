@@ -22,8 +22,9 @@ from game.bosses.leviathan import Leviathan
 from game.bosses.mothership import Mothership
 from game.config.display import FPS, SCALE, WIN_H, WIN_W
 from game.config.loadouts import MK1, MK2, MK3, MK4
-from game.config.tuning import (DEATH_DELAY, POWER_MAX, REPAIR_SMALL, UPGRADE_COSTS,
-                                UPGRADE_TIERS, WARNING_TIME)
+from game.config.tuning import (COMBO_COIN_CAP, COMBO_MAX, COMBO_STEP, COMBO_WINDOW,
+                                DEATH_DELAY, FEVER_AT, POWER_MAX, REPAIR_SMALL, SHIELD_HITS,
+                                UPGRADE_COSTS, UPGRADE_TIERS, WARNING_TIME)
 from game.core.input import Keys
 from game.core.storage import SaveData
 from game.flow.game import Game
@@ -32,6 +33,7 @@ from game.levels.data import LEVELS
 from game.minions.diver import Diver
 from game.minions.drone import drone_formation
 from game.obstacles.asteroid import Asteroid, IceRock
+from game.pickups.boosts import Boost, Overdrive, Shield
 from game.pickups.types import BigCoin, Coin, FullRepair, PowerCore, RepairKit
 from game.player.hulls import ARROW, HULLS, TITAN, WASP
 from game.progression import upgrades
@@ -994,6 +996,97 @@ def test_feel(h):
     game.to_title()
 
 
+def test_boosts(h):
+    """G5: boost pickups (OVERDRIVE, SHIELD, MAGNET, SLOW-MO), drops, and the combo / FEVER."""
+    game = h.game
+    game.choose_hull(ARROW)
+    game.start(0)
+    game.radio = None
+    game.ship.hp = 10 ** 6
+
+    # OVERDRIVE: the gun fires twice as often.
+    def shots(frames):
+        gun = game.weapons[0]
+        before = gun.shots
+        h.run(frames, FIRE, clear_rocks=True)
+        return gun.shots - before
+    normal = shots(60)
+    game.pickups.append(Overdrive(game.ship.x, game.ship.y))
+    h.run(2, clear_rocks=True)
+    assert game.boost_left("OVERDRIVE") > 0 and game.ship.overdrive
+    boosted = shots(60)
+    assert boosted >= normal * 1.5, (normal, boosted)      # cooldowns are whole frames
+    h.shot("overdrive")
+    game.boosts.clear()
+
+    # SHIELD: absorbs 3 hits, the 4th hurts.
+    game.pickups.append(Shield(game.ship.x, game.ship.y))
+    h.run(2, clear_rocks=True)
+    assert game.shield == SHIELD_HITS
+    h.shot("shield")
+    hp = game.ship.hp
+    for _ in range(SHIELD_HITS):
+        game.ship.invulnerable_time = 0
+        game.hurt_ship(20, game.ship.x, game.ship.y - 10)
+    assert game.ship.hp == hp and game.shield == 0, "the bubble took every hit"
+    game.ship.invulnerable_time = 0
+    game.hurt_ship(20, game.ship.x, game.ship.y - 10)
+    assert game.ship.hp == hp - 20
+
+    # MAGNET: a coin at the far side of the screen flies in.
+    game.ship.invulnerable_time = 0
+    coin = Coin(10, 30, 0, 0)
+    game.pickups.append(coin)
+    game.start_boost("MAGNET")
+    h.run(h.seconds(3.0), clear_rocks=True)
+    assert coin.collected or coin not in game.pickups, "magnet pulled the coin in"
+    game.boosts.clear()
+
+    # SLOW-MO: rocks fall at half speed, the ship doesn't slow down.
+    rock = h.rock_ahead(8, dist=120)
+    rock.vx, rock.vy = 0, 60
+    game.asteroids = [rock]
+    y0 = rock.y
+    h.run(30)
+    normal = rock.y - y0
+    game.start_boost("SLOW-MO")
+    y0 = rock.y
+    h.run(30)
+    assert abs((rock.y - y0) - normal / 2) < normal * 0.15, (normal, rock.y - y0)
+    game.boosts.clear()
+    game.asteroids.clear()
+
+    # Drops: the field drops boosts; a new player doesn't get OVERDRIVE before owning it.
+    game.boost_timer = 0.0
+    h.run(2, clear_rocks=True)
+    assert any(isinstance(p, Boost) for p in game.pickups), "a boost dropped"
+    game.inventory.save.owned.remove("OVERDRIVE")
+    assert "OVERDRIVE" not in game.boost_pool()
+    game.inventory.save.owned.append("OVERDRIVE")
+
+    # Combo: kills in quick succession multiply the score; a hit ends the combo.
+    game.pickups.clear()
+    game.break_combo()
+    score = game.score
+    for _ in range(COMBO_STEP):
+        game.add_kill(100, 100, 100)
+    assert game.combo_mult == 2
+    assert game.add_kill(100, 100, 100) == 200, "x2 after COMBO_STEP kills"
+    game.ship.invulnerable_time = 0
+    game.hurt_ship(1, game.ship.x, game.ship.y - 10)
+    assert game.combo == 0 and game.combo_mult == 1
+    for i in range(FEVER_AT):
+        game.add_kill(10, 100, 100)
+    assert game.fever > 0 and game.overdrive, "FEVER at combo 25"
+    assert game.combo_mult == COMBO_MAX and game.coin_mult == COMBO_COIN_CAP
+    h.run(10, clear_rocks=True)
+    h.shot("fever")
+    h.run(h.seconds(COMBO_WINDOW + 0.1), clear_rocks=True)
+    assert game.combo == 0, "the combo runs out"
+    assert game.score >= score
+    game.to_title()
+
+
 def test_title_menus(h):
     """Title: level select with LEFT/RIGHT, scores alternate in; ENTER -> hangar -> launch."""
     game = h.game
@@ -1201,7 +1294,8 @@ SECTIONS = (
     ("damage", test_damage), ("balance", test_balance), ("pickups", test_pickups),
     ("campaign", test_campaign), ("level4", test_level4), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
-    ("upgrades", test_upgrades), ("feel", test_feel), ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
+    ("upgrades", test_upgrades), ("feel", test_feel),
+    ("boosts", test_boosts), ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
     ("busy", test_busy),
 )
 

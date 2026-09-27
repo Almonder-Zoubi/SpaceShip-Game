@@ -102,8 +102,11 @@ class WorldMixin:
                 return
 
     def hurt_ship(self, damage, from_x, from_y, **kwargs):
-        if self.state != State.PLAYING or self.god:
+        if self.state != State.PLAYING or self.god or self.ship.invulnerable:
             return
+        if self.absorb_hit(from_x, from_y):          # SHIELD boost
+            return
+        self.break_combo()
         hp = self.ship.hp
         died = self.ship.take_hit(damage, from_x, from_y, **kwargs)
         self.stats.damage_taken += max(0, hp - self.ship.hp)

@@ -27,6 +27,7 @@ ITEMS = {item.id: item for item in (
     Item("GUN", "MACHINE GUN", WEAPON, ("STREAM OF TRACERS.", "NEVER OVERHEATS."), 0),
     Item("LASER", "LASER", WEAPON, ("PIERCING BEAM.", "OVERHEATS WHEN HELD."), 200),
     Item("SPECIALS", "BLAST + ULTIMATE", WEAPON, ("HITS CHARGE A BLAST", "AND A MISSILE STORM."), 0),
+    Item("OVERDRIVE", "OVERDRIVE BOOST", WEAPON, ("BOOST PICKUP: FIRE", "RATE X2 FOR 6 S."), 250),
 )}
 BLURB_CHARS = 21                         # a gift card fits this many characters per line
 

@@ -173,3 +173,21 @@ DAMAGE_NUMBER_EVERY = 0.2        # seconds: boss damage is summed and shown this
 # --- Radio cards ---------------------------------------------------------------------
 RADIO_CHARS_PER_S = 45           # typing speed
 RADIO_HOLD = 3.0                 # seconds a card stays after the text is complete
+
+# --- Boosts (pickups, automatic) + combo / FEVER ---------------------------------------
+BOOST_INTERVAL = (20, 30)        # seconds between boost drops in the field (random range)
+BOSS_BOOST_INTERVAL = 22         # ... and during boss fights
+BOOST_MINION_CHANCE = 0.05       # a destroyed minion may drop one
+OVERDRIVE_TIME = 6.0             # fire rate x OVERDRIVE_RATE, white flames
+OVERDRIVE_RATE = 2.0
+SHIELD_HITS = 3                  # the bubble absorbs this many hits
+SHIELD_GRACE = 0.6               # seconds of invulnerability after the bubble takes a hit
+MAGNET_TIME = 8.0                # every coin and pickup on screen flies to the ship
+SLOWDOWN_TIME = 4.0              # SLOW-MO boost: enemies, rocks and bullets at half speed
+SLOWDOWN_SCALE = 0.5
+COMBO_WINDOW = 1.5               # seconds: a kill within this keeps the combo going
+COMBO_STEP = 3                   # kills per multiplier step: 3 kills = x2 ... 21 kills = x8
+COMBO_MAX = 8                    # score multiplier cap
+COMBO_COIN_CAP = 3               # coins are multiplied too, but at most x3 (economy)
+FEVER_AT = 25                    # combo that starts FEVER
+FEVER_TIME = 5.0                 # OVERDRIVE + rainbow trail

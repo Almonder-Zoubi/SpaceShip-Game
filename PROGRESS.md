@@ -180,6 +180,25 @@ Options need a place in the menus: ask the user where (title? pause?) before add
 
 ## Log
 
+### 2026-09-27 — G5: boosts + combo / FEVER
+- `pickups/boosts.py`: `Boost` pickups OVERDRIVE (fire rate x2, white flames, 6 s), SHIELD
+  (bubble absorbs 3 hits, 0.6 s grace after each), MAGNET (everything on screen flies in,
+  8 s), SLOW-MO (rocks, minions, bosses and enemy bullets at 50%, the ship at 100%, 4 s).
+  Drops every 20–30 s in the field, every 22 s in boss fights, 5% from minions.
+  OVERDRIVE is an item (WEAPONS tab, 250 CR in the shop later) = the level 5 gift; until the
+  player owns it, it doesn't drop **(ask)**.
+- `flow/boosts.py` `BoostsMixin`: timers, `enemy_dt()`, `fire_rate` -> `Weapon.rate`,
+  `absorb_hit()`, combo: kills within 1.5 s; every 3 kills +1 multiplier (x2 .. x8) on
+  score; **coins x min(combo, 3)** so the economy can't run away **(ask; design said x8)**.
+  Combo 25 = FEVER 5 s (OVERDRIVE + rainbow trail + alert). A hull hit ends the combo, a
+  shield hit doesn't. Music layering for FEVER not done (a `fever` jingle plays instead).
+- HUD: active boosts with draining bars (left, under the level), `X4 / COMBO 12` + timer
+  (right, under the coins); shield ring with a pip per hit left. New SFX: boost, shield,
+  combo, fever. `hurt_ship()` now ignores calls while the ship blinks (no double shake).
+- Note: gun cooldowns are whole frames, so x2 fire rate is ~x1.7 at 60 fps (base gun timing
+  left as is: changing it would silently rebalance every boss).
+- Smoke test: new `boosts` section.
+
 ### 2026-09-27 — G4: game feel (juice tiers, damage numbers, name cards, radio, options)
 - User: G3 "runs perfectly", "continue developing until you reach G14". Working through
   G4 -> G14 in order, one commit per milestone; decisions I had to make alone are marked

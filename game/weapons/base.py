@@ -28,6 +28,7 @@ class Weapon:
     overheated = False
     loadout = MK1
     power = 0
+    rate = 1.0          # fire-rate multiplier (OVERDRIVE boost), set by the game each frame
 
     def equip(self, loadout):
         self.loadout = loadout

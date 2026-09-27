@@ -31,6 +31,7 @@ from ..ui.screens import ScreensMixin
 from ..weapons.gun import MachineGun
 from ..weapons.laser import Laser
 from ..weapons.specials import Blast, Ultimate
+from .boosts import BoostsMixin
 from .combat import CombatMixin
 from .dev import DevMixin
 from .events import EventsMixin
@@ -45,12 +46,12 @@ from .world import WorldMixin
 
 
 class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixin, HangarMixin,
-           JuiceMixin, OptionsMixin, SoundMixin, DevMixin, ScreensMixin):
+           JuiceMixin, BoostsMixin, OptionsMixin, SoundMixin, DevMixin, ScreensMixin):
     """Owns the window, the world objects and the state machine.
 
     Mixins (one file each in flow/ and ui/) add: key handling, level flow, world update,
     combat, progression (coins, rank, payout), hangar + gifts, game feel (juice, damage
-    numbers, radio), options, sound, dev tools and drawing. They all work on the attributes
+    numbers, radio), boosts + combo, options, sound, dev tools and drawing. They all work on the attributes
     created here.
     """
 
@@ -195,13 +196,15 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
             self.ship.update(dt, keys, self.fire, self.smoke, autopilot=True)
 
         world_speed = self._world_speed()
+        edt = self.enemy_dt(dt)                   # SLOW-MO boost: the enemy side at half speed
         self.background.update(dt, world_speed)
-        self._update_asteroids(dt, world_speed)
-        self._update_boss(dt)
-        self._update_enemies(dt)
+        self._update_asteroids(edt, world_speed)
+        self._update_boss(edt)
+        self._update_enemies(edt)
         self._update_weapons(dt, firing)
-        self._update_enemy_bullets(dt)
+        self._update_enemy_bullets(edt)
         self._update_pickups(dt)
+        self._update_boosts(dt)
         if self.state == State.PLAYING:
             self._check_ship_collisions()
             self._update_phase(dt, world_speed)

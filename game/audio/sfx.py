@@ -177,6 +177,32 @@ def denied():
     return seq(buzz, silence(0.03), buzz)
 
 
+def boost():
+    """Boost pickup: bright rising sweep + sparkle."""
+    return mix(tone("square", 500, 1600, 0.18, 0.28, duty=0.25),
+               at(0.08, seq(*(tone("square", freq(n), None, 0.05, 0.22, duty=0.125)
+                              for n in ("E6", "B6", "E7")))))
+
+
+def shield():
+    """The bubble absorbs a hit: glassy ping."""
+    return mix(tone("sine", 1900, 1100, 0.22, 0.4), tone("triangle", 950, 700, 0.18, 0.3),
+               noise(0.05, 9000, 4000, 0.12))
+
+
+def combo():
+    """Combo multiplier up: a quick two-note blip, higher is better."""
+    return seq(tone("square", freq("G5"), None, 0.04, 0.26, duty=0.25),
+               tone("square", freq("D6"), None, 0.07, 0.26, duty=0.25))
+
+
+def fever():
+    """FEVER: fast arpeggio sweeping up two octaves."""
+    notes = ("C5", "E5", "G5", "C6", "E6", "G6", "C7")
+    return mix(seq(*(tone("square", freq(n), None, 0.05, 0.3, duty=0.25) for n in notes)),
+               tone("saw", 200, 800, 0.4, 0.15, attack=0.02))
+
+
 def select():
     return tone("square", 880, None, 0.04, 0.3, duty=0.25)
 
@@ -202,6 +228,6 @@ SOUNDS = {
     "boss_roar": boss_roar, "beam": beam, "warning": warning, "pickup": pickup,
     "power_up": power_up, "select": select, "confirm": confirm, "engine": engine_loop,
     "lock_on": lock_on, "dive": dive, "ice_break": ice_break, "coin": coin, "rank": rank,
-    "denied": denied,
+    "denied": denied, "boost": boost, "shield": shield, "combo": combo, "fever": fever,
 }
 LOOPS = ("laser", "engine")         # played on their own channel, looping

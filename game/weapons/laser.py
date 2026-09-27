@@ -52,7 +52,7 @@ class Laser(Weapon):
             a = math.atan2(-dy, -dx) + random.uniform(-1.1, 1.1)
             s = random.uniform(30, 110)
             fire.emit(ex, ey, math.cos(a) * s, math.sin(a) * s, random.uniform(0.08, 0.2), LASER)
-        dps = self.loadout.laser_dps * (1 + LASER_POWER_BONUS * self.power)
+        dps = self.loadout.laser_dps * (1 + LASER_POWER_BONUS * self.power) * self.rate
         return [Hit(target, dps * dt, ex, ey, dx, dy, LASER_PUSH * dt, continuous=True)]
 
     def draw(self, surf):

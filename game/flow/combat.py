@@ -29,6 +29,7 @@ class CombatMixin:
             self.blast.colors = LASER if self.weapon.name == "LASER" else FLAME[:4]
             hits += self.blast.update(dt, firing, self.ship, targets, self.fire)
         for weapon in self.weapons:
+            weapon.rate = self.fire_rate                  # OVERDRIVE / FEVER
             active = firing and weapon is self.weapon and not self.blast.active
             hits += weapon.update(dt, active, self.ship, targets, self.fire)
         missile_hits = self.ultimate.update(dt, False, self.ship, targets, self.fire)
@@ -80,7 +81,7 @@ class CombatMixin:
             self.asteroids.remove(rock)
         self.audio.play(rock.break_sound())
         if scored:
-            self.score += r * POINTS_PER_RADIUS
+            self.score += self.add_kill(r * POINTS_PER_RADIUS, rock.x, rock.y)
             self.stats.destroyed += 1
             self._drop_rock_coins(rock)
             if r >= 10 and random.random() < ROCK_KIT_CHANCE:
@@ -123,9 +124,10 @@ class CombatMixin:
         if enemy in self.enemies:
             self.enemies.remove(enemy)
         if scored and self.state == State.PLAYING:
-            self.score += enemy.points
+            self.score += self.add_kill(enemy.points, enemy.x, enemy.y)
             self.stats.destroyed += 1
             self._drop_minion_coins(enemy)
+            self._minion_boost(enemy)
             if random.random() < DRONE_KIT_CHANCE:
                 self.pickups.append(RepairKit(enemy.x, enemy.y))
 

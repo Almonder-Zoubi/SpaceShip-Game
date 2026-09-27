@@ -6,7 +6,7 @@ import pygame
 
 from ..config.display import LOW_H, LOW_W
 from ..config.loadouts import MK1
-from ..config.palette import FLAME, FLAME_LEAN, RCS, SMOKE
+from ..config.palette import FLAME, FLAME_LEAN, FLAME_WHITE, RCS, SMOKE
 from ..config.tuning import (HIT_INVULNERABLE, HIT_KNOCKBACK, MOUSE_DEADZONE, MOUSE_FOLLOW,
                              MOUSE_LEAN, SHIP_ACCEL, SHIP_FRICTION, SHIP_MARGIN, THROTTLE_BOOST, THROTTLE_IDLE, THROTTLE_RESPONSE,
                              THROTTLE_RETRO, TILT_DEGREES, TILT_RATE, TILT_STEPS)
@@ -70,6 +70,8 @@ class Ship:
         self._emit_debt = 0.0
         self._rcs_debt = 0.0
         self._flicker = 0.0
+        self.overdrive = False                   # OVERDRIVE / FEVER: white-hot flames
+        self.fever = False
 
     # --- geometry --------------------------------------------------------------
     @property
@@ -215,6 +217,8 @@ class Ship:
             self.vy = 0
 
     def _flame_colors(self):
+        if self.overdrive:
+            return FLAME_WHITE
         return FLAME_LEAN if self.throttle < 0.25 else FLAME
 
     def _flame_length(self):

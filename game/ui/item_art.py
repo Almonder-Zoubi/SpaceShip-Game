@@ -59,6 +59,21 @@ ICON_ROWS = {
         "....yYy....",
         ".....y.....",
     ),
+    "OVERDRIVE": (
+        "..KKKKKKK..",
+        ".KYYYYYYYK.",
+        "KYWKYWKYWKK",
+        "KYKYWKYWKYK",
+        "KKYWKYWKYyK",
+        "KYWKYWKYWKK",
+        "KYKYWKYWKYK",
+        "KKYWKYWKYyK",
+        "KYWKYWKYWKK",
+        ".KyyyyyyyK.",
+        "..KKKKKKK..",
+        "...........",
+        "...........",
+    ),
 }
 # Upgrade track icons (hangar UPGRADES tab), same colour keys.
 UPGRADE_ICON_ROWS = {
