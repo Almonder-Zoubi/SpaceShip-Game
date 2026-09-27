@@ -1,13 +1,24 @@
 # Dodging Asteroid
 
-A small 2D arcade game built with [Pygame](https://www.pygame.org/) for the "Objektorientierte Skriptsprachen" course (ESA3). Steer a rocket, dodge falling asteroids, and try to survive.
+A retro pixel-art arcade game built with [Pygame](https://www.pygame.org/) for the
+"Objektorientierte Skriptsprachen" course (ESA3). Pilot a rocket through a falling asteroid field.
+
+Everything you see — ship, asteroids, planets, nebula, font — is generated in code as real
+pixel art on a 320x240 canvas scaled x3, with particle-based engine flames and explosions.
 
 ## How to play
 
-- **Arrow keys** — move the rocket
-- **R** — restart after game over / win
-- **Esc** — quit
-- Survive and reach a score of **10** to win. Getting hit by an asteroid ends the game.
+| Key | Action |
+|---|---|
+| Arrows / WASD | Steer (the ship has inertia and banks when turning) |
+| Up | **Boost** — full burn, long flames, the world speeds up |
+| Down | **Retro** — flames die down, the world slows |
+| P | Pause |
+| C | Toggle CRT scanlines |
+| Enter / R | Start / restart |
+| Esc | Back to menu / quit |
+
+Dodge **30** asteroids to win. One hit and your rocket explodes.
 
 ## Setup
 
@@ -20,13 +31,15 @@ pip install -r requirements.txt
 python3 ESA3.py
 ```
 
-Run the command from the project root so the relative `images/`, `astroids/`, and `sounds/` asset paths resolve correctly.
+Headless self-test: `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test`
 
 ## Project structure
 
 ```
-ESA3.py        # game logic
-images/        # player sprite and background
-astroids/      # asteroid sprites (randomly chosen per enemy)
-sounds/        # background music and collision sound
+ESA3.py          # entry point
+game/            # the game package (see CLAUDE.md for a module map)
+sounds/          # background music and crash sound
+images/, astroids/   # legacy clip-art from v1 (no longer used)
+ROADMAP.md       # planned phases: levels, endless mode, extras
+PROGRESS.md      # current status and next steps
 ```
