@@ -212,7 +212,7 @@ class Helios(Boss):
     def parts(self):
         return [self] + [p for p in self.pods if not p.dead]
 
-    def hit_part(self, part, amount, flash=True):
+    def hit_part(self, part, amount, flash=True, source=None):
         if part is self:
             self.damage(amount * (self.CORE_OPEN if self.phase == 2 else 1.0), flash)
         elif part.detached:

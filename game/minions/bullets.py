@@ -57,3 +57,22 @@ class CurvedBullet(EnemyBullet):
         c, s = math.cos(a), math.sin(a)
         self.vx, self.vy = self.vx * c - self.vy * s, self.vx * s + self.vy * c
         super().update(dt)
+
+
+class ColoredBullet(EnemyBullet):
+    """An enemy bullet in another hot colour (Kaleidos's prism spirals). colors: rim, body,
+    core — always in the hot range with a white core, so it still reads as dangerous."""
+    __slots__ = ("colors",)
+
+    def __init__(self, x, y, vx, vy, damage, colors):
+        super().__init__(x, y, vx, vy, damage)
+        self.colors = colors
+
+    def draw(self, surf, blink):
+        x, y = int(self.x), int(self.y)
+        add = pygame.BLEND_ADD
+        rim, body = self.colors
+        surf.fill(rim, (x - 2, y - 1, 5, 3), special_flags=add)
+        surf.fill(rim, (x - 1, y - 2, 3, 5), special_flags=add)
+        surf.fill(body, (x - 1, y - 1, 3, 3), special_flags=add)
+        surf.fill((255, 255, 255), (x, y, 1, 1), special_flags=add)

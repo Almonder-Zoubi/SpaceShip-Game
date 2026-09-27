@@ -55,7 +55,8 @@ class Laser(Weapon):
             fire.emit(ex, ey, math.cos(a) * s, math.sin(a) * s, random.uniform(0.08, 0.2),
                       self.colors)
         dps = self.loadout.laser_dps * (1 + LASER_POWER_BONUS * self.power) * self.rate
-        return [Hit(target, dps * dt, ex, ey, dx, dy, LASER_PUSH * dt, continuous=True)]
+        return [Hit(target, dps * dt, ex, ey, dx, dy, LASER_PUSH * dt, continuous=True,
+                    source=self)]
 
     def draw(self, surf):
         if not self.active:

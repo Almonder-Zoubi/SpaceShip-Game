@@ -246,6 +246,10 @@ class HangarMixin:
             self.choose_hull(hull_named(item.id))
         elif item.kind == WINGMAN and not self.save.wingman:
             self.save.choose_wingman(item.id)
+        elif item.kind == SKIN:
+            self.wear(item.id)
+            if item.slot == PAINT:
+                self.choose_hull(self.hull)
         elif item.slot:
             self.equip_new_weapon(item)
         if self.gift_then[0] == "title":

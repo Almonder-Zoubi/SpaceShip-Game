@@ -44,6 +44,7 @@ class LevelFlowMixin:
         self.boss_index = 0
         self.boss_thirds = 0                     # thirds of the boss's health knocked off
         self.enemy_bullets = []
+        self.refractions = []                    # split laser beams (crystal rocks)
         self.enemies = []
         self.pickups = []
         self.popups = []

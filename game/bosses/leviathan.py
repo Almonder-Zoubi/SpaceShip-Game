@@ -224,7 +224,7 @@ class Leviathan(Boss):
     def parts(self):
         return [self.head] + self.plates[:len(self.plates) - self.popped]
 
-    def hit_part(self, part, amount, flash=True):
+    def hit_part(self, part, amount, flash=True, source=None):
         self.damage(amount * (self.HEAD_WEAK if part is self.head else 1.0), flash)
 
     @property

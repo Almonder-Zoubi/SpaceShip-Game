@@ -42,6 +42,9 @@ class ScreensMixin:
                 self._draw_shield(c)
         for weapon in self.weapons + list(self.secondaries.values()):
             weapon.draw(c)
+        for x0, y0, x1, y1 in self.refractions:   # split laser beams
+            pygame.draw.line(c, self.weapons[1].colors[2], (int(x0), int(y0)), (int(x1), int(y1)))
+            c.fill(self.weapons[1].colors[0], (int(x1), int(y1), 2, 2), special_flags=pygame.BLEND_ADD)
         self.blast.draw(c)
         self.ultimate.draw(c)
         self.fire.draw(c)

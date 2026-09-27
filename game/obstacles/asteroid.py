@@ -156,7 +156,25 @@ class MagmaRock(Asteroid):
             surf.blit(glow, (int(self.x) - r, int(self.y) - r), special_flags=pygame.BLEND_ADD)
 
 
-ROCK_KINDS = {"ice": IceRock, "magma": MagmaRock}   # palette name -> rock class
+class CrystalRock(Asteroid):
+    """Crystal: a laser beam hitting it splits into several beams (flow/combat.py)."""
+
+    REFRACTS = True
+    SPARKLE = True
+
+    def break_sound(self):
+        return "ice_break"
+
+    def draw(self, surf):
+        super().draw(surf)
+        if int(self.angle * 4 + self.x) % 7 == 0:           # a glint now and then
+            x, y = int(self.x) - self.radius // 3, int(self.y) - self.radius // 3
+            surf.fill((255, 255, 255), (x, y - 1, 1, 3), special_flags=pygame.BLEND_ADD)
+            surf.fill((255, 255, 255), (x - 1, y, 3, 1), special_flags=pygame.BLEND_ADD)
+
+
+ROCK_KINDS = {"ice": IceRock, "magma": MagmaRock,          # palette name -> rock class
+              "crystal": CrystalRock}
 
 
 def rock_class(palette_name):

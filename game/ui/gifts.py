@@ -4,9 +4,9 @@ import pygame
 
 from ..config.display import LOW_W
 from ..config.palette import ACCENT, EMPTY, INK, TEXT, TEXT_DIM, TEXT_SHADOW
-from ..progression.items import SHIP, WINGMAN
+from ..progression.items import SHIP, SKIN, WINGMAN
 
-KIND_LABEL = {SHIP: "NEW SHIP", WINGMAN: "NEW WINGMAN"}
+KIND_LABEL = {SHIP: "NEW SHIP", WINGMAN: "NEW WINGMAN", SKIN: "NEW SKIN"}
 
 CARD_W, CARD_H, CARD_Y = 136, 150, 44
 
@@ -36,8 +36,11 @@ class GiftScreen:
             kind = KIND_LABEL.get(item.kind, "NEW WEAPON")
             f.draw(surf, kind, (card.centerx, card.y + 6), TEXT_DIM, shadow=TEXT_SHADOW,
                    center=True)
-            self.art.draw(surf, item.id, paint, (card.centerx, card.y + 58), time,
-                          lively=selected)
+            if item.kind == SKIN:
+                self.art.draw_skin(surf, item, "ARROW", paint, (card.centerx, card.y + 58), time)
+            else:
+                self.art.draw(surf, item.id, paint, (card.centerx, card.y + 58), time,
+                              lively=selected)
             f.draw(surf, item.name, (card.centerx, card.y + 104), ACCENT if selected else TEXT,
                    shadow=TEXT_SHADOW, center=True)
             for j, line in enumerate(item.blurb):

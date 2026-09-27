@@ -126,7 +126,7 @@ class Wraith(Boss):
             return []
         return [self] + [d for d in self.decoys if not d.popped]
 
-    def hit_part(self, part, amount, flash=True):
+    def hit_part(self, part, amount, flash=True, source=None):
         if isinstance(part, Decoy):
             part.popped = True
             self._pop = part

@@ -63,8 +63,8 @@ class Boss:
         """What the player's weapons can hit."""
         return [self]
 
-    def hit_part(self, part, amount, flash=True):
-        """A weapon hit one of parts()."""
+    def hit_part(self, part, amount, flash=True, source=None):
+        """A weapon hit one of parts() (source: the weapon, e.g. a Laser, if it matters)."""
         self.damage(amount, flash)
 
     @property

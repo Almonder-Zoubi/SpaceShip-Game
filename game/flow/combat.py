@@ -3,7 +3,8 @@ import math
 import random
 
 from ..config.palette import ACCENT, DANGER, FLAME, ICE_SHARDS, LASER, POWER, SMOKE, SPARK
-from ..config.tuning import (MAGMA_BLAST, MAGMA_BLAST_DAMAGE, BLAST_CHARGE_PER_DAMAGE, BLAST_CHARGE_PER_KILL, BOSS_ROAR_TIME,
+from ..config.tuning import (MAGMA_BLAST, MAGMA_BLAST_DAMAGE, REFRACT_BEAMS, REFRACT_RANGE,
+                             REFRACT_SHARE, BLAST_CHARGE_PER_DAMAGE, BLAST_CHARGE_PER_KILL, BOSS_ROAR_TIME,
                              DRONE_KIT_CHANCE, POINTS_BOSS, POINTS_PER_RADIUS, ROCK_KIT_CHANCE,
                              ULT_CHARGE_PER_BOSS_THIRD, ULT_CHARGE_PER_DAMAGE, ULT_CHARGE_PER_KILL)
 from ..core.particles import Shockwave
@@ -12,6 +13,7 @@ from ..obstacles.asteroid import Asteroid
 from ..pickups.types import FullRepair, PowerCore, RepairKit
 from ..ui.popup import Popup
 from ..weapons.base import Hit
+from ..weapons.laser import Laser
 from .states import Phase, State
 
 
@@ -21,6 +23,7 @@ class CombatMixin:
     def _update_weapons(self, dt, firing):
         """Every weapon keeps simulating (bullets in flight, laser cooling); only the active one fires.
         A charged BLAST takes over from the normal weapon while it lasts."""
+        self.refractions = []                          # (x0, y0, x1, y1) beams this frame
         targets = self.asteroids + self.enemies
         boss_parts = self.boss.parts() if self.boss and self.boss.targetable else []
         targets += boss_parts
@@ -59,6 +62,8 @@ class CombatMixin:
             return
         rock.damage(hit.damage, flash=not hit.continuous)
         rock.push(hit.dx, hit.dy, hit.push)
+        if rock.REFRACTS and isinstance(hit.source, Laser):
+            self._refract(rock, hit)
         if hit.charges:
             self._charge(hit.damage, killed=rock.destroyed)
         chips = 1 if hit.continuous and random.random() < 0.3 else 0 if hit.continuous else 2
@@ -69,6 +74,21 @@ class CombatMixin:
                             random.uniform(0.2, 0.5), colors, drag=2)
         if rock.destroyed:
             self._destroy_rock(rock, scored=True, source=hit.source)
+
+    def _refract(self, rock, hit):
+        """A laser on a crystal: the beam splits to the nearest rocks and minions (never a
+        boss), each getting a share of the damage."""
+        near = sorted((t for t in self.asteroids + self.enemies if t is not rock
+                       and (t.x - rock.x) ** 2 + (t.y - rock.y) ** 2 < REFRACT_RANGE ** 2),
+                      key=lambda t: (t.x - rock.x) ** 2 + (t.y - rock.y) ** 2)
+        for target in near[:REFRACT_BEAMS]:
+            self.refractions.append((rock.x, rock.y, target.x, target.y))
+            split = Hit(target, hit.damage * REFRACT_SHARE, target.x, target.y, hit.dx, hit.dy,
+                        0, continuous=True, charges=hit.charges)
+            if isinstance(target, Enemy):
+                self._damage_enemy(split)
+            elif target in self.asteroids:
+                self._damage_rock(split)
 
     def _destroy_rock(self, rock, scored, source=None):
         """Explode a rock; big ones break into smaller fragments."""
@@ -168,7 +188,7 @@ class CombatMixin:
 
     def _damage_boss(self, hit):
         phase, hp = self.boss.phase, self.boss.hp
-        self.boss.hit_part(hit.target, hit.damage, flash=not hit.continuous)
+        self.boss.hit_part(hit.target, hit.damage, flash=not hit.continuous, source=hit.source)
         if self.boss.hp < hp:
             self.tally_boss_damage(hp - self.boss.hp, hit.x, hit.y)
         if self.boss.phase != phase:

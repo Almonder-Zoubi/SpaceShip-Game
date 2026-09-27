@@ -36,7 +36,12 @@ from game.levels.data import LEVELS
 from game.minions.diver import Diver
 from game.minions.drone import drone_formation
 from game.bosses.helios import Flare, Helios
+from game.bosses.kaleidos import Kaleidos, Shard
 from game.bosses.wraith import Wraith
+from game.minions.bullets import ColoredBullet
+from game.minions.prism import prism_turret
+from game.obstacles.asteroid import CrystalRock
+from game.config.tuning import REFRACT_BEAMS
 from game.hazards.fog import FogBanks
 from game.minions.bullets import CurvedBullet
 from game.minions.phantom import Phantom
@@ -821,6 +826,104 @@ def test_level6(h):
     h.kill(boss)
     h.run(h.seconds(boss.DEATH_TIME + JUICE_PAD + 1.7), clear_rocks=True)
     assert game.state in (State.LEVEL_CLEAR, State.WIN)
+    game.to_title()
+
+
+def test_level7(h):
+    """Level 7 CRYSTAL VEIL: a lasered crystal splits the beam onto nearby rocks; a prism
+    turret falls with its crystal; KALEIDOS mirrors the laser back in phase 1 (the gun
+    breaks shards, they regrow), burns a blinking lattice in phase 2, prism spirals in 3."""
+    game = h.game
+    game.choose_hull(ARROW)
+    game.start(6)
+    game.radio = None
+    game.ship.hp = 10 ** 6
+    assert game.ship.loadout.name == "MK VII" and game._music_track() == "level7"
+    lib, hp = game.library, game.level.difficulty.rock_hp
+    crystal = CrystalRock(lib.pick(8, 8, ("crystal",)), game.ship.x, 90, 0, 0, 0, hp_scale=hp)
+    others = [Asteroid(lib.pick(5, 5, ("slate",)), game.ship.x + dx, 70, 0, 0, 0,
+                       hp_scale=hp) for dx in (-40, 40, 0)]
+    game.asteroids = [crystal] + others
+    laser = game.weapons[1]
+    game._damage_rock(Hit(crystal, 5, crystal.x, crystal.y, 0, -1, 0, continuous=True,
+                          source=laser))
+    assert len(game.refractions) == REFRACT_BEAMS
+    assert all(r.hp < r.max_hp for r in others), "the split beams hit"
+    game.weapon_index = 1
+    for _ in range(20):
+        crystal.vx = crystal.vy = 0
+        game.update(h.dt, FIRE)
+        game.draw()
+    h.shot("level7_refract")
+
+    # Prism turret: falls when its crystal breaks.
+    game.asteroids.clear()
+    game.enemies = prism_turret(game)
+    turret = game.enemies[0]
+    host = turret.host
+    h.run(2)
+    game._damage_rock(Hit(host, host.max_hp + 1, host.x, host.y, 0, -1, 0))
+    h.run(2)
+    assert turret not in game.enemies, "the turret fell with its crystal"
+    game.weapon_index = 0
+
+    # KALEIDOS.
+    game.start(6, 0, 2, 0)
+    game.radio = None
+    game.ship.hp = 10 ** 6
+    h.run(h.seconds(WARNING_TIME + Kaleidos.ENTER_TIME + 0.3), clear_rocks=True)
+    boss = game.boss
+    assert isinstance(boss, Kaleidos) and boss.fighting and game._music_track() == "kaleidos"
+    shard = boss.shards[2]
+    hp0, ship_hp = boss.hp, game.ship.hp
+    game.ship.invulnerable_time = 0
+    game._damage_boss(Hit(shard, 20, 0, 0, 0, -1, 0, continuous=True, source=laser))
+    h.run(1, clear_rocks=True)
+    assert boss.hp == hp0 and game.ship.hp < ship_hp, "the mirror bounced the laser back"
+    game._damage_boss(Hit(shard, shard.max_hp + 1, 0, 0, 0, -1, 0))
+    assert not shard.whole and shard not in boss.parts()
+    h.run(h.seconds(Shard.REGROW + 1.0), clear_rocks=True)         # (+ hit-stops)
+    assert shard.whole, "shards regrow"
+    h.run(h.seconds(2.0), FIRE, clear_rocks=True)
+    h.shot("kaleidos")
+    game._damage_boss(Hit(boss, boss.max_hp * 0.34, 0, 0, 0, -1, 0))
+    boss.roar = 0
+    boss.pattern_index, boss.attack_time = 1, 0.0            # lattice
+    h.run(3, clear_rocks=True)
+    assert boss.lattice == 1 and boss.beams()
+    h.shot("kaleidos_lattice_warn")
+    h.run(h.seconds(Kaleidos.LATTICE_WARN + JUICE_PAD), clear_rocks=True)   # (+ slow-mo)
+    assert boss.lattice == 2
+    ax, ay, bx, by = boss.beams()[0]
+    game.ship.x, game.ship.y = (ax + bx) / 2, (ay + by) / 2
+    game.ship.invulnerable_time, ship_hp = 0, game.ship.hp
+    h.run(1, clear_rocks=True)
+    assert game.ship.hp < ship_hp, "the burning lattice hurts"
+    h.shot("kaleidos_lattice")
+    game.ship.x, game.ship.y = game.SHIP_START
+    game._damage_boss(Hit(boss, boss.max_hp * 0.34, 0, 0, 0, -1, 0))
+    boss.roar = 0
+    boss.pattern_index, boss.attack_time = 0, 0.0            # spiral7
+    game.enemy_bullets.clear()
+    h.run(h.seconds(1.0), clear_rocks=True)
+    assert any(isinstance(b, ColoredBullet) for b in game.enemy_bullets)
+    h.shot("kaleidos_phase3")
+    h.kill(boss)
+    h.run(h.seconds(boss.DEATH_TIME + JUICE_PAD + 1.7), clear_rocks=True)
+    assert game.state in (State.LEVEL_CLEAR, State.WIN)
+
+    # The level 7 gift offers a skin (SOLAR paint): the card draws, taking it wears it.
+    game.save.gifts = [k for k in game.save.gifts if k != "1-7"]
+    game.save.owned.remove("SOLAR")
+    game.offer_gift("1-7", ("hangar", 7 if len(LEVELS) > 7 else 6, 0))
+    game.gift_cursor = 1
+    h.run(3)
+    h.shot("gift_skin")
+    game.state_time = 1.0
+    h.post(pygame.K_RETURN)
+    assert game.skin("PAINT").id == "SOLAR" and game.ship.colors == SHIP_PALETTES["solar"]
+    game.save.skins = {}
+    game.choose_hull(ARROW)
     game.to_title()
 
 
@@ -1862,7 +1965,7 @@ SECTIONS = (
     ("weapons", test_weapons),
     ("damage", test_damage), ("balance", test_balance), ("pickups", test_pickups),
     ("campaign", test_campaign), ("level4", test_level4),
-    ("level5", test_level5), ("level6", test_level6), ("save", test_save), ("menus", test_title_menus),
+    ("level5", test_level5), ("level6", test_level6), ("level7", test_level7), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
     ("upgrades", test_upgrades), ("feel", test_feel),
     ("boosts", test_boosts), ("wingmen", test_wingmen),

@@ -90,3 +90,43 @@ class Lightning(EventLayer):
         surf.fill(glow, special_flags=pygame.BLEND_ADD)
         if int(self.flash * 40) % 2 == 0 and len(self.bolt) > 1:
             pygame.draw.lines(surf, (int(90 * k), int(120 * k), int(110 * k)), False, self.bolt, 1)
+
+
+class CrystalSparkle(EventLayer):
+    """Level 7: a faceted crystal moon and glittering star crosses."""
+
+    def __init__(self, rng):
+        super().__init__(rng)
+        self.moon = pygame.Surface((70, 70), pygame.SRCALPHA)
+        facets = [(34, 0), (66, 20), (60, 58), (30, 69), (4, 50), (2, 16)]
+        center = (34, 34)
+        tones = ((30, 26, 60), (22, 38, 60), (40, 32, 74), (20, 22, 46), (26, 44, 66),
+                 (36, 30, 68))
+        for i, color in enumerate(tones):
+            pygame.draw.polygon(self.moon, color, [center, facets[i], facets[(i + 1) % 6]])
+        pygame.draw.polygon(self.moon, (54, 50, 100), facets, 1)
+        self.y = 40.0
+        self.glints = [[rng.uniform(0, LOW_W), rng.uniform(0, LOW_H), rng.uniform(0, 3)]
+                       for _ in range(14)]
+
+    def update(self, dt, world_speed):
+        super().update(dt, world_speed)
+        self.y += 3 * world_speed * dt
+        if self.y > LOW_H + 40:
+            self.y = -80.0
+        for g in self.glints:
+            g[2] += dt
+            g[1] += 12 * world_speed * dt
+            if g[2] > 3 or g[1] > LOW_H:
+                g[:] = [self.rng.uniform(0, LOW_W), self.rng.uniform(0, LOW_H), 0.0]
+
+    def draw(self, surf):
+        surf.blit(self.moon, (26, int(self.y)))
+        for x, y, t in self.glints:
+            k = max(0.0, 1 - abs(t - 1.5) / 1.5)
+            if k <= 0:
+                continue
+            c = (int(120 * k), int(110 * k), int(160 * k))
+            size = 1 + int(k * 2)
+            surf.fill(c, (int(x) - size, int(y), 2 * size + 1, 1), special_flags=pygame.BLEND_ADD)
+            surf.fill(c, (int(x), int(y) - size, 1, 2 * size + 1), special_flags=pygame.BLEND_ADD)

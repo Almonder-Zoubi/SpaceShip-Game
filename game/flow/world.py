@@ -44,6 +44,9 @@ class WorldMixin:
         ship = self.ship
         for enemy in list(self.enemies):
             enemy.update(dt, self)
+            if enemy.destroyed and enemy in self.enemies:     # e.g. a turret whose rock broke
+                self._destroy_enemy(enemy, scored=self.state == State.PLAYING)
+                continue
             if enemy.offscreen:
                 self.enemies.remove(enemy)
                 if self.state == State.PLAYING and enemy.stat:

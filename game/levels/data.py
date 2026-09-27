@@ -1,19 +1,21 @@
 """The levels, grouped into galaxies. A new level = a new Level entry in its galaxy's tuple."""
-from ..background.events import Lightning, SunCorona
+from ..background.events import CrystalSparkle, Lightning, SunCorona
 from ..bosses.carrier import Carrier
 from ..bosses.gunship import GUNSHIP_SPEC, Gunship
 from ..bosses.helios import Helios
+from ..bosses.kaleidos import Kaleidos
 from ..bosses.leviathan import Leviathan
 from ..bosses.mothership import Mothership
 from ..bosses.spec import BossSpec
 from ..bosses.wraith import Wraith
-from ..config.loadouts import MK1, MK2, MK3, MK4, MK5, MK6
-from ..config.palette import (NEBULA, NEBULA_ABYSS, NEBULA_CRIMSON, NEBULA_FORGE, NEBULA_FROST,
-                              NEBULA_GHOST)
+from ..config.loadouts import MK1, MK2, MK3, MK4, MK5, MK6, MK7
+from ..config.palette import (NEBULA, NEBULA_ABYSS, NEBULA_CRIMSON, NEBULA_CRYSTAL, NEBULA_FORGE,
+                              NEBULA_FROST, NEBULA_GHOST)
 from ..hazards.fog import FogBanks
 from ..config.tuning import LEVEL_LENGTH
 from ..minions.minelayer import minelayer_squad
 from ..minions.phantom import phantom_pair
+from ..minions.prism import prism_turret
 from .model import BossEntry, Difficulty, Galaxy, Level, Wave
 
 DEFAULT_DIFFICULTY = Difficulty(
@@ -136,6 +138,30 @@ GALAXY_1_LEVELS = (
                  "PHANTOMS SHIMMER BEFORE THEY FIRE."),
           upgrade_notes=("FOG HIDES ROCKS AND MINIONS",
                          "PHANTOMS: WATCH THE SHIMMER")),
+    # Crystal rocks that split the laser, prism turrets, the Wraith again, KALEIDOS.
+    Level(7, "CRYSTAL VEIL", MK7,
+          Difficulty(spawn_interval=0.5, speed_min=66, speed_max=126, radius_min=4,
+                     radius_max=14, drift=20, palettes=("crystal", "slate", "grey"),
+                     formation_interval=12, extras=((prism_turret, 11),), rock_hp=2.0,
+                     enemy_hp=1.9),
+          tuple(NEBULA_CRYSTAL),
+          (Wave(45, name="THE CRYSTAL VEIL"),
+           Wave(40, (BossEntry(Wraith, BossSpec("WRAITH", strength=1.5, fight_time=35,
+                                                player=MK7)),),
+                name="A GHOST RETURNS",
+                radio=("THE WRAITH SLIPPED OUT OF THE NEBULA.",)),
+           Wave(40, (BossEntry(Kaleidos, BossSpec("KALEIDOS", strength=5.0, fight_time=80,
+                                                  player=MK7), music="kaleidos"),),
+                name="THE PRISM QUEEN",
+                radio=("HER SHARDS ARE MIRRORS. LASERS BOUNCE BACK!",
+                       "BREAK THEM WITH THE GUN, THEN BURN HER.",
+                       "WHEN THE LINES BLINK, GET OUT OF THEM."))),
+          music="level7", event=CrystalSparkle,
+          radio=("THE CRYSTAL VEIL. LASER THE CRYSTALS:",
+                 "THE BEAM SPLITS TO EVERYTHING NEARBY.",
+                 "BREAK THE BIG ONES TO DROP THEIR TURRETS."),
+          upgrade_notes=("CRYSTALS SPLIT YOUR LASER",
+                         "PRISM TURRETS RIDE BIG CRYSTALS")),
 )
 
 GALAXIES = (

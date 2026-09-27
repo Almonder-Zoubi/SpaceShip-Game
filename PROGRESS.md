@@ -180,6 +180,23 @@ Options need a place in the menus: ask the user where (title? pause?) before add
 
 ## Log
 
+### 2026-09-27 — G12: level 7 CRYSTAL VEIL
+- `CrystalRock`: a LASER hit (`Hit.source` is the Laser now) splits into beams to the 3
+  nearest rocks / minions within 90 px (80% damage each, never a boss); drawn as thin beams.
+  CrystalSparkle event layer (faceted crystal moon + glinting star crosses).
+- `PrismTurret` minion (every 11 s): rides a big crystal rock (1.5x tougher), fires 3-way
+  shots; break the crystal and the turret falls (counts as a kill). The world now destroys
+  any enemy whose hp dropped to 0 outside of combat.
+- KALEIDOS (`bosses/kaleidos.py`): faceted hive + 6 shards. P1 the shards form a MIRROR
+  towards the ship: laser hits on a shard bounce back (0.6 bullets of damage, the boss is
+  unharmed), other weapons break shards (2.5% boss HP each; regrow after 8 s). P2 the shards
+  spread and a turning LATTICE of 3 light beams blinks 0.8 s, then burns. P3 7-arm prism
+  spirals in 7 hot colours (`ColoredBullet`, readability rule kept). `hit_part()` got a
+  `source` argument (all bosses). Music `level7` (glassy E major), `kaleidos` (F# minor 164).
+- Level 7 waves: field 45 s; field 40 s -> Wraith 1.5x; field 40 s -> KALEIDOS 5x. Gift
+  after level 7: PLASMA | SOLAR paint (gift cards draw skins; a gifted skin is worn at once).
+- Smoke test: new `level7` section.
+
 ### 2026-09-27 — G11: level 6 GHOST NEBULA
 - `hazards/fog.FogBanks`: dithered grey-green fog banks drift down every 4–7 s and are drawn
   over rocks, minions and pickups but under the ship and enemy bullets (fairness rule).

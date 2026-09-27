@@ -265,3 +265,13 @@ PHANTOM_BURST = 3                # shots per burst
 PHANTOM_BULLET_DAMAGE = 9
 PHANTOM_BULLET_SPEED = 120
 POINTS_PHANTOM = 220
+
+# --- Level 7 CRYSTAL VEIL -------------------------------------------------------------------
+REFRACT_RANGE = 90               # px: a lasered crystal splits the beam to up to 3 targets ...
+REFRACT_BEAMS = 3
+REFRACT_SHARE = 0.8              # ... each getting this share of the laser's damage
+PRISM_HP = 40
+PRISM_INTERVAL = 1.8             # seconds between 3-way refracted shots
+PRISM_BULLET_DAMAGE = 10
+PRISM_BULLET_SPEED = 110
+POINTS_PRISM = 300
