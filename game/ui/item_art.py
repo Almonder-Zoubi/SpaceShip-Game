@@ -1,5 +1,5 @@
 """Pictures of inventory items for the hangar and the gift screen: ship previews (2x, with
-engine flames), weapon icons (3x) and dark silhouettes for locked items."""
+engine flames), weapon and upgrade icons (3x) and dark silhouettes for locked items."""
 import math
 
 import pygame
@@ -60,6 +60,84 @@ ICON_ROWS = {
         ".....y.....",
     ),
 }
+# Upgrade track icons (hangar UPGRADES tab), same colour keys.
+UPGRADE_ICON_ROWS = {
+    "ARMOR": (
+        ".KKKKKKKKK.",
+        "KWWWWWWWWGK",
+        "KWGGGRGGGDK",
+        "KWGGRRRGGDK",
+        "KWGRRRRRGDK",
+        "KWGGRRRGGDK",
+        "KWGGGRGGGDK",
+        ".KWGGGGGDK.",
+        ".KWGGGGGDK.",
+        "..KWGGGDK..",
+        "...KWGDK...",
+        "....KDK....",
+        ".....K.....",
+    ),
+    "GUNS": (
+        ".....K.....",
+        "....KWK....",
+        "...KYWyK...",
+        "...KYYyK...",
+        "...KYYyK...",
+        "..KKKKKKK..",
+        "..KGWGGDK..",
+        "..KGWGGDK..",
+        "..KGWGGDK..",
+        "..KGWGGDK..",
+        "..KDDDDDK..",
+        "..KKKKKKK..",
+        "...........",
+    ),
+    "LASER": (
+        ".....C.....",
+        ".....W.....",
+        ".....C.....",
+        ".....W.....",
+        "....KCK....",
+        "..KKBWBKK..",
+        ".KGBCWCBGK.",
+        ".KGBCWCBGK.",
+        ".KGDBBBDGK.",
+        "..KGGGGGK..",
+        "..KDGGGDK..",
+        "...KKKKK...",
+        "...........",
+    ),
+    "ENGINE": (
+        "...KKKKK...",
+        "..KGWGGDK..",
+        "..KGWGGDK..",
+        "..KDDDDDK..",
+        "...KGGDK...",
+        "..KGWGGDK..",
+        ".KGWGGGGDK.",
+        "KKKKKKKKKKK",
+        "...YYWYY...",
+        "....YWY....",
+        "....yYy....",
+        ".....y.....",
+        "...........",
+    ),
+    "CHARGE": (
+        "......KKK..",
+        ".....KYWK..",
+        "....KYWK...",
+        "...KYWK....",
+        "..KYWYKKK..",
+        ".KYYYYYYK..",
+        ".KKKKYYK...",
+        "....KYyK...",
+        "...KYyK....",
+        "...KyK.....",
+        "..KyK......",
+        "..KK.......",
+        "...........",
+    ),
+}
 ICON_COLORS = {
     "K": INK, "W": (250, 250, 245), "G": (160, 166, 184), "D": (86, 90, 112),
     "Y": (255, 204, 64), "y": (184, 120, 36), "C": (170, 244, 255), "B": (70, 180, 255),
@@ -89,6 +167,14 @@ class ItemArt:
                 image = pygame.mask.from_surface(image).to_surface(
                     setcolor=(*INK, 255), unsetcolor=(0, 0, 0, 0))
             self._cache[key] = image
+        return self._cache[key]
+
+    def upgrade_icon(self, track_id):
+        key = ("upgrade", track_id)
+        if key not in self._cache:
+            frame = sprite_from_rows(UPGRADE_ICON_ROWS[track_id], ICON_COLORS)
+            w, h = frame.get_size()
+            self._cache[key] = pygame.transform.scale(frame, (w * ICON_SCALE, h * ICON_SCALE))
         return self._cache[key]
 
     def draw(self, surf, item_id, paint, center, time, locked=False, lively=False):

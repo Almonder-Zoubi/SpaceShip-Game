@@ -16,6 +16,7 @@ class Loadout:
     colors: str = "mk1"           # key into player.hulls paint jobs
     blast: bool = False           # charged BLAST beam (MK III)
     ultimate: bool = False        # T: missile storm (MK III)
+    charge_rate: float = 1.0      # BLAST / ULTIMATE charge multiplier (CHARGE upgrade)
 
     @property
     def gun_dps(self):

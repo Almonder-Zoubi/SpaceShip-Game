@@ -310,6 +310,13 @@ That's the reward for investing, and it can never become trivial.
 
 The hangar shows `POWER 112%` next to the ship (100% = par for the next level).
 
+**Built (G3):** per tier ARMOR +3% HP, GUNS +3% gun damage, LASER +3% laser DPS, ENGINE +4%
+top speed, CHARGE +10% BLAST / ULT charge rate. POWER = HP bonus x the better weapon bonus
+(gun and laser don't stack, one fires at a time): full ARMOR + GUNS = 1.15 x 1.15 =
+**POWER 132%**, so a 5x boss feels like ~3.8x (the smoke test asserts >= 3.5x for every hull).
+ENGINE and CHARGE are utility and don't count in POWER. Buying all 25 tiers costs 10,000 CR
+(~40 good level runs); one run (215–250 CR) buys 1–2 early tiers, as targeted in 6.2.
+
 ---
 
 ## 7. Temporary boosts and combo

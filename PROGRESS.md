@@ -4,62 +4,39 @@ Update this file at the end of every work session: what changed, what's next, op
 
 ## Status
 
-**Branch:** `design` (from `682a781` "level 4 and a complete guide.md"). Design work only so
-far; no game code changed on this branch.
+**Branch:** `design` (from `682a781` "level 4 and a complete guide.md"): Phase 10 design,
+then G1–G3 (coins + rank, gifts + HANGAR 2.0, upgrades).
 **Current phase:** 4 levels playable + mouse control. New direction from the user: **galaxies of
 10 levels + meta progression** (gifts per level, coins, upgrades, wingmen, inventory, skins,
 new weapons, bosses and effects). Designed in [docs/DESIGN.md](docs/DESIGN.md), milestones
 G0–G15 in [ROADMAP.md](ROADMAP.md) Phase 10.
 Design approved (answers in DESIGN.md section 14). G1 (coins, rank) playtested: "feels ok",
-215–250 CR per level is good. **G2 done** (gifts 1 of 2, HANGAR 2.0 + shop, new players start
-with ARROW + gun), not committed, waiting for the user's playtest. Next: **G3 upgrades**
-(coins' main sink). Systems first, then a full playtest of levels 1–4, then level 5.
+215–250 CR per level is good. G2 done (gifts 1 of 2, HANGAR 2.0 + shop, new players start
+with ARROW + gun), not playtested yet. **G3 done** (upgrades: 5 tracks x 5 tiers, UPGRADES
+tab, POWER %), waiting for the user's playtest together with G2. Next: **G4 game feel pass**.
+Systems first, then a full playtest of levels 1–4, then level 5.
 NEMESIS (Phase 9) is parked behind Phase 10.
 
 **Starting a new session?** Read this file's Snapshot + Decisions, then CLAUDE.md (module map,
 "where to look when debugging", conventions). Run the smoke test once before changing anything.
 
-## Handoff — next session starts G3 (upgrades)
+## Handoff — next session: playtest G2 + G3, then G4 (game feel)
 
-State at hand-off (2026-09-27): branch `design`, G1 + G2 committed and pushed, full smoke test
-green, lint clean. G1 playtested by the user ("feels ok"); **G2 not playtested yet**: ask the
-user how the gift screen, hangar controls (ENTER equip / ENTER again or SPACE launch) and
-prices feel before tuning anything.
+State at hand-off (2026-09-27): branch `design`, G1–G3 committed and pushed, full smoke test
+green, lint clean. **G2 and G3 are not playtested yet**: ask the user how the gift screen,
+hangar controls (ENTER equip / buy, ENTER again confirms, SPACE launch), prices and the
+upgrade feel (+3% per tier is deliberately small, see DESIGN 6.3) are before tuning anything.
+The real macOS window check of the UPGRADES tab was **not** done (cloud session, headless
+only): the screen uses only SRCALPHA icons and `fill`s on the canvas, but ask the user to look.
 
-Working headless (cloud): `pip install -r requirements.txt` (only pygame), then
+Working headless (cloud): `pip install -r requirements.txt pyflakes`, then
 `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test [--only a,b]
 [--shots DIR]` and `python3 -m pyflakes ESA3.py game/ tests/ tools/`. The first start renders
-the sounds into `sounds/generated/` (git-ignored, ~9 s). The "real window" check in CLAUDE.md
-needs macOS: if you can't run it, say so and ask the user to look (canvas / sprites must never
-use a bare `pygame.Surface()`; use `opaque_surface()` or SRCALPHA). Screenshots from
-`--shots` are fine for layout checks.
+the sounds into `sounds/generated/` (git-ignored, ~9 s).
 
-G3 plan (DESIGN.md 6.3, ROADMAP Phase 10 G3). Suggested shape:
-1. `config/tuning.py`: `UPGRADE_COSTS = (100, 200, 350, 550, 800)` and per-tier bonuses:
-   ARMOR +6% HP, GUNS +6% gun damage, LASER +6% laser DPS, ENGINE +4% speed, CHARGE +10%
-   BLAST/ULT charge rate. Full tiers ≈ +30% power over par.
-2. `progression/upgrades.py` (pure logic): tracks, `cost(tier)`, `apply(loadout, tiers)` ->
-   `dataclasses.replace(...)`; `power_ratio()` for the hangar's `POWER 112%`.
-3. `SaveData.upgrades` = {track: tier}, validated on load (missing = all 0); buying lives next
-   to `Inventory.buy()` (or an `Upgrades` class using the same save).
-4. `LevelFlowMixin.loadout_for()` applies upgrades **after** the hull. `BossSpec` must keep
-   using the level's *par* loadout (`Level.loadout`), never the upgraded one — that is the
-   balance rule. CHARGE goes into `CombatMixin._charge()` / `_charge_ultimate()`.
-5. Hangar: add an UPGRADES tab. `progression.items.TABS` + `HangarView` currently assume
-   every tab lists `Item`s; the upgrade tab lists tracks (name, 5 tier pips, next cost,
-   ENTER buys with the same confirm step). Show `POWER n%` vs the next level's par.
-6. Smoke test: new `upgrades` section (costs, buy + saved, loadout values, confirm / refused,
-   old saves load with 0 tiers) and a balance check: a maxed build against a 5x boss must
-   still be >= ~3.5x in the `BossSpec` damage race. `Harness` gives every item via
-   `inventory.grant_all()`; decide whether tests start with 0 tiers (they should, so the
-   existing balance assertions stay exact).
-7. Docs: DESIGN 6.3 numbers, ROADMAP G3 checkbox, PROGRESS log + snapshot, CLAUDE.md module
-   map, GUIDE (a new-upgrade recipe). Ask the user before changing controls.
-
-Things only the local machine had (not in the repo): Claude's local memory said "controls stay
-simple: no drift / 360°; hazards like the level 9 black hole may push the ship" — the same
-rules are in "Decisions" below. The optional agent skills (`game-feel`, `level-design`) were
-not installed (see the log).
+G4 (ROADMAP Phase 10, DESIGN section on juice tiers): shake / hit-stop / particles per tier,
+boss damage numbers, boss name cards, radio cards, options (volume, reduce shake / flashes).
+Options need a place in the menus: ask the user where (title? pause?) before adding keys.
 
 ## Snapshot — what the game is right now
 
@@ -149,6 +126,11 @@ not installed (see the log).
   taken is sold in the shop (200–350 CR). Between levels (and from the title) the HANGAR
   shows SHIPS / WEAPONS tabs: equip, buy with coins, see how locked items unlock, SPACE
   launches.
+- **Upgrades** (G3): hangar tab UPGRADES — ARMOR (+3% HP), GUNS (+3% gun damage), LASER
+  (+3% laser DPS), ENGINE (+4% speed), CHARGE (+10% BLAST / ULT charge), 5 tiers each for
+  100 / 200 / 350 / 550 / 800 CR (ENTER asks, ENTER buys). Applied after the hull on every
+  level's ship model; bosses stay balanced on par. Header shows `POWER n%` = HP x better
+  weapon bonus (max 132%: a 5x boss feels ~3.8x).
 - **Save** (`storage.SaveData`, `save.json` in the project root, git-ignored): top 5 records
   (score, level reached, date) + unlocked levels. Written on game over / win (records) and
   level clear (unlock). Title: LEFT/RIGHT picks any unlocked level; TOP SCORES alternate with
@@ -197,6 +179,31 @@ not installed (see the log).
   the key is decided then.
 
 ## Log
+
+### 2026-09-27 — G3: upgrades (5 tracks x 5 tiers), POWER %
+- User: "continue to complete G3". G2 still not playtested (no feedback yet).
+- Numbers: the handoff suggested +6% per tier, but ARMOR x GUNS at +30% each = 1.69 would
+  make a 5x boss feel ~3.0x, below the roadmap's ">= ~3.5x" check and DESIGN's "about 3.8x".
+  Chose **+3% HP / gun / laser per tier** (max 1.15 x 1.15 = POWER 132%, 5x boss -> 3.78x),
+  ENGINE +4% speed, CHARGE +10% charge rate (utility, not in POWER). Costs 100/200/350/550/800
+  (10,000 CR for everything). DESIGN 6.3 updated. Tell the user if +3% feels too small.
+- `config/tuning.py` `UPGRADE_TIERS`, `UPGRADE_COSTS`, `UPGRADE_BONUS`; `Loadout.charge_rate`
+  (default 1, read by `CombatMixin._charge()` / `_charge_ultimate()`, incl. boss thirds).
+- `progression/upgrades.py`: `Track`, `TRACKS`, `cost()`, `apply(loadout, tiers)`,
+  `power_ratio(tiers)` (HP x the better weapon; gun and laser don't stack).
+- `SaveData.upgrades` {track: tier}, clamped 0..5 on load, missing = {} (old saves).
+  `Inventory.tier()` / `tiers` / `upgrade_cost()` / `buy_upgrade()`; `grant_all()` leaves
+  tiers at 0 (tests stay exact).
+- `loadout_for()` applies upgrades after the hull; `BossSpec` untouched (par).
+- Hangar: third tab UPGRADES (`items.UPGRADE`; list of tracks with 5 pips + next price or
+  MAX, preview = 3x track icon + big pips + TIER n/5, details "HULL +6% > +9%" and the value
+  on the next level's model). ENTER asks "ARMOR TIER 3 FOR 350 CR? ENTER", ENTER buys; not
+  enough credits / maxed are refused. `POWER n%` in the header on every tab. Ship stat bars
+  and weapon numbers now show the equipped hull + upgrades (weapon lines used par before).
+- Smoke test: new `upgrades` section (costs, apply, power, cap vs every boss and hull, hangar
+  ask / buy / saved / refused / maxed, ship flies the upgraded model, boss HP stays par,
+  CHARGE x1.5 fill, old + broken saves). Full test + seeds 1–3 pass, lint clean. Real macOS
+  window not checked (cloud session).
 
 ### 2026-09-27 — G2: gifts, HANGAR 2.0, shop, starter inventory
 - User playtested G1: "feels ok", coins per level (215–250) good. Asked for G2.

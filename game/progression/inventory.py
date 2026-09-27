@@ -1,9 +1,11 @@
-"""What the player owns, what the shop sells and which level gifts are claimed.
+"""What the player owns, what the shop sells, which level gifts are claimed and the upgrade
+tiers bought.
 
 Works on a SaveData (owned / shop / gifts lists) and saves after every change. A save
 without an inventory (older versions) gets every gift of the levels it has already
 cleared, so nobody loses what they had.
 """
+from . import upgrades
 from .items import GIFTS, ITEMS, STARTER, gift_level
 
 OWNED, SHOP, LOCKED = "OWNED", "SHOP", "LOCKED"
@@ -74,6 +76,28 @@ class Inventory:
             return False
         self.save.coins -= ITEMS[item_id].price
         self._add(item_id)
+        self.save.save()
+        return True
+
+    # --- upgrades ---------------------------------------------------------------------
+    def tier(self, track_id):
+        return self.save.upgrades.get(track_id, 0)
+
+    @property
+    def tiers(self):
+        return {t: self.tier(t) for t in upgrades.TRACK_IDS}
+
+    def upgrade_cost(self, track_id):
+        """Price of the track's next tier (None when maxed)."""
+        return upgrades.cost(self.tier(track_id))
+
+    def buy_upgrade(self, track_id):
+        """Buy the track's next tier. Returns True if bought."""
+        price = self.upgrade_cost(track_id)
+        if price is None or self.save.coins < price:
+            return False
+        self.save.coins -= price
+        self.save.upgrades[track_id] = self.tier(track_id) + 1
         self.save.save()
         return True
 

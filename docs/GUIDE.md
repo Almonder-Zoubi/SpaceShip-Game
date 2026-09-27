@@ -101,6 +101,7 @@ loop. Its behaviour is split into **mixins**, one file each, all working on the 
 | `WorldMixin` | `flow/world.py` | move rocks, enemies, bullets, pickups; hazards that hurt the ship |
 | `CombatMixin` | `flow/combat.py` | the player's hits: damage, kills, splitting, score, BLAST / ULT charge |
 | `ProgressionMixin` | `flow/progression.py` | pending coins, `LevelStats`, rank + payout into the bank when a level is won |
+| `HangarMixin` | `flow/hangar.py` | hangar tabs (ships, weapons, upgrades), buying with a confirm step, launching, gift screen |
 | `SoundMixin` | `flow/sound.py` | which music plays in which state, engine / laser loops |
 | `DevMixin` | `flow/dev.py` | dev menu items, god mode, hotkeys |
 | `ScreensMixin` | `ui/screens.py` | drawing every frame and every state's overlay |
@@ -273,6 +274,21 @@ two blurb lines of at most 21 characters, shop price), `STARTER` (owned by a new
 thing: `LevelFlowMixin.loadout_for()` (BLAST + ULT), `switch_weapon()` (laser), `choose_hull()`
 calls from the hangar. A weapon icon goes in `ui/item_art.ICON_ROWS`.
 
+### A new upgrade track
+
+Upgrades are tiers bought in the hangar's UPGRADES tab, applied on top of the level's ship
+model **after** the hull (`LevelFlowMixin.loadout_for()`). Bosses keep using the par model
+(`Level.loadout` in their `BossSpec`), so upgrades are always an edge, never a rebalance.
+1. `config/tuning.py`: the track's per-tier bonus in `UPGRADE_BONUS` (prices are shared:
+   `UPGRADE_COSTS`).
+2. `progression/upgrades.py`: a `Track(id, stat, blurb)` in `TRACKS`, and its effect in
+   `apply()` (a new stat needs a `Loadout` field with a neutral default, like `charge_rate`,
+   and the code that reads it). If it wins boss fights (HP or damage), include it in
+   `power_ratio()` — the smoke test checks that a maxed build still faces a 5x boss as >= 3.5x.
+3. `ui/item_art.UPGRADE_ICON_ROWS`: an 11x13 icon; `HangarScreen._track_value()`: how its
+   stat reads in the details line.
+Tiers are saved in `SaveData.upgrades` ({track: tier}); unknown tracks are ignored.
+
 ### A new sound or song
 
 - Sound: a function in `audio/sfx.py` returning samples (mix `tone(...)`, `noise(...)`,
@@ -307,6 +323,7 @@ calls from the hangar. A weapon icon goes in `ui/item_art.ICON_ROWS`.
 | boss attack speeds and pattern order | constants at the top of the boss class |
 | rock density, speeds, colours, minion rates per level | `Difficulty` in `levels/data.py` |
 | mouse steering feel | `MOUSE_FOLLOW`, `MOUSE_LEAN`, `MOUSE_DEADZONE` in `config/tuning.py` |
+| upgrade prices and per-tier bonuses | `UPGRADE_COSTS`, `UPGRADE_BONUS` in `config/tuning.py` |
 
 ---
 

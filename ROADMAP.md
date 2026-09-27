@@ -188,7 +188,7 @@ perks, analysis), `ui/analysis.py`, states `ARENA_INTRO` / `ARENA_PERK`, `SaveDa
 - [ ] N5 Playtest tuning, reset-brain option, polish (own music + NEMESIS sprite that
       visibly changes per generation)
 
-## Phase 10 — Galaxies & meta progression (G1 + G2 done, next: G3)
+## Phase 10 — Galaxies & meta progression (G1–G3 done, next: G4)
 
 The user's goals: levels grouped into **galaxies of 10** (galaxy 1 = levels 1–10, 1–4 done);
 creative bosses + minions; richer backgrounds, hit and fire effects; new guns, lasers,
@@ -209,10 +209,11 @@ edge, ~+30%), `hp * firepower == 1` for hulls, all art + audio in code.
       screen with rank S/A/B/C + payout — done, waiting for the user's playtest
 - [x] G2 Rewards + HANGAR 2.0: new players start with ARROW + gun; reward screen ("choose
       1 of 2 gifts", the other goes to the shop); existing hulls / laser / BLAST+ULT as gifts;
-      inventory tabs (ships, weapons now; upgrades / wingmen / skins tabs come with G3 / G6 / G8);
+      inventory tabs (ships, weapons, upgrades (G3); wingmen / skins tabs come with G6 / G8);
       shop — done, waiting for the user's playtest
-- [ ] G3 Upgrades: 5 tracks x 5 tiers on top of par, `POWER %` in the hangar, balance check
-      in the smoke test (maxed build still >= ~3.5x on a 5x boss)
+- [x] G3 Upgrades: 5 tracks x 5 tiers on top of par, `POWER %` in the hangar, balance check
+      in the smoke test (maxed build still >= ~3.5x on a 5x boss) — done, waiting for the
+      user's playtest
 - [ ] G4 Game feel pass: juice tiers (shake / hit-stop / particles), boss damage numbers,
       boss name cards, radio cards, options (volume, reduce shake / flashes)
 - [ ] G5 Boosts + combo / FEVER (OVERDRIVE, SHIELD, MAGNET, SLOW-MO, TWIN)

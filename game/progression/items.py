@@ -5,8 +5,9 @@ simple lookup. A level gift offers 1 or 2 items; the one not chosen goes to the 
 """
 from dataclasses import dataclass
 
-SHIP, WEAPON = "SHIP", "WEAPON"          # inventory tabs (more come with upgrades, wingmen, skins)
-TABS = (SHIP, WEAPON)
+SHIP, WEAPON = "SHIP", "WEAPON"          # item kinds = inventory tabs
+UPGRADE = "UPGRADE"                      # the upgrades tab lists tracks, not items
+TABS = (SHIP, WEAPON, UPGRADE)           # (wingmen and skins tabs come later)
 
 
 @dataclass(frozen=True)

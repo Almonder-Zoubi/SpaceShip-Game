@@ -173,8 +173,8 @@ class CombatMixin:
         """Hitting rocks and minions fills the MK III's BLAST and ULTIMATE meters."""
         bonus = 3 if minion else 1
         loadout = self.ship.loadout
-        if loadout.blast and self.blast.add_charge(
-                damage * BLAST_CHARGE_PER_DAMAGE + killed * BLAST_CHARGE_PER_KILL * bonus):
+        if loadout.blast and self.blast.add_charge(loadout.charge_rate * (
+                damage * BLAST_CHARGE_PER_DAMAGE + killed * BLAST_CHARGE_PER_KILL * bonus)):
             self.popups.append(Popup("BLAST READY", self.ship.x, self.ship.y - 24, ACCENT))
             self.audio.play("blast_ready")
         if loadout.ultimate:
@@ -182,7 +182,7 @@ class CombatMixin:
                                   + killed * ULT_CHARGE_PER_KILL * bonus)
 
     def _charge_ultimate(self, amount):
-        if self.ultimate.add_charge(amount):
+        if self.ultimate.add_charge(amount * self.ship.loadout.charge_rate):
             self.popups.append(Popup("ULTIMATE READY: T", self.ship.x, self.ship.y - 34, POWER[1]))
             self.audio.play("blast_ready")
 

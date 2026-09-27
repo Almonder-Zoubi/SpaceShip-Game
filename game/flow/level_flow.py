@@ -10,6 +10,7 @@ from ..minions.diver import diver_squad
 from ..minions.drone import drone_formation
 from ..obstacles.spawner import AsteroidSpawner
 from ..pickups.types import FullRepair, RepairKit
+from ..progression import upgrades
 from .states import Phase, State
 
 
@@ -72,9 +73,10 @@ class LevelFlowMixin:
         self.set_state(State.PLAYING)
 
     def loadout_for(self, level):
-        """The level's ship model as flown with the chosen hull; BLAST + ULTIMATE only once
-        the player owns them (the level 2 gift)."""
-        loadout = self.hull.apply(level.loadout)
+        """The level's ship model as flown with the chosen hull, plus the upgrades bought;
+        BLAST + ULTIMATE only once the player owns them (the level 2 gift). Bosses keep
+        using the par model (level.loadout)."""
+        loadout = upgrades.apply(self.hull.apply(level.loadout), self.inventory.tiers)
         if not self.inventory.owns("SPECIALS"):
             loadout = replace(loadout, blast=False, ultimate=False)
         return loadout

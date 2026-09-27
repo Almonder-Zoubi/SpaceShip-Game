@@ -143,3 +143,16 @@ RANK_DAMAGE_ZERO = 1.5           # damage taken (in multiples of max HP) that ra
 RANK_DESTROYED_FULL = 0.6        # share of rocks + minions destroyed that rates 1
 RANK_THRESHOLDS = (("S", 0.85), ("A", 0.65), ("B", 0.45), ("C", 0.0))
 RANK_BONUS = {"S": 2.0, "A": 1.5, "B": 1.0, "C": 0.5}
+
+# --- Upgrades (hangar, bought with coins) ---------------------------------------
+# 5 tracks x 5 tiers, a capped edge on top of the level's par ship model (BossSpec keeps
+# using par). ARMOR x GUNS at full tiers = 1.15 x 1.15 = POWER 132%: a 5x boss feels ~3.8x.
+UPGRADE_TIERS = 5
+UPGRADE_COSTS = (100, 200, 350, 550, 800)     # price of tier 1 .. 5
+UPGRADE_BONUS = {                             # per tier, as a share of the par value
+    "ARMOR": 0.03,                            # max HP
+    "GUNS": 0.03,                             # machine-gun damage
+    "LASER": 0.03,                            # laser dps
+    "ENGINE": 0.04,                           # top speed
+    "CHARGE": 0.10,                           # BLAST / ULTIMATE charge rate
+}

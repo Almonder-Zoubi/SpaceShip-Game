@@ -22,7 +22,8 @@ from game.bosses.leviathan import Leviathan
 from game.bosses.mothership import Mothership
 from game.config.display import FPS, SCALE, WIN_H, WIN_W
 from game.config.loadouts import MK1, MK2, MK3, MK4
-from game.config.tuning import DEATH_DELAY, POWER_MAX, REPAIR_SMALL, WARNING_TIME
+from game.config.tuning import (DEATH_DELAY, POWER_MAX, REPAIR_SMALL, UPGRADE_COSTS,
+                                UPGRADE_TIERS, WARNING_TIME)
 from game.core.input import Keys
 from game.core.storage import SaveData
 from game.flow.game import Game
@@ -33,7 +34,9 @@ from game.minions.drone import drone_formation
 from game.obstacles.asteroid import Asteroid, IceRock
 from game.pickups.types import BigCoin, Coin, FullRepair, PowerCore, RepairKit
 from game.player.hulls import ARROW, HULLS, TITAN, WASP
+from game.progression import upgrades
 from game.progression.economy import level_payout
+from game.progression.items import UPGRADE
 from game.progression.results import RANKS, LevelStats, better_rank
 from game.weapons.base import Hit
 
@@ -834,6 +837,96 @@ def test_inventory(h):
     game.to_title()
 
 
+def test_upgrades(h):
+    """5 tracks x 5 tiers: prices, what each tier adds, the hangar's UPGRADES tab (ask, buy,
+    refused, maxed), saved tiers, bosses still balanced on par, and the cap: a maxed build
+    still faces a 5x boss as >= 3.5x."""
+    assert [upgrades.cost(t) for t in range(UPGRADE_TIERS + 1)] == [*UPGRADE_COSTS, None]
+    maxed = {t: UPGRADE_TIERS for t in upgrades.TRACK_IDS}
+    assert abs(upgrades.power_ratio({}) - 1) < 1e-9
+    assert abs(upgrades.power_ratio(maxed) - 1.3225) < 1e-6, upgrades.power_ratio(maxed)
+    assert abs(upgrades.power_ratio({"LASER": 5}) - upgrades.power_ratio({"GUNS": 5})) < 1e-9
+    assert abs(upgrades.power_ratio({"GUNS": 5, "LASER": 5}) - 1.15) < 1e-9, "weapons don't stack"
+    up = upgrades.apply(MK4, maxed)
+    assert up.max_hp == round(MK4.max_hp * 1.15) and abs(up.gun_damage - MK4.gun_damage * 1.15) < 1e-9
+    assert abs(up.laser_dps - MK4.laser_dps * 1.15) < 1e-9
+    assert abs(up.max_speed - MK4.max_speed * 1.2) < 1e-9 and abs(up.charge_rate - 1.5) < 1e-9
+    assert upgrades.apply(MK4, {}) == MK4
+
+    # The cap: every boss in a damage race against a maxed build, with every hull.
+    for level in LEVELS:
+        for spec in (e.spec for wave in level.waves for e in wave.bosses):
+            for hull in HULLS:
+                ship = upgrades.apply(hull.apply(spec.player), maxed)
+                ratio = (spec.hp / ship.gun_dps) / (ship.max_hp / spec.dps)
+                assert ratio >= spec.strength / 1.33, (spec.name, hull.name, ratio)
+                if spec.strength >= 5:
+                    assert ratio >= 3.5, (spec.name, hull.name, ratio)
+
+    # Hangar: a new player (0 tiers) with 300 CR.
+    game = h.game
+    game.save.upgrades = {}
+    game.save.coins = 300
+    game.choose_hull(ARROW)
+    game.open_hangar(2)
+    h.post(pygame.K_LEFT)                                # SHIPS wraps round to UPGRADES
+    assert game.hangar_tab == UPGRADE and game.hangar_track.id == "ARMOR"
+    assert game.hangar_view().power == 1.0
+    h.post(pygame.K_RETURN)
+    assert game.hangar_confirm == "ARMOR" and game.inventory.tier("ARMOR") == 0
+    assert "100 CR" in game.hangar_message[0]
+    h.run(10)
+    h.shot("hangar_upgrades")
+    h.post(pygame.K_RETURN)
+    assert game.inventory.tier("ARMOR") == 1 and game.save.coins == 200
+    assert SaveData(h.save_path).upgrades == {"ARMOR": 1}, "tiers are saved"
+    h.post(pygame.K_RETURN)
+    h.post(pygame.K_RETURN)                              # tier 2 = 200 CR: exactly enough
+    assert game.inventory.tier("ARMOR") == 2 and game.save.coins == 0
+    h.post(pygame.K_RETURN)
+    h.post(pygame.K_RETURN)
+    assert game.inventory.tier("ARMOR") == 2 and game.hangar_message[0] == "NOT ENOUGH CREDITS"
+    h.post(pygame.K_DOWN)
+    assert game.hangar_track.id == "GUNS" and game.hangar_confirm is None
+    game.save.upgrades["CHARGE"] = UPGRADE_TIERS
+    for _ in range(3):
+        h.post(pygame.K_DOWN)
+    h.post(pygame.K_RETURN)
+    assert "MAXED" in game.hangar_message[0] and game.inventory.tier("CHARGE") == UPGRADE_TIERS
+    h.run(10)
+    h.shot("hangar_upgrades_maxed")
+    assert abs(game.hangar_view().power - 1.06) < 1e-9
+    for tab_steps in range(3):                           # every tab still draws
+        h.post(pygame.K_RIGHT)
+        h.run(2)
+
+    # In the level: the ship flies the upgraded model, the boss keeps its par balance.
+    h.post(pygame.K_SPACE)
+    assert game.state == State.PLAYING and game.level.number == 3
+    assert game.ship.max_hp == round(MK3.max_hp * 1.06), game.ship.max_hp
+    assert game.ship.loadout.charge_rate == 1.5
+    game.start(2, 0, 2, 0)
+    h.run(h.seconds(WARNING_TIME + 0.2), clear_rocks=True)
+    assert game.boss.max_hp == LEVELS[2].waves[2].bosses[0].spec.hp, "bosses use par, not upgrades"
+    game.blast.charge = game.ultimate.charge = 0.0
+    game._charge(700, killed=False)                      # 0.5 blast at x1, x1.5 with CHARGE 5
+    assert abs(game.blast.charge - 0.75) < 1e-9, game.blast.charge
+
+    # Old saves without upgrades load with 0 tiers; broken tiers are clamped.
+    with open(h.save_path, "w") as f:
+        json.dump({"version": 2, "unlocked": 2, "coins": 5}, f)
+    assert SaveData(h.save_path).upgrades == {}
+    with open(h.save_path, "w") as f:
+        json.dump({"version": 2, "upgrades": {"ARMOR": 9, "GUNS": -2}}, f)
+    assert SaveData(h.save_path).upgrades == {"ARMOR": UPGRADE_TIERS, "GUNS": 0}
+    game.save._reset()
+    game.save.save()
+    game.load_profile(SaveData(h.save_path))
+    game.inventory.grant_all()
+    game.choose_hull(ARROW)
+    game.to_title()
+
+
 def test_title_menus(h):
     """Title: level select with LEFT/RIGHT, scores alternate in; ENTER -> hangar -> launch."""
     game = h.game
@@ -1040,7 +1133,8 @@ SECTIONS = (
     ("weapons", test_weapons),
     ("damage", test_damage), ("balance", test_balance), ("pickups", test_pickups),
     ("campaign", test_campaign), ("level4", test_level4), ("save", test_save), ("menus", test_title_menus),
-    ("economy", test_economy), ("inventory", test_inventory), ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
+    ("economy", test_economy), ("inventory", test_inventory),
+    ("upgrades", test_upgrades), ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
     ("busy", test_busy),
 )
 

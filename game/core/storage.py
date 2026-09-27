@@ -1,13 +1,14 @@
 """Save file (JSON): top records, unlocked levels, the chosen ship, coins, level ranks and the
-inventory.
+inventory and the upgrade tiers.
 
 Version 2 added the profile: coins in the bank, best rank per cleared level, owned items,
-shop items and claimed gifts. Older files load with an empty bank; their inventory is rebuilt
+shop items, claimed gifts and upgrade tiers (missing = all 0). Older files load with an empty bank; their inventory is rebuilt
 from the unlocked levels (progression.inventory). Broken values fall back to a fresh save."""
 import datetime
 import json
 import os
 
+from ..config.tuning import UPGRADE_TIERS
 from ..progression.results import RANKS, better_rank
 
 MAX_RECORDS = 5
@@ -28,6 +29,7 @@ class SaveData:
         self.owned = None        # item ids (None = not stored yet: Inventory rebuilds it)
         self.shop = []           # gifts not chosen: for sale now
         self.gifts = []          # level keys whose gift was claimed
+        self.upgrades = {}       # upgrade track -> tier bought (missing = 0)
         self.load()
 
     @property
@@ -51,6 +53,8 @@ class SaveData:
             owned = data.get("owned")
             self.owned = None if owned is None else _strings(owned)
             self.shop, self.gifts = _strings(data.get("shop", [])), _strings(data.get("gifts", []))
+            self.upgrades = {str(k): min(UPGRADE_TIERS, max(0, int(v)))
+                             for k, v in dict(data.get("upgrades", {})).items()}
         except (OSError, ValueError, TypeError, KeyError, AttributeError):
             self._reset()                               # unreadable: start fresh
 
@@ -58,6 +62,7 @@ class SaveData:
         self.records, self.unlocked, self.ship = [], 1, "ARROW"
         self.coins, self.cleared = 0, {}
         self.owned, self.shop, self.gifts = None, [], []
+        self.upgrades = {}
 
     def save(self):
         if not self.path:
@@ -68,7 +73,7 @@ class SaveData:
                 json.dump({"version": VERSION, "records": self.records,
                            "unlocked": self.unlocked, "ship": self.ship, "coins": self.coins,
                            "cleared": self.cleared, "owned": self.owned, "shop": self.shop,
-                           "gifts": self.gifts}, f, indent=2)
+                           "gifts": self.gifts, "upgrades": self.upgrades}, f, indent=2)
             os.replace(tmp, self.path)
         except OSError:
             pass                                        # read-only folder: play on without saving
