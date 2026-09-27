@@ -109,6 +109,7 @@ GIFTS = {
     "1-3": ("TITAN", "LANCE"),
     "1-4": ("PIP", "GUARDIAN"),          # the wingman slot opens
     "1-5": ("SCATTER", "OVERDRIVE"),
+    "1-6": ("ROCKET POD", "HUNTER"),
 }
 
 

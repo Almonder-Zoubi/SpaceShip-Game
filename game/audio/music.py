@@ -206,6 +206,34 @@ def helios():
                 beat=beat, fill=fill)
 
 
+def level6():
+    """GHOST NEBULA: slow, haunted D minor, a wandering lead full of echoes."""
+    chords = ["Dm", "Dm", "Bb", "A", "Dm", "Dm", "Gm", "A",
+              "Bb", "Bb", "F", "C", "Gm", "Gm", "A", "A"]
+    melody = """D5 . . . F5 . . . | A5 . . . G#5 . A5 . | Bb5 . . . A5 . F5 . | E5 . . . C#5 . . .
+                D5 . . . A5 . . . | D6 . . . C6 . A5 . | G5 . . . Bb5 . D6 . | C#6 . . . A5 . . .
+                Bb5 . . . D6 . . . | F6 . . . E6 . D6 . | C6 . . . A5 . F5 . | G5 . . . E5 . C5 .
+                D5 . F5 . G5 . Bb5 . | A5 . . . G5 . F5 . | E5 . . . C#5 . E5 . | A4 . . . - - - -"""
+    beat = "k . . . . . h . s . . . . . h ."
+    return song(118, chords, melody, lead=LEAD_SOFT, arp_pattern=(0, 2, 1, 2, 0, 1),
+                bass_rhythm="R . . . R . F .", beat=beat, lead_echo=(0.45, 0.45),
+                arp_echo=(0.4, 0.4), bass_instrument=BASS_LONG)
+
+
+def wraith():
+    """WRAITH: nervous chromatic A minor, stabbing arpeggios and a skittering beat."""
+    chords = ["Am", "Am", "G#dim", "Am", "F", "E", "Am", "E",
+              "Dm", "Dm", "Am", "Am", "F", "E7", "Am", "E7"]
+    melody = """A5 . C6 . B5 . A5 . | E6 . . . D#6 . E6 . | D6 . B5 . G#5 . F5 . | E5 . . . A5 . C6 .
+                F6 . E6 . D6 . C6 . | B5 . G#5 . E5 . B5 . | C6 . A5 . E5 . A5 . | G#5 . . . B5 . E6 .
+                F6 . . . D6 . A5 . | F5 . A5 . D6 . F6 . | E6 . C6 . A5 . E6 . | D#6 . E6 . C6 . A5 .
+                F5 . A5 . C6 . F6 . | E6 . D6 . B5 . G#5 . | A5 . C6 . E6 . A6 . | G#6 . . . - - - -"""
+    beat = "k . h h s . h k . k h h s . h h"
+    fill = "k . h h s . h k s s s . s s s s"
+    return song(158, chords, melody, arp_pattern=(0, 1, 2, 1, 0, 2), bass_rhythm="R R O R R O R R",
+                beat=beat, fill=fill, arp_echo=(0.2, 0.3))
+
+
 # --- jingles (play once) ----------------------------------------------------------------------------
 def level_clear():
     lead = "C5 E5 G5 C6 . . G5 C6 . . . . . . . . - - - -"
@@ -235,6 +263,7 @@ def win():
 
 SONGS = {"title": title, "level1": level1, "level2": level2, "level3": level3,
          "level4": level4, "boss": boss, "final_boss": final_boss, "leviathan": leviathan,
-         "level5": level5, "helios": helios,
+         "level5": level5, "helios": helios, "level6": level6,
+         "wraith": wraith,
          "level_clear": level_clear, "game_over": game_over, "win": win}
 JINGLES = ("level_clear", "game_over", "win")      # play once instead of looping

@@ -1,15 +1,19 @@
 """The levels, grouped into galaxies. A new level = a new Level entry in its galaxy's tuple."""
-from ..background.events import SunCorona
+from ..background.events import Lightning, SunCorona
 from ..bosses.carrier import Carrier
 from ..bosses.gunship import GUNSHIP_SPEC, Gunship
 from ..bosses.helios import Helios
 from ..bosses.leviathan import Leviathan
 from ..bosses.mothership import Mothership
 from ..bosses.spec import BossSpec
-from ..config.loadouts import MK1, MK2, MK3, MK4, MK5
-from ..config.palette import NEBULA, NEBULA_ABYSS, NEBULA_CRIMSON, NEBULA_FORGE, NEBULA_FROST
+from ..bosses.wraith import Wraith
+from ..config.loadouts import MK1, MK2, MK3, MK4, MK5, MK6
+from ..config.palette import (NEBULA, NEBULA_ABYSS, NEBULA_CRIMSON, NEBULA_FORGE, NEBULA_FROST,
+                              NEBULA_GHOST)
+from ..hazards.fog import FogBanks
 from ..config.tuning import LEVEL_LENGTH
 from ..minions.minelayer import minelayer_squad
+from ..minions.phantom import phantom_pair
 from .model import BossEntry, Difficulty, Galaxy, Level, Wave
 
 DEFAULT_DIFFICULTY = Difficulty(
@@ -108,6 +112,30 @@ GALAXY_1_LEVELS = (
                  "SHOOT THE MINES BEFORE THEY ARM."),
           upgrade_notes=("MAGMA ROCKS EXPLODE: CHAIN REACTIONS",
                          "MINE LAYERS: SHOOT THE MINES")),
+    # Fog banks that hide rocks and minions, cloaked phantoms, Helios again, the WRAITH.
+    Level(6, "GHOST NEBULA", MK6,
+          Difficulty(spawn_interval=0.52, speed_min=66, speed_max=124, radius_min=4,
+                     radius_max=14, drift=18, palettes=("slate", "grey"),
+                     formation_interval=13, extras=((phantom_pair, 8),), rock_hp=1.8,
+                     enemy_hp=1.7),
+          tuple(NEBULA_GHOST),
+          (Wave(45, name="THE GHOST NEBULA"),
+           Wave(40, (BossEntry(Helios, BossSpec("HELIOS", strength=1.5, fight_time=35,
+                                                player=MK6)),),
+                name="THE FORGE FOLLOWS",
+                radio=("HELIOS REBUILT ITSELF. OF COURSE IT DID.",)),
+           Wave(40, (BossEntry(Wraith, BossSpec("WRAITH", strength=5.0, fight_time=80,
+                                                player=MK6), music="wraith"),),
+                name="SOMETHING IN THE FOG",
+                radio=("MY SENSORS SEE NOTHING. THAT'S THE PROBLEM.",
+                       "WATCH FOR THE STATIC: IT JUMPS THERE NEXT.",
+                       "ONLY THE REAL ONE HAS A RED LIGHT."))),
+          music="level6", event=Lightning, hazard=FogBanks,
+          radio=("GHOST NEBULA. FOG BANKS HIDE THE ROCKS.",
+                 "THE FOG NEVER HIDES YOU OR ENEMY SHOTS.",
+                 "PHANTOMS SHIMMER BEFORE THEY FIRE."),
+          upgrade_notes=("FOG HIDES ROCKS AND MINIONS",
+                         "PHANTOMS: WATCH THE SHIMMER")),
 )
 
 GALAXIES = (

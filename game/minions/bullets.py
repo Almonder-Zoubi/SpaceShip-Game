@@ -42,3 +42,18 @@ def shoot(world, x, y, angle, speed, damage):
 def bullet(x, y, angle, speed, damage):
     """Enemy bullet without a muzzle flash (spirals and walls fire too many for flashes)."""
     return EnemyBullet(x, y, math.cos(angle) * speed, math.sin(angle) * speed, damage)
+
+
+class CurvedBullet(EnemyBullet):
+    """An enemy bullet whose path bends (turn = rad/s, + = clockwise)."""
+    __slots__ = ("turn",)
+
+    def __init__(self, x, y, vx, vy, damage, turn):
+        super().__init__(x, y, vx, vy, damage)
+        self.turn = turn
+
+    def update(self, dt):
+        a = self.turn * dt
+        c, s = math.cos(a), math.sin(a)
+        self.vx, self.vy = self.vx * c - self.vy * s, self.vx * s + self.vy * c
+        super().update(dt)

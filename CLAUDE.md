@@ -41,7 +41,7 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 tools/playtest.py 1-4 --tank
 
 Headless smoke test (no window, no audio device) — run after every change. It drives every state
 and mechanic in named sections (title, controls, mouse, weapons, damage, balance, pickups,
-campaign, level4, level5, save, economy, inventory, upgrades, feel, boosts, wingmen, arsenal, skins, menus, hulls, dev, retry, audio, busy); each section starts from its own state:
+campaign, level4, level5, level6, save, economy, inventory, upgrades, feel, boosts, wingmen, arsenal, skins, menus, hulls, dev, retry, audio, busy); each section starts from its own state:
 
 ```bash
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test [--shots DIR]
@@ -78,11 +78,11 @@ Every folder's `__init__.py` docstring lists what its modules do.
 | `player/` | `hulls`, `art`, `ship` | `Hull` shapes (ARROW, WASP, TITAN, LANCE: rows, nozzles, barrels, stat multipliers); MK paint jobs + banked/lean frames; `Ship` (controls, lean, throttle, flames, health) |
 | `weapons/` | `base`, `gun`, `laser`, `scatter`, `plasma`, `arc`, `specials`, `homing`, `bolts`, `secondary` | `Hit` (+`source`), `Weapon` (+`rate`), `raycast()`, `is_boss_part()`; primaries `MachineGun`, `Laser`, `Scatter`, `Plasma`, `Arc`; `Charged` → `Blast`, `Ultimate` (+`Missile`); `RocketSwarm`, `Bolts`; secondaries `RocketPod`, `SideCannons` |
 | `obstacles/` | `art`, `asteroid`, `spawner` | Procedural `AsteroidArt`/`AsteroidLibrary`; `Asteroid` (hp x `Difficulty.rock_hp`, push, pixel-exact hits, how it splits) + `IceRock` (brittle, shatters), `MagmaRock` (explodes), `rock_class(palette)`; `AsteroidSpawner` (driven by a `Difficulty`) |
-| `minions/` | `bullets`, `base`, `drone`, `diver`, `minelayer` | `EnemyBullet`, `shoot()`, `bullet()`; `Enemy` base (`armour(hit)`, `on_death()`, `drops_coins`, `stat`); `Drone` + `drone_formation()`; `Diver` + `diver_squad()`; `MineLayer` + `Mine` |
-| `bosses/` | `spec`, `base`, `art`, `gunship`, `carrier`, `mothership`, `leviathan`, `helios` | `BossSpec` balance maths; `Boss` base (phases, roar, drones, `parts()`/`hit_part()` for multi-part bosses, `prebuild()`); shared hull colours; **one file per boss = its sprite, muzzles/vents and class** |
+| `minions/` | `bullets`, `base`, `drone`, `diver`, `minelayer` | `EnemyBullet`, `shoot()`, `bullet()`; `Enemy` base (`armour(hit)`, `on_death()`, `drops_coins`, `stat`); `Drone` + `drone_formation()`; `Diver` + `diver_squad()`; `MineLayer` + `Mine`; `Phantom` (cloaked); `CurvedBullet` |
+| `bosses/` | `spec`, `base`, `art`, `gunship`, `carrier`, `mothership`, `leviathan`, `helios`, `wraith` | `BossSpec` balance maths; `Boss` base (phases, roar, drones, `parts()`/`hit_part()` for multi-part bosses, `prebuild()`); shared hull colours; **one file per boss = its sprite, muzzles/vents and class** |
 | `pickups/` | `art`, `base`, `types`, `boosts` | Sprites; `Pickup` base; `RepairKit`, `FullRepair`, `PowerCore`, `Coin` / `BigCoin` (spinning); `Boost` pickups `Overdrive`, `Shield`, `Magnet`, `SlowDown` (`BOOSTS`) |
 | `wingmen/` | `art`, `base`, `types` | 9x11 sprites; `Wingman` base (formation, knock-out + reboot, XP `level_for()`), `Bolts`; `Pip`, `Guardian`, `Medic`, `Hunter`, `Magpie` (`WINGMEN`) + `Twin` (TWIN boost) |
-| `hazards/` | `base` (+ one module per level mechanic) | `Hazard`: a level-wide mechanic (`Level.hazard`) with `update(dt, game)` and draw layers back / mid / front |
+| `hazards/` | `base`, `fog` | `Hazard`: a level-wide mechanic (`Level.hazard`) with `update(dt, game)` and draw layers back / mid / front |
 | `levels/` | `model`, `data` | `Difficulty` (+ `extras` minion spawners, `rock_hp`, `enemy_hp`), `Level` (+ `radio`, `event`, `hazard`), `Wave`, `BossEntry` (incl. music track), `Galaxy`; `GALAXIES` (10 levels each), `LEVELS` (all, play order), `galaxy_of()` |
 | `progression/` | `results`, `economy`, `items`, `inventory`, `upgrades`, `achievements` | Pure logic (no pygame): `LevelStats` + rank S/A/B/C; coin drops and the level-clear `Payout`; item catalog + `GIFTS` + prices; `Inventory` (owns / status / claim / buy, upgrade tiers + `buy_upgrade`, migrates old saves); upgrade `TRACKS`, `apply(loadout, tiers)`, `power_ratio()`; `ACHIEVEMENTS` (each unlocks a skin) |
 | `audio/` | `synth`, `sfx`, `music`, `bank`, `player` | Pure-Python chiptune synth; SFX recipes (`SOUNDS`); songs as chords + melodies (`SONGS`); WAV cache in `sounds/generated/`; `Audio` (`play`, `loop`, `music`) |

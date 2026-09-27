@@ -260,6 +260,12 @@ def flare():
                tone("saw", 90, 200, 0.9, 0.2, attack=0.1))
 
 
+def teleport():
+    """The Wraith vanishes: a falling warble into static."""
+    return mix(tone("sine", 1400, 200, 0.3, 0.3, vibrato=0.6, vibrato_rate=25),
+               at(0.15, noise(0.25, 8000, 2000, 0.2)))
+
+
 def select():
     return tone("square", 880, None, 0.04, 0.3, duty=0.25)
 
@@ -289,5 +295,6 @@ SOUNDS = {
     "wingman_down": wingman_down, "wingman_up": wingman_up, "scatter": scatter,
     "plasma": plasma, "arc": arc_loop, "rocket": rocket,
     "achievement": achievement, "magma_burst": magma_burst, "flare": flare,
+    "teleport": teleport,
 }
 LOOPS = ("laser", "engine", "arc")         # played on their own channel, looping

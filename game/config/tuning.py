@@ -254,3 +254,14 @@ MINE_BLAST = 26                  # a mine shot down blows up: px reach ...
 MINE_BLAST_DAMAGE = 45           # ... damage to rocks and minions (never the ship)
 POINTS_MINELAYER = 250
 POINTS_MINE = 20
+
+# --- Level 6 GHOST NEBULA -------------------------------------------------------------------
+FOG_INTERVAL = (4.0, 7.0)        # seconds between fog banks
+FOG_SPEED = 26                   # px/s (x world speed)
+PHANTOM_HP = 20
+PHANTOM_FADE = 0.6               # seconds it takes to fade in before it fires
+PHANTOM_CLOAK = 1.6              # seconds it stays hidden between bursts
+PHANTOM_BURST = 3                # shots per burst
+PHANTOM_BULLET_DAMAGE = 9
+PHANTOM_BULLET_SPEED = 120
+POINTS_PHANTOM = 220

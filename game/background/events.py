@@ -57,3 +57,36 @@ class SunCorona(EventLayer):
         for i in range(3):
             y = int((self.time * 14 + i * 80) % LOW_H)
             surf.fill((10, 4, 2), (0, y, LOW_W, 1), special_flags=pygame.BLEND_ADD)
+
+
+class Lightning(EventLayer):
+    """Level 6: lightning flickers deep in the nebula now and then."""
+
+    def __init__(self, rng):
+        super().__init__(rng)
+        self.timer = 2.0
+        self.bolt = []                # points of the current bolt
+        self.flash = 0.0
+
+    def update(self, dt, world_speed):
+        super().update(dt, world_speed)
+        self.flash = max(0.0, self.flash - dt)
+        self.timer -= dt
+        if self.timer <= 0:
+            self.timer = self.rng.uniform(2.5, 7.0)
+            self.flash = 0.25
+            x, y = self.rng.uniform(30, LOW_W - 30), 0
+            self.bolt = [(x, y)]
+            while y < LOW_H * 0.7:
+                x += self.rng.uniform(-14, 14)
+                y += self.rng.uniform(8, 18)
+                self.bolt.append((x, y))
+
+    def draw(self, surf):
+        if self.flash <= 0:
+            return
+        k = self.flash / 0.25
+        glow = (int(18 * k), int(30 * k), int(26 * k))
+        surf.fill(glow, special_flags=pygame.BLEND_ADD)
+        if int(self.flash * 40) % 2 == 0 and len(self.bolt) > 1:
+            pygame.draw.lines(surf, (int(90 * k), int(120 * k), int(110 * k)), False, self.bolt, 1)

@@ -180,6 +180,24 @@ Options need a place in the menus: ask the user where (title? pause?) before add
 
 ## Log
 
+### 2026-09-27 — G11: level 6 GHOST NEBULA
+- `hazards/fog.FogBanks`: dithered grey-green fog banks drift down every 4–7 s and are drawn
+  over rocks, minions and pickups but under the ship and enemy bullets (fairness rule).
+  Lightning event layer (a dim flash + bolt deep in the nebula every 2.5–7 s).
+- `Phantom` minion (pairs every 8 s): only a shimmering outline; fades in over 0.6 s, fires
+  a 3-shot burst, cloaks again (2 bursts, then leaves).
+- WRAITH (`bosses/wraith.py`): nearly invisible stealth frigate (alpha + shimmer outline,
+  afterimages). P1 teleports between 5 spots (0.5 s of static at the arrival spot first,
+  untargetable while it jumps), aimed fans + a stream. P2 two decoys per jump (only the real
+  one has the blinking red light; a decoy pops in one hit, no damage to the boss). P3 the
+  screen fogs over, a white flare on its muzzle before each shot, curving shots
+  (`minions/bullets.CurvedBullet`). Music `level6` (haunted D minor), `wraith` (A minor,
+  158 bpm); SFX teleport. Music does not drop out while it hides (a track switch restarts
+  the song) **(ask)**.
+- Level 6 waves: field 45 s; field 40 s -> Helios 1.5x; field 40 s -> WRAITH 5x. Gift after
+  level 6: ROCKET POD | HUNTER.
+- Smoke test: new `level6` section.
+
 ### 2026-09-27 — G10: level 5 SOLAR FORGE (+ level plumbing for 5–9)
 - Plumbing: `Difficulty.extras` (minion spawners as data), `rock_hp` / `enemy_hp` (later ship
   models hit 2–4x harder than MK I, so fields stay meaningful), `Level.event` (background

@@ -36,6 +36,11 @@ from game.levels.data import LEVELS
 from game.minions.diver import Diver
 from game.minions.drone import drone_formation
 from game.bosses.helios import Flare, Helios
+from game.bosses.wraith import Wraith
+from game.hazards.fog import FogBanks
+from game.minions.bullets import CurvedBullet
+from game.minions.phantom import Phantom
+from game.config.tuning import PHANTOM_FADE
 from game.config.tuning import MINE_ARM
 from game.minions.minelayer import Mine, MineLayer
 from game.obstacles.asteroid import Asteroid, IceRock, MagmaRock
@@ -742,6 +747,77 @@ def test_level5(h):
     h.run(h.seconds(1.5))
     assert any(isinstance(r, MagmaRock) for r in game.asteroids), "magma rain"
     h.shot("helios_phase3")
+    h.kill(boss)
+    h.run(h.seconds(boss.DEATH_TIME + JUICE_PAD + 1.7), clear_rocks=True)
+    assert game.state in (State.LEVEL_CLEAR, State.WIN)
+    game.to_title()
+
+
+def test_level6(h):
+    """Level 6 GHOST NEBULA: fog banks drift down and cover rocks; phantoms fade in before
+    they fire; WRAITH teleports (untargetable in between), phase 2 decoys pop in one hit
+    without hurting it, phase 3 fogs the screen and fires curving shots after a tell."""
+    game = h.game
+    game.choose_hull(ARROW)
+    game.start(5)
+    game.radio = None
+    game.ship.hp = 10 ** 6
+    assert isinstance(game.hazard, FogBanks) and game.ship.loadout.name == "MK VI"
+    game.hazard.timer = 0
+    h.run(h.seconds(3.0))
+    bank = game.hazard.banks[0]
+    image, bx, by = bank
+    px, py = next((x, y) for y in range(image.get_height()) for x in range(image.get_width())
+                  if image.get_at((x, y)).a)
+    assert game.hazard.covers(bx + px, by + py)
+    h.shot("level6_fog")
+
+    # Phantom: hidden, fades in, fires a burst, cloaks again.
+    game.hazard.banks.clear()
+    phantom = Phantom(160)
+    phantom.y, phantom.cloak = 60, 0.0
+    game.enemies = [phantom]
+    game.enemy_bullets.clear()
+    h.run(h.seconds(PHANTOM_FADE * 0.5), clear_rocks=True)
+    assert 0 < phantom.visible < 1 and not game.enemy_bullets
+    h.run(h.seconds(PHANTOM_FADE * 0.5 + 0.6), clear_rocks=True)
+    assert game.enemy_bullets, "it fired after fading in"
+    h.shot("phantom")
+    game.enemies.clear()
+
+    # WRAITH.
+    game.start(5, 0, 2, 0)
+    game.radio = None
+    game.ship.hp = 10 ** 6
+    h.run(h.seconds(WARNING_TIME + Wraith.ENTER_TIME + 0.3), clear_rocks=True)
+    boss = game.boss
+    assert isinstance(boss, Wraith) and boss.fighting and game._music_track() == "wraith"
+    boss.pattern_index, boss.attack_time = 0, 0.0          # teleport
+    h.run(3, clear_rocks=True)
+    assert boss.hidden and boss.parts() == [], "untargetable while it jumps"
+    h.run(h.seconds(1.0), clear_rocks=True)
+    assert not boss.hidden and boss.spot == (boss.x, boss.y) or not boss.hidden
+    h.run(h.seconds(2.0), FIRE, clear_rocks=True)
+    h.shot("wraith")
+    game._damage_boss(Hit(boss, boss.max_hp * 0.34, 0, 0, 0, -1, 0))
+    boss.roar = 0
+    assert boss.phase == 1
+    boss.pattern_index, boss.attack_time = 0, 0.0
+    h.run(h.seconds(1.0), clear_rocks=True)
+    assert len(boss.decoys) == 2
+    hp0, decoy = boss.hp, boss.decoys[0]
+    game._damage_boss(Hit(decoy, 500, 0, 0, 0, -1, 0))
+    h.run(1, clear_rocks=True)
+    assert boss.hp == hp0 and decoy not in boss.decoys, "a decoy pops, the boss is fine"
+    h.shot("wraith_decoys")
+    game._damage_boss(Hit(boss, boss.max_hp * 0.34, 0, 0, 0, -1, 0))
+    boss.roar = 0
+    assert boss.phase == 2
+    boss.pattern_index, boss.attack_time = 1, 0.0          # curves
+    game.enemy_bullets.clear()
+    h.run(h.seconds(1.2), clear_rocks=True)
+    assert any(isinstance(b, CurvedBullet) for b in game.enemy_bullets), "curving shots"
+    h.shot("wraith_phase3")
     h.kill(boss)
     h.run(h.seconds(boss.DEATH_TIME + JUICE_PAD + 1.7), clear_rocks=True)
     assert game.state in (State.LEVEL_CLEAR, State.WIN)
@@ -1786,7 +1862,7 @@ SECTIONS = (
     ("weapons", test_weapons),
     ("damage", test_damage), ("balance", test_balance), ("pickups", test_pickups),
     ("campaign", test_campaign), ("level4", test_level4),
-    ("level5", test_level5), ("save", test_save), ("menus", test_title_menus),
+    ("level5", test_level5), ("level6", test_level6), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
     ("upgrades", test_upgrades), ("feel", test_feel),
     ("boosts", test_boosts), ("wingmen", test_wingmen),
