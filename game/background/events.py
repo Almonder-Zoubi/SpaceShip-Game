@@ -130,3 +130,41 @@ class CrystalSparkle(EventLayer):
             size = 1 + int(k * 2)
             surf.fill(c, (int(x) - size, int(y), 2 * size + 1, 1), special_flags=pygame.BLEND_ADD)
             surf.fill(c, (int(x), int(y) - size, 1, 2 * size + 1), special_flags=pygame.BLEND_ADD)
+
+
+class Wrecks(EventLayer):
+    """Level 8: silhouettes of dead battleships drifting past (very dark, two depths)."""
+
+    def __init__(self, rng):
+        super().__init__(rng)
+        self.shapes = [self._ship(rng, 150, (22, 16, 14)), self._ship(rng, 100, (30, 22, 18)),
+                       self._ship(rng, 190, (18, 13, 12))]
+        self.wrecks = [[rng.choice(self.shapes), rng.uniform(-60, LOW_W - 40),
+                        rng.uniform(-LOW_H, LOW_H), rng.uniform(4, 9)] for _ in range(3)]
+
+    @staticmethod
+    def _ship(rng, length, color):
+        """A long hull with towers and a broken end, lying at an angle."""
+        surf = pygame.Surface((length + 10, length // 2), pygame.SRCALPHA)
+        h = length // 7
+        y0 = length // 4
+        pygame.draw.polygon(surf, color, [(0, y0), (length * 0.15, y0 - h), (length, y0 - h // 2),
+                                          (length - 12, y0 + h // 2), (length * 0.2, y0 + h)])
+        for i in range(rng.randint(2, 4)):          # towers
+            x = rng.uniform(length * 0.3, length * 0.8)
+            surf.fill(color, (int(x), y0 - h - rng.randint(4, 12), rng.randint(5, 10), h))
+        for i in range(rng.randint(3, 6)):          # holes
+            surf.fill((0, 0, 0, 0), (int(rng.uniform(10, length - 10)), y0, 3, 2))
+        return pygame.transform.rotate(surf, rng.uniform(-25, 25))
+
+    def update(self, dt, world_speed):
+        super().update(dt, world_speed)
+        for w in self.wrecks:
+            w[2] += w[3] * world_speed * dt
+            if w[2] > LOW_H:
+                w[0] = self.rng.choice(self.shapes)
+                w[1], w[2] = self.rng.uniform(-60, LOW_W - 40), -w[0].get_height()
+
+    def draw(self, surf):
+        for image, x, y, speed in self.wrecks:
+            surf.blit(image, (int(x), int(y)))

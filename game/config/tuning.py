@@ -275,3 +275,13 @@ PRISM_INTERVAL = 1.8             # seconds between 3-way refracted shots
 PRISM_BULLET_DAMAGE = 10
 PRISM_BULLET_SPEED = 110
 POINTS_PRISM = 300
+
+# --- Level 8 IRON GRAVEYARD -----------------------------------------------------------------
+WRECK_HP = 2.5                   # wreck chunks are this much tougher than rocks
+WRECK_COINS = (1, 2)             # coins a destroyed wreck chunk drops (before the combo)
+SALVAGER_HP = 30
+SALVAGER_SPEED = 90              # px/s towards the pickup it wants
+SALVAGER_GREED = 3               # pickups it grabs before it flees
+SALVAGER_TIME = 7.0              # ... or seconds before it flees anyway
+POINTS_SALVAGER = 260
+JUNK_HP = 40                     # Scrapjaw's thrown armour: can be shot apart

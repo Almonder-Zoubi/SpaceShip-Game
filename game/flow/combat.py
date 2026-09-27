@@ -54,7 +54,8 @@ class CombatMixin:
             else:
                 self._damage_rock(hit)
             if not hit.continuous and hit.charges:
-                self.audio.play("hit_rock" if isinstance(hit.target, Asteroid) else "hit_metal")
+                rock = isinstance(hit.target, Asteroid) and not hit.target.METAL
+                self.audio.play("hit_rock" if rock else "hit_metal")
 
     def _damage_rock(self, hit):
         rock = hit.target

@@ -41,7 +41,7 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 tools/playtest.py 1-4 --tank
 
 Headless smoke test (no window, no audio device) — run after every change. It drives every state
 and mechanic in named sections (title, controls, mouse, weapons, damage, balance, pickups,
-campaign, level4, level5, level6, level7, save, economy, inventory, upgrades, feel, boosts, wingmen, arsenal, skins, menus, hulls, dev, retry, audio, busy); each section starts from its own state:
+campaign, level4, level5, level6, level7, level8, save, economy, inventory, upgrades, feel, boosts, wingmen, arsenal, skins, menus, hulls, dev, retry, audio, busy); each section starts from its own state:
 
 ```bash
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test [--shots DIR]
@@ -77,9 +77,9 @@ Every folder's `__init__.py` docstring lists what its modules do.
 | `background/` | `nebula`, `planet`, `starfield`, `events`, `background` | One layer per module; `events` = one event layer per level (`Level.event`: sun corona ...); `Background` draws them back to front |
 | `player/` | `hulls`, `art`, `ship` | `Hull` shapes (ARROW, WASP, TITAN, LANCE: rows, nozzles, barrels, stat multipliers); MK paint jobs + banked/lean frames; `Ship` (controls, lean, throttle, flames, health) |
 | `weapons/` | `base`, `gun`, `laser`, `scatter`, `plasma`, `arc`, `specials`, `homing`, `bolts`, `secondary` | `Hit` (+`source`), `Weapon` (+`rate`), `raycast()`, `is_boss_part()`; primaries `MachineGun`, `Laser`, `Scatter`, `Plasma`, `Arc`; `Charged` → `Blast`, `Ultimate` (+`Missile`); `RocketSwarm`, `Bolts`; secondaries `RocketPod`, `SideCannons` |
-| `obstacles/` | `art`, `asteroid`, `spawner` | Procedural `AsteroidArt`/`AsteroidLibrary`; `Asteroid` (hp x `Difficulty.rock_hp`, push, pixel-exact hits, how it splits) + `IceRock` (brittle, shatters), `MagmaRock` (explodes), `CrystalRock` (splits the laser), `rock_class(palette)`; `AsteroidSpawner` (driven by a `Difficulty`) |
-| `minions/` | `bullets`, `base`, `drone`, `diver`, `minelayer` | `EnemyBullet`, `shoot()`, `bullet()`; `Enemy` base (`armour(hit)`, `on_death()`, `drops_coins`, `stat`); `Drone` + `drone_formation()`; `Diver` + `diver_squad()`; `MineLayer` + `Mine`; `Phantom` (cloaked); `PrismTurret` (rides a crystal); `CurvedBullet`, `ColoredBullet` |
-| `bosses/` | `spec`, `base`, `art`, `gunship`, `carrier`, `mothership`, `leviathan`, `helios`, `wraith`, `kaleidos` | `BossSpec` balance maths; `Boss` base (phases, roar, drones, `parts()`/`hit_part()` for multi-part bosses, `prebuild()`); shared hull colours; **one file per boss = its sprite, muzzles/vents and class** |
+| `obstacles/` | `art`, `asteroid`, `spawner` | Procedural `AsteroidArt`/`AsteroidLibrary`; `Asteroid` (hp x `Difficulty.rock_hp`, push, pixel-exact hits, how it splits) + `IceRock` (brittle, shatters), `MagmaRock` (explodes), `CrystalRock` (splits the laser), `WreckChunk` (metal, coins), `rock_class(palette)`; `AsteroidSpawner` (driven by a `Difficulty`) |
+| `minions/` | `bullets`, `base`, `drone`, `diver`, `minelayer` | `EnemyBullet`, `shoot()`, `bullet()`; `Enemy` base (`armour(hit)`, `on_death()`, `drops_coins`, `stat`); `Drone` + `drone_formation()`; `Diver` + `diver_squad()`; `MineLayer` + `Mine`; `Phantom` (cloaked); `PrismTurret` (rides a crystal); `Salvager` (steals pickups); `CurvedBullet`, `ColoredBullet` |
+| `bosses/` | `spec`, `base`, `art`, `gunship`, `carrier`, `mothership`, `leviathan`, `helios`, `wraith`, `kaleidos`, `scrapjaw` | `BossSpec` balance maths; `Boss` base (phases, roar, drones, `parts()`/`hit_part()` for multi-part bosses, `prebuild()`); shared hull colours; **one file per boss = its sprite, muzzles/vents and class** |
 | `pickups/` | `art`, `base`, `types`, `boosts` | Sprites; `Pickup` base; `RepairKit`, `FullRepair`, `PowerCore`, `Coin` / `BigCoin` (spinning); `Boost` pickups `Overdrive`, `Shield`, `Magnet`, `SlowDown` (`BOOSTS`) |
 | `wingmen/` | `art`, `base`, `types` | 9x11 sprites; `Wingman` base (formation, knock-out + reboot, XP `level_for()`), `Bolts`; `Pip`, `Guardian`, `Medic`, `Hunter`, `Magpie` (`WINGMEN`) + `Twin` (TWIN boost) |
 | `hazards/` | `base`, `fog` | `Hazard`: a level-wide mechanic (`Level.hazard`) with `update(dt, game)` and draw layers back / mid / front |

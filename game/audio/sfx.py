@@ -266,6 +266,13 @@ def teleport():
                at(0.15, noise(0.25, 8000, 2000, 0.2)))
 
 
+def metal_break():
+    """A wreck chunk bursts / armour is shot off: clanging metal crash."""
+    return mix(tone("square", 420, 180, 0.25, 0.3, duty=0.3), tone("square", 610, 240, 0.2, 0.2,
+                                                                      duty=0.2),
+               lowpass(noise(0.4, 5000, 600, 0.6), 0.5))
+
+
 def select():
     return tone("square", 880, None, 0.04, 0.3, duty=0.25)
 
@@ -295,6 +302,6 @@ SOUNDS = {
     "wingman_down": wingman_down, "wingman_up": wingman_up, "scatter": scatter,
     "plasma": plasma, "arc": arc_loop, "rocket": rocket,
     "achievement": achievement, "magma_burst": magma_burst, "flare": flare,
-    "teleport": teleport,
+    "teleport": teleport, "metal_break": metal_break,
 }
 LOOPS = ("laser", "engine", "arc")         # played on their own channel, looping

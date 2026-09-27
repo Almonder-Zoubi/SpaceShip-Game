@@ -235,7 +235,7 @@ edge, ~+30%), `hp * firepower == 1` for hulls, all art + audio in code.
 - [x] G10 Level 5 SOLAR FORGE: magma rocks (chain blasts), mine layer, HELIOS, sun event layer
 - [x] G11 Level 6 GHOST NEBULA: fog banks, phantom, WRAITH (teleports, decoys)
 - [x] G12 Level 7 CRYSTAL VEIL: crystal rocks refract lasers, prism turret, KALEIDOS
-- [ ] G13 Level 8 IRON GRAVEYARD: wrecks (coins), salvager, SCRAPJAW (throws its armour)
+- [x] G13 Level 8 IRON GRAVEYARD: wrecks (coins), salvager, SCRAPJAW (throws its armour)
 - [ ] G14 Level 9 EVENT HORIZON: black hole (pulls everything incl. the ship, curved shots,
       SLINGSHOT zone, WHITE HOLE flip), comets, interceptor, THE TWINS
 - [ ] G15 Level 10 SWARM HEART: spores, larvae (boids), boss rush, OVERMIND (camera scroll,

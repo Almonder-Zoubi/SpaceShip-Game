@@ -111,6 +111,7 @@ GIFTS = {
     "1-5": ("SCATTER", "OVERDRIVE"),
     "1-6": ("ROCKET POD", "HUNTER"),
     "1-7": ("PLASMA", "SOLAR"),
+    "1-8": ("SIDE CANNONS", "MEDIC"),
 }
 
 

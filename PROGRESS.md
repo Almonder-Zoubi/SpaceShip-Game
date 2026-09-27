@@ -180,6 +180,22 @@ Options need a place in the menus: ask the user where (title? pause?) before add
 
 ## Log
 
+### 2026-09-27 — G13: level 8 IRON GRAVEYARD
+- `WreckChunk` (palette "wreck"): 2.5x tougher, clangs (`hit_metal`, new `metal_break`),
+  always drops 1–2 coins. Wrecks event layer: dark battleship silhouettes drifting past.
+- `Salvager` minion (every 10 s): flies to the nearest pickup / coin, grabs up to 3 (or 7 s),
+  then flees upwards; shot down, everything it stole drops twice.
+- SCRAPJAW (`bosses/scrapjaw.py`): assembles itself on entry (its armour plates fly in from
+  the edges). P1 six plates (4% boss HP each; hits count for the boss too, so the damage
+  race is unchanged) can be shot off; it THROWS junk back (`JunkShot`: big, slow, can be
+  shot apart, worth 3 bullets), cannon pairs, scrap spreads. P2 MAGNET CLAW pulls rocks and
+  coins (never the ship; dotted field lines), crushed rocks become ammunition. P3 the armour
+  falls off: a fast skeleton spraying sparks. Music `level8` (grinding C minor), `scrapjaw`
+  (G minor metal, 160 bpm).
+- Level 8 waves: field 45 s (+ divers); field 40 s -> Kaleidos 1.5x; field 40 s -> SCRAPJAW
+  5x. Gift after level 8: SIDE CANNONS | MEDIC.
+- Smoke test: new `level8` section.
+
 ### 2026-09-27 — G12: level 7 CRYSTAL VEIL
 - `CrystalRock`: a LASER hit (`Hit.source` is the Laser now) splits into beams to the 3
   nearest rocks / minions within 90 px (80% damage each, never a boss); drawn as thin beams.

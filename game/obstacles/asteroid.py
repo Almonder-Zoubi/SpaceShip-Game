@@ -5,7 +5,8 @@ import random
 from ..config.display import LOW_H, LOW_W
 import pygame
 
-from ..config.tuning import ROCK_HP_BASE, ROCK_HP_PER_AREA, ROCK_MIN_FALL, ROCK_SPLIT_RADIUS
+from ..config.tuning import (ROCK_HP_BASE, ROCK_HP_PER_AREA, ROCK_MIN_FALL, ROCK_SPLIT_RADIUS,
+                             WRECK_HP)
 from ..core.pixelart import make_glow
 
 HIT_FLASH = 0.06   # seconds a rock shows white after being hit
@@ -173,8 +174,22 @@ class CrystalRock(Asteroid):
             surf.fill((255, 255, 255), (x - 1, y, 3, 1), special_flags=pygame.BLEND_ADD)
 
 
+class WreckChunk(Asteroid):
+    """A chunk of a dead battleship: tough metal that clangs and drops extra coins."""
+
+    METAL = True
+    HP_FACTOR = WRECK_HP
+
+    def fragments(self):
+        r = self.radius
+        return 2, max(4, int(r * 0.45)), max(4, int(r * 0.6)), (20, 45)
+
+    def break_sound(self):
+        return "metal_break"
+
+
 ROCK_KINDS = {"ice": IceRock, "magma": MagmaRock,          # palette name -> rock class
-              "crystal": CrystalRock}
+              "crystal": CrystalRock, "wreck": WreckChunk}
 
 
 def rock_class(palette_name):

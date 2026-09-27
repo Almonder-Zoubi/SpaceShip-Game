@@ -1,21 +1,23 @@
 """The levels, grouped into galaxies. A new level = a new Level entry in its galaxy's tuple."""
-from ..background.events import CrystalSparkle, Lightning, SunCorona
+from ..background.events import CrystalSparkle, Lightning, SunCorona, Wrecks
 from ..bosses.carrier import Carrier
 from ..bosses.gunship import GUNSHIP_SPEC, Gunship
 from ..bosses.helios import Helios
 from ..bosses.kaleidos import Kaleidos
 from ..bosses.leviathan import Leviathan
 from ..bosses.mothership import Mothership
+from ..bosses.scrapjaw import Scrapjaw
 from ..bosses.spec import BossSpec
 from ..bosses.wraith import Wraith
-from ..config.loadouts import MK1, MK2, MK3, MK4, MK5, MK6, MK7
+from ..config.loadouts import MK1, MK2, MK3, MK4, MK5, MK6, MK7, MK8
 from ..config.palette import (NEBULA, NEBULA_ABYSS, NEBULA_CRIMSON, NEBULA_CRYSTAL, NEBULA_FORGE,
-                              NEBULA_FROST, NEBULA_GHOST)
+                              NEBULA_FROST, NEBULA_GHOST, NEBULA_RUST)
 from ..hazards.fog import FogBanks
 from ..config.tuning import LEVEL_LENGTH
 from ..minions.minelayer import minelayer_squad
 from ..minions.phantom import phantom_pair
 from ..minions.prism import prism_turret
+from ..minions.salvager import salvager
 from .model import BossEntry, Difficulty, Galaxy, Level, Wave
 
 DEFAULT_DIFFICULTY = Difficulty(
@@ -162,6 +164,30 @@ GALAXY_1_LEVELS = (
                  "BREAK THE BIG ONES TO DROP THEIR TURRETS."),
           upgrade_notes=("CRYSTALS SPLIT YOUR LASER",
                          "PRISM TURRETS RIDE BIG CRYSTALS")),
+    # Wreck chunks (tough, coins), salvagers that steal, Kaleidos again, SCRAPJAW.
+    Level(8, "IRON GRAVEYARD", MK8,
+          Difficulty(spawn_interval=0.52, speed_min=60, speed_max=115, radius_min=5,
+                     radius_max=14, drift=16, palettes=("wreck", "rust", "grey"),
+                     formation_interval=12, diver_interval=13, extras=((salvager, 10),),
+                     rock_hp=2.2, enemy_hp=2.1),
+          tuple(NEBULA_RUST),
+          (Wave(45, name="THE IRON GRAVEYARD"),
+           Wave(40, (BossEntry(Kaleidos, BossSpec("KALEIDOS", strength=1.5, fight_time=35,
+                                                  player=MK8)),),
+                name="THE QUEEN'S SHARDS",
+                radio=("KALEIDOS FOLLOWED THE LIGHT OF OUR ENGINES.",)),
+           Wave(40, (BossEntry(Scrapjaw, BossSpec("SCRAPJAW", strength=5.0, fight_time=80,
+                                                  player=MK8), music="scrapjaw"),),
+                name="THE JUNK KING",
+                radio=("THE WRECKS ARE MOVING. THEY'RE BUILDING IT!",
+                       "SHOOT THE ARMOUR OFF - IT THROWS IT BACK.",
+                       "STAY AWAY FROM ITS MAGNET CLAW."))),
+          music="level8", event=Wrecks,
+          radio=("THE IRON GRAVEYARD. A WHOLE FLEET DIED HERE.",
+                 "WRECK CHUNKS ARE TOUGH BUT FULL OF CREDITS.",
+                 "SALVAGERS STEAL. SHOOT THEM, GET IT BACK X2."),
+          upgrade_notes=("WRECKS: TOUGH, FULL OF COINS",
+                         "SALVAGERS STEAL - GET IT BACK X2")),
 )
 
 GALAXIES = (

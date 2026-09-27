@@ -40,7 +40,9 @@ from game.bosses.kaleidos import Kaleidos, Shard
 from game.bosses.wraith import Wraith
 from game.minions.bullets import ColoredBullet
 from game.minions.prism import prism_turret
-from game.obstacles.asteroid import CrystalRock
+from game.obstacles.asteroid import CrystalRock, WreckChunk
+from game.bosses.scrapjaw import JunkShot, Scrapjaw
+from game.minions.salvager import Salvager
 from game.config.tuning import REFRACT_BEAMS
 from game.hazards.fog import FogBanks
 from game.minions.bullets import CurvedBullet
@@ -924,6 +926,88 @@ def test_level7(h):
     assert game.skin("PAINT").id == "SOLAR" and game.ship.colors == SHIP_PALETTES["solar"]
     game.save.skins = {}
     game.choose_hull(ARROW)
+    game.to_title()
+
+
+def test_level8(h):
+    """Level 8 IRON GRAVEYARD: wreck chunks are tough and drop coins; a salvager steals a
+    coin and drops it twice when shot; SCRAPJAW assembles itself, plates shot off count for
+    the boss and get thrown back, the magnet claw crushes rocks into ammunition, the armour
+    falls off in phase 3."""
+    game = h.game
+    game.choose_hull(ARROW)
+    game.start(7)
+    game.radio = None
+    game.ship.hp = 10 ** 6
+    assert game.ship.loadout.name == "MK VIII" and game._music_track() == "level8"
+    lib, hp = game.library, game.level.difficulty.rock_hp
+    wreck = WreckChunk(lib.pick(8, 8, ("wreck",)), 160, 80, 0, 0, 0, hp_scale=hp)
+    rock = Asteroid(lib.pick(8, 8, ("wreck",)), 160, 80, 0, 0, 0, hp_scale=hp)
+    assert wreck.max_hp > rock.max_hp * 2
+    game.asteroids = [wreck]
+    game.pickups.clear()
+    game._damage_rock(Hit(wreck, wreck.max_hp + 1, wreck.x, wreck.y, 0, -1, 0))
+    assert sum(isinstance(p, Coin) for p in game.pickups) >= 1, "wrecks drop coins"
+    h.run(h.seconds(1.0))
+    h.shot("level8")
+
+    # Salvager: steals a coin, drops it twice when shot down.
+    game.pickups = [Coin(200, 100, 0, 0)]
+    thief = Salvager(200)
+    thief.y = 60
+    game.enemies = [thief]
+    for _ in range(h.seconds(2.0)):
+        game.update(h.dt, Keys())
+        if thief.loot:
+            break
+    assert thief.loot and not game.pickups, "it grabbed the coin"
+    game._damage_enemy(Hit(thief, thief.hp + 1, thief.x, thief.y, 0, -1, 0))
+    assert sum(isinstance(p, Coin) for p in game.pickups) >= 2, "stolen coin drops twice"
+    game.pickups.clear()
+    game.enemies.clear()
+
+    # SCRAPJAW.
+    game.start(7, 0, 2, 0)
+    game.radio = None
+    game.ship.hp = 10 ** 6
+    h.run(h.seconds(WARNING_TIME + Scrapjaw.ENTER_TIME * 0.5), clear_rocks=True)
+    boss = game.boss
+    assert isinstance(boss, Scrapjaw) and boss.state == "enter"
+    h.shot("scrapjaw_assembles")
+    h.run(h.seconds(Scrapjaw.ENTER_TIME * 0.5 + 0.3), clear_rocks=True)
+    assert boss.fighting and game._music_track() == "scrapjaw"
+    plate = boss.plates[0]
+    hp0 = boss.hp
+    game._damage_boss(Hit(plate, plate.hp + 1, 0, 0, 0, -1, 0))
+    assert not plate.attached and boss.stock == 1 and boss.hp < hp0, "shot off, it still hurt"
+    boss.pattern_index, boss.attack_time, boss.fire_timer = 1, 0.0, 0.0     # throw
+    h.run(3, clear_rocks=True)
+    assert any(isinstance(e, JunkShot) for e in game.enemies), "armour thrown back"
+    h.run(h.seconds(1.0), FIRE, clear_rocks=True)
+    h.shot("scrapjaw")
+    game._damage_boss(Hit(boss, boss.max_hp * 0.34, 0, 0, 0, -1, 0))
+    boss.roar = 0
+    assert boss.phase == 1
+    boss.pattern_index, boss.attack_time = 0, 0.0           # magnet
+    cx, cy = boss._claw()
+    pulled = Asteroid(lib.pick(5, 5, ("wreck",)), cx + 30, cy + 20, 0, 0, 0)
+    game.asteroids = [pulled]
+    stock = boss.stock
+    for _ in range(h.seconds(2.5)):
+        game.update(h.dt, Keys())
+        if pulled not in game.asteroids:
+            break
+    game.draw()
+    assert pulled not in game.asteroids and boss.stock > stock, "crushed into ammunition"
+    h.shot("scrapjaw_magnet")
+    game._damage_boss(Hit(boss, boss.max_hp * 0.34, 0, 0, 0, -1, 0))
+    boss.roar = 0
+    assert boss.phase == 2 and not any(p.attached for p in boss.plates)
+    h.run(h.seconds(2.0), clear_rocks=True)
+    h.shot("scrapjaw_phase3")
+    h.kill(boss)
+    h.run(h.seconds(boss.DEATH_TIME + JUICE_PAD + 1.7), clear_rocks=True)
+    assert game.state in (State.LEVEL_CLEAR, State.WIN)
     game.to_title()
 
 
@@ -1965,7 +2049,8 @@ SECTIONS = (
     ("weapons", test_weapons),
     ("damage", test_damage), ("balance", test_balance), ("pickups", test_pickups),
     ("campaign", test_campaign), ("level4", test_level4),
-    ("level5", test_level5), ("level6", test_level6), ("level7", test_level7), ("save", test_save), ("menus", test_title_menus),
+    ("level5", test_level5), ("level6", test_level6), ("level7", test_level7),
+    ("level8", test_level8), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
     ("upgrades", test_upgrades), ("feel", test_feel),
     ("boosts", test_boosts), ("wingmen", test_wingmen),

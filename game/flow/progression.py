@@ -2,7 +2,8 @@
 import math
 import random
 
-from ..config.tuning import BOSS_ROAR_TIME, COIN_BIG, COIN_BOSS_PHASE, COIN_TALLY_RATE
+from ..config.tuning import (BOSS_ROAR_TIME, COIN_BIG, COIN_BOSS_PHASE, COIN_TALLY_RATE,
+                             WRECK_COINS)
 from ..levels.data import galaxy_of
 from ..pickups.types import BigCoin, Coin
 from ..progression.economy import boss_coins, level_payout, minion_coins, rock_coins
@@ -48,7 +49,8 @@ class ProgressionMixin:
                                     homing=homing))
 
     def _drop_rock_coins(self, rock):
-        self.drop_coins(rock.x, rock.y, rock_coins(rock.radius) * self.coin_mult)
+        coins = random.randint(*WRECK_COINS) if rock.METAL else rock_coins(rock.radius)
+        self.drop_coins(rock.x, rock.y, coins * self.coin_mult)
 
     def _drop_minion_coins(self, enemy):
         if enemy.drops_coins:

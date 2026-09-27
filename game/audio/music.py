@@ -263,6 +263,34 @@ def kaleidos():
                 bass_rhythm="R O R O R O R O", beat=beat, fill=fill)
 
 
+def level8():
+    """IRON GRAVEYARD: heavy, grinding C minor, slow and relentless."""
+    chords = ["Cm", "Cm", "Ab", "G", "Cm", "Cm", "Fm", "G",
+              "Ab", "Ab", "Eb", "Bb", "Fm", "Fm", "G", "G"]
+    melody = """C5 . . . Eb5 . G5 . | F5 . Eb5 . D5 . . . | C5 . Eb5 . Ab5 . G5 . | G5 . . . D5 . B4 .
+                C5 . . . G5 . C6 . | Bb5 . Ab5 . G5 . Eb5 . | F5 . . . Ab5 . C6 . | B5 . . . G5 . D5 .
+                Eb5 . . . Ab5 . C6 . | Bb5 . Ab5 . G5 . Eb5 . | G5 . . . Bb5 . Eb6 . | D6 . . . Bb5 . F5 .
+                Ab5 . G5 . F5 . C5 . | Eb5 . F5 . Ab5 . C6 . | B5 . . . D6 . G6 . | F6 . D6 . B5 . G5 ."""
+    beat = "k . . k s . . . k . k . s . . h"
+    fill = "k . . k s . . . s . s s s s s s"
+    return song(124, chords, melody, arp_pattern=(0, 1, 0, 2), arp_octave=3,
+                bass_rhythm="R . R R . R O .", beat=beat, fill=fill)
+
+
+def scrapjaw():
+    """SCRAPJAW: stomping G minor metal riff, hammering bass, crashing snares."""
+    chords = ["Gm", "Gm", "F", "Eb", "Gm", "Gm", "Cm", "D",
+              "Eb", "F", "Gm", "Gm", "Cm", "D", "Eb", "D7"]
+    melody = """G4 . G4 . Bb4 . C5 . | D5 . . . C5 . Bb4 . | A4 . C5 . F5 . A5 . | G5 . Eb5 . Bb4 . . .
+                G5 . D5 . Bb4 . G4 . | Bb4 . D5 . G5 . Bb5 . | C6 . G5 . Eb5 . C5 . | D5 . F#5 . A5 . D6 .
+                Eb6 . . . Bb5 . G5 . | F5 . A5 . C6 . F6 . | D6 . Bb5 . G5 . D5 . | G5 . Bb5 . D6 . G6 .
+                Eb6 . C6 . G5 . Eb5 . | F#5 . A5 . D6 . F#6 . | G6 . Eb6 . Bb5 . G5 . | F#5 . . . - - - -"""
+    beat = "k k . k s . k . k k . k s . s s"
+    fill = "k k . k s . k . s s s s s s s s"
+    return song(160, chords, melody, arp_pattern=(0, 0, 2, 1), arp_octave=3,
+                bass_rhythm="R R R R O O R R", beat=beat, fill=fill)
+
+
 # --- jingles (play once) ----------------------------------------------------------------------------
 def level_clear():
     lead = "C5 E5 G5 C6 . . G5 C6 . . . . . . . . - - - -"
@@ -294,5 +322,6 @@ SONGS = {"title": title, "level1": level1, "level2": level2, "level3": level3,
          "level4": level4, "boss": boss, "final_boss": final_boss, "leviathan": leviathan,
          "level5": level5, "helios": helios, "level6": level6,
          "wraith": wraith, "level7": level7, "kaleidos": kaleidos,
+         "level8": level8, "scrapjaw": scrapjaw,
          "level_clear": level_clear, "game_over": game_over, "win": win}
 JINGLES = ("level_clear", "game_over", "win")      # play once instead of looping
