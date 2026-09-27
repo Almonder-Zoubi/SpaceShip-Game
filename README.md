@@ -39,6 +39,8 @@ python3 ESA3.py
 
 Headless self-test: `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test`
 
+Skip to the boss for testing: `python3 ESA3.py --boss`
+
 ## Project structure
 
 ```
@@ -46,6 +48,7 @@ ESA3.py          # entry point
 game/            # the game package (see CLAUDE.md for a module map)
 sounds/          # background music and crash sound
 images/, astroids/   # legacy clip-art from v1 (no longer used)
-ROADMAP.md       # planned phases: levels, endless mode, extras
-PROGRESS.md      # current status and next steps
+CLAUDE.md        # architecture, conventions and workflow for contributors / Claude
+ROADMAP.md       # planned phases: bosses, levels, endless mode, leaderboard, sound
+PROGRESS.md      # current snapshot, decisions, log and next steps
 ```

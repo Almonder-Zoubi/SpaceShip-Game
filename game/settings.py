@@ -10,6 +10,8 @@ def asset(*parts):
     return os.path.join(BASE_DIR, *parts)
 
 
+SAVE_FILE = asset("save.json")   # records + unlocked levels (see storage.py)
+
 # --- Display -----------------------------------------------------------------
 TITLE = "Dodging Asteroid"
 LOW_W, LOW_H = 320, 240          # logical (pixel-art) resolution
@@ -73,13 +75,84 @@ LEVEL_LENGTH = 75                # seconds of flight (at normal speed) to finish
 DEATH_DELAY = 1.4                # seconds of explosion before "game over"
 WARNING_TIME = 3.0               # "WARNING" before the boss enters
 
+# --- Ship models (upgraded between levels) -----------------------------------
+@dataclass(frozen=True)
+class Loadout:
+    """Player ship model: hull, speed and weapon strength."""
+    name: str
+    max_hp: int
+    max_speed: float
+    gun_damage: float
+    laser_dps: float
+    laser_heat_rate: float
+    colors: str = "mk1"           # key into sprites.SHIP_PALETTES
+    blast: bool = False           # charged BLAST beam (MK III)
+    ultimate: bool = False        # T: missile storm (MK III)
+
+    @property
+    def gun_dps(self):
+        """Machine gun with every bullet hitting (no power-ups) — the boss balance baseline."""
+        return self.gun_damage / GUN_INTERVAL
+
+
+MK1 = Loadout("MK I", max_hp=SHIP_MAX_HP, max_speed=SHIP_MAX_SPEED, gun_damage=GUN_DAMAGE,
+              laser_dps=LASER_DPS, laser_heat_rate=LASER_HEAT_RATE)
+MK2 = Loadout("MK II", max_hp=150, max_speed=145, gun_damage=7, laser_dps=110,
+              laser_heat_rate=0.32, colors="mk2")
+MK3 = Loadout("MK III", max_hp=200, max_speed=150, gun_damage=9, laser_dps=140,
+              laser_heat_rate=0.28, colors="mk3", blast=True, ultimate=True)
+
+# --- BLAST and ULTIMATE (MK III) ---------------------------------------------
+# Both charge from damage dealt to rocks and minions (+ a bonus per kill, x3 for minions).
+BLAST_TIME = 3.0                 # seconds the beam lasts once unleashed
+BLAST_DPS = 450                  # to everything inside the beam
+BLAST_WIDTH = 11                 # px
+BLAST_PUSH = 160                 # rock push per second
+BLAST_CHARGE_PER_DAMAGE = 1 / 1400
+BLAST_CHARGE_PER_KILL = 0.025
+ULT_TIME = 2.4                   # seconds of missile launches
+ULT_INTERVAL = 0.05              # seconds between missiles (~48 missiles)
+ULT_MISSILE_DAMAGE = 45
+ULT_MISSILE_SPEED = 230          # px/s
+ULT_TURN = 7.0                   # rad/s homing turn rate
+ULT_CHARGE_PER_DAMAGE = 1 / 5000
+ULT_CHARGE_PER_KILL = 0.008
+ULT_CHARGE_PER_BOSS_THIRD = 0.25 # every 1/3 of a boss's health knocked off
+
+# Weapon power (0..POWER_MAX) — collected from POWER cores when a boss changes phase.
+POWER_MAX = 2
+LASER_POWER_BONUS = 0.35         # +35% laser dps per power level
+LASER_POWER_COOL = 0.2           # -20% laser heating per power level
+GUN_SIDE_ANGLE = 0.22            # radians, power 2 adds angled side rounds
+
+# --- Pickups -----------------------------------------------------------------
+REPAIR_SMALL = 30                # hp restored by a small repair kit
+PICKUP_FALL = 26                 # px/s
+PICKUP_MAGNET = 34               # px: kits closer than this drift towards the ship
+PICKUP_RADIUS = 11               # px: collected when the ship centre is this close
+KIT_INTERVAL = (13, 20)          # seconds between kits in the asteroid field (random range)
+FULL_KIT_CHANCE = 0.15           # chance a field kit is a full repair
+BOSS_KIT_INTERVAL = 15           # seconds between small kits during a boss fight
+ROCK_KIT_CHANCE = 0.08           # big rocks (radius >= 10) may drop a small kit
+DRONE_KIT_CHANCE = 0.06
+
+# --- Enemy drones ------------------------------------------------------------
+DRONE_HP = 24
+DRONE_SPEED = 62                 # px/s downwards
+DRONE_BULLET_SPEED = 95
+DRONE_BULLET_DAMAGE = 8
+DRONE_CONTACT_DAMAGE = 14
+POINTS_DRONE = 150
+
 # --- Boss balance ------------------------------------------------------------
 # A boss is STRENGTH times stronger than the rocket, measured as a damage race:
 #   (boss HP / player DPS) / (player HP / boss DPS) = strength
 # where player DPS = the machine gun with every bullet hitting, and boss DPS = the damage
 # a rocket that never moves would take. fight_time = seconds to kill the boss at that DPS.
-PLAYER_DPS = GUN_DAMAGE / GUN_INTERVAL
+# Both use the ship model of the level (Loadout.gun_dps / max_hp); pickups and power-ups are
+# the player's edge on top.
 BOSS_CONTACT_DAMAGE = 20         # ramming the boss hurts
+BOSS_ROAR_TIME = 1.6             # a multi-phase boss is invulnerable while changing phase
 
 
 @dataclass(frozen=True)
@@ -92,6 +165,7 @@ class Difficulty:
     radius_max: int
     drift: float                 # max sideways speed px/s
     palettes: tuple = ("grey", "brown", "slate")
+    formation_interval: float = 0     # seconds between drone formations (0 = none)
 
 
 DEFAULT_DIFFICULTY = Difficulty(
@@ -150,6 +224,10 @@ LASER = [(255, 255, 255), (170, 244, 255), (70, 180, 255), (30, 80, 200)]
 ENEMY_SHOT = [(255, 255, 255), (255, 200, 90), (255, 96, 32), (200, 40, 16)]
 
 NEBULA = [(16, 10, 32), (26, 14, 48), (40, 20, 68)]
+NEBULA_CRIMSON = [(20, 8, 22), (32, 10, 30), (48, 14, 36)]
+NEBULA_ABYSS = [(8, 14, 30), (12, 24, 44), (18, 36, 60)]
+POWER = [(255, 255, 255), (200, 255, 255), (90, 220, 255), (40, 120, 220)]
+HEAL = [(255, 255, 255), (190, 255, 200), (96, 228, 128), (40, 140, 80)]
 STAR_COLORS = [(255, 255, 255), (200, 220, 255), (255, 236, 200), (170, 170, 210)]
 PLANET_PALETTES = [
     [(26, 20, 46), (58, 40, 90), (96, 64, 130), (140, 104, 168)],

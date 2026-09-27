@@ -5,11 +5,12 @@ import random
 import pygame
 
 from .pixelart import make_glow, ramp
-from .settings import (FLAME, FLAME_LEAN, HIT_INVULNERABLE, HIT_KNOCKBACK, LOW_H, LOW_W, RCS,
-                       SHIP_ACCEL, SHIP_FRICTION, SHIP_MARGIN, SHIP_MAX_HP, SHIP_MAX_SPEED,
-                       SMOKE, THROTTLE_BOOST, THROTTLE_IDLE, THROTTLE_RESPONSE, THROTTLE_RETRO,
-                       TILT_DEGREES, TILT_RATE, TILT_STEPS)
-from .sprites import NOZZLE_OFFSETS, NOZZLE_ROW, SHIP_ROWS, build_ship_frames, build_ship_tilts
+from .settings import (FLAME, FLAME_LEAN, HIT_INVULNERABLE, HIT_KNOCKBACK, LOW_H, LOW_W, MK1, RCS,
+                       SHIP_ACCEL, SHIP_FRICTION, SHIP_MARGIN, SMOKE, THROTTLE_BOOST,
+                       THROTTLE_IDLE, THROTTLE_RESPONSE, THROTTLE_RETRO, TILT_DEGREES, TILT_RATE,
+                       TILT_STEPS)
+from .sprites import (NOZZLE_OFFSETS, NOZZLE_ROW, SHIP_PALETTES, SHIP_ROWS, build_ship_frames,
+                      build_ship_tilts)
 
 HALF_H = len(SHIP_ROWS) / 2
 
@@ -31,14 +32,27 @@ class Ship:
     GLOW_STEPS = 8
 
     def __init__(self, x, y):
-        self.frames = build_ship_frames()
-        self.masks = {bank: pygame.mask.from_surface(f) for bank, f in self.frames.items()}
-        self.tilt_frames = build_ship_tilts(TILT_DEGREES, TILT_STEPS)
-        self.tilt_masks = [pygame.mask.from_surface(f) for f in self.tilt_frames]
-        self.w, self.h = self.frames[0].get_size()
+        self._models = {}                        # sprite sets per colour scheme, built on demand
         self.glows = [make_glow(9, (255, 150, 60), (i + 1) / self.GLOW_STEPS)
                       for i in range(self.GLOW_STEPS)]
+        self.equip(MK1)
         self.reset(x, y)
+
+    def equip(self, loadout):
+        """Switch ship model (sprites, hull, speed). Weapons are equipped by the game."""
+        self.loadout = loadout
+        self.max_hp = loadout.max_hp
+        self.max_speed = loadout.max_speed
+        if loadout.colors not in self._models:
+            colors = SHIP_PALETTES[loadout.colors]
+            frames = build_ship_frames(colors)
+            tilts = build_ship_tilts(TILT_DEGREES, TILT_STEPS, colors)
+            self._models[loadout.colors] = (
+                frames, {bank: pygame.mask.from_surface(f) for bank, f in frames.items()},
+                tilts, [pygame.mask.from_surface(f) for f in tilts])
+        self.frames, self.masks, self.tilt_frames, self.tilt_masks = self._models[loadout.colors]
+        self.colors = SHIP_PALETTES[loadout.colors]
+        self.w, self.h = self.frames[0].get_size()
 
     def reset(self, x, y):
         self.x, self.y = float(x), float(y)      # centre of the sprite
@@ -47,7 +61,7 @@ class Ship:
         self.tilt = 0.0                          # degrees, + = leaning right ('/')
         self.throttle = THROTTLE_IDLE
         self.alive = True
-        self.hp = SHIP_MAX_HP
+        self.hp = self.max_hp
         self.invulnerable_time = 0.0
         self._emit_debt = 0.0
         self._rcs_debt = 0.0
@@ -117,6 +131,12 @@ class Ship:
         self.vy += dy / dist * knockback
         return self.hp <= 0
 
+    def heal(self, amount):
+        """Restore hull points (capped). Returns how much was actually repaired."""
+        before = self.hp
+        self.hp = min(self.max_hp, self.hp + amount)
+        return self.hp - before
+
     # --- update ----------------------------------------------------------------
     def update(self, dt, keys, fire, smoke, autopilot=False):
         """Apply input (or autopilot), move, and emit exhaust into the particle systems."""
@@ -144,8 +164,8 @@ class Ship:
         if not ay:
             self.vy *= damp
         speed = math.hypot(self.vx, self.vy)
-        if speed > SHIP_MAX_SPEED:
-            self.vx, self.vy = self.vx / speed * SHIP_MAX_SPEED, self.vy / speed * SHIP_MAX_SPEED
+        if speed > self.max_speed:
+            self.vx, self.vy = self.vx / speed * self.max_speed, self.vy / speed * self.max_speed
 
         self.x += self.vx * dt
         self.y += self.vy * dt

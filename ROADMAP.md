@@ -1,7 +1,10 @@
 # Roadmap
 
 Goal: turn the simple "dodge falling pictures" prototype into a polished retro arcade shooter
-with drifting flight, weapons, bosses, three levels, an endless mode and a saved leaderboard.
+with simple arcade controls, weapons, bosses, three levels, an endless mode and a saved leaderboard.
+
+Status: Phases 1–4 done, Phase 5: all three levels playable (level select + endless missing).
+Details and next steps: [PROGRESS.md](PROGRESS.md).
 
 ## Phase 1 — Retro overhaul (visuals, feel, architecture) ✅
 
@@ -15,7 +18,7 @@ with drifting flight, weapons, bosses, three levels, an endless mode and a saved
 - [x] Parallax starfield with speed streaks when boosting, dithered nebula, drifting planet
 - [x] Explosion: fire + debris + smoke particles, shockwave ring, screen shake, white flash
 - [x] Pixel-perfect collisions (masks)
-- [x] 5x7 bitmap font, HUD (score, best, goal progress, throttle gauge)
+- [x] 5x7 bitmap font, HUD (later reworked in Phase 3: HP, progress/boss bar, score, weapon)
 - [x] States: title, playing, pause, dying, game over, win (ship blasts off)
 - [x] Fix: sprites rendered as black boxes on macOS (canvas must have no alpha channel)
 
@@ -33,7 +36,7 @@ Decided: **direct arcade controls, the rocket always faces up, never rotates.**
 
 ## Phase 3 — Weapons, destructible asteroids & health ✅
 
-Decided: both weapons, R switches, SPACE fires (straight up).
+Decided: both weapons, R switches, SPACE fires where the nose points.
 
 - [x] Weapon system with a common `Weapon` base class (`weapons.py`)
   - [x] Laser: continuous beam, pixel-exact raycast, overheats (heat gauge + OVERHEAT in HUD)
@@ -61,32 +64,46 @@ level 3 boss 5x. Rematched earlier bosses are weakened to ~1.5x so they're a war
       (30% faster, adds a 14-bullet ring, damage per bullet scaled so strength stays 3x)
 - [x] Level flow: asteroid field → WARNING (hull repaired to full) → boss → explosion sequence → WIN
 - [x] Boss health bar with name, ramming damage, bullets fizzle when the boss dies
-- [ ] Enemy ship base class for small fighters (movement pattern + weapon + HP)
-- [ ] Small enemy fighters in waves between asteroid fields
-- [ ] Remaining bosses:
-  - [ ] Boss 2 — e.g. carrier that launches drones
-  - [ ] Boss 3 — e.g. mothership with multiple phases / weak points
+- [x] Enemy ship base class for small fighters (`enemies.Enemy`) + `Drone`
+- [x] Drone formations (V / line / snake) in the level 2 asteroid field
 - [x] Boss intro warning ("WARNING"), health bar, phase changes, big death explosion
+- [x] Playtest + tune the Gunship — user: "perfect"
+- [x] Multi-phase bosses: `Boss.PHASES`, roar between phases; the player gets bullets cleared,
+      a POWER core (weapon power +1) and a repair kit at every phase change
+- [ ] Remaining bosses (each a `Boss` subclass + `BossSpec`):
+  - [x] Boss 2 — CARRIER (4x, 3 phases): drones, cannons, rain → spiral → bullet walls
+  - [x] Boss 3 — MOTHERSHIP (5x, 3 phases, final boss): fans, drones, rings → sweeping beam →
+        double spirals
 
 ## Phase 5 — Three levels
 
-- [ ] `Level` definitions as data: asteroid mix, difficulty, background tint, boss list
-- [ ] Structure: asteroids + enemies → boss rush → level boss
+- [x] `Level` definitions as data: asteroid mix, difficulty, background tint, boss list, ship model
+- [x] Ship upgrades per level (`Loadout`): level 2 = MK II (hull 150, gun 7, laser +38%, faster)
+- [x] Repair kits: small (+30 HP) and full; in the field and during boss fights
+- [x] Levels made of waves (`Wave`): level 3 = minions / minions + Carrier / minions + Mothership
+- [x] MK III (level 3): BLAST (charged piercing beam, auto on SPACE when full) and
+      ULTIMATE (key T, homing missile storm; charges from hits + every third of boss health)
+- [x] Levels 1, 2 and 3 playable
+- [x] Structure: asteroids + enemies → boss rush → level boss
   - Level 1: Boss 1
   - Level 2: Boss 1 (weakened) → Boss 2
-  - Level 3: Boss 1 (weakened) → Boss 2 (weakened) → Boss 3
+  - Level 3 (user's wave design): wave 1 → wave 2 + Boss 2 (weakened) → wave 3 + Boss 3
 - [ ] Weakened bosses: less HP, slower fire, simpler patterns — a warm-up, not a wall
-- [ ] Health persists through the whole level (asteroids and enemies drain it) and is
-      refilled to max right before each boss fight
-- [ ] Level intro / level clear screens, level select for unlocked levels
+- [x] Health persists through the level and is refilled to max right before the boss
+      (done for the single level; must also refill before each boss in a boss rush)
+- [x] Level intro / level clear (upgrade) screens; game over retries the current level
+- [x] Level select for unlocked levels (title, LEFT/RIGHT)
+- [x] Dev mode (`--dev`): start at any wave / boss, god mode, skip / charge / power / repair keys
 - [ ] Endless ("open") mode: difficulty ramps continuously (spawn rate, speed, size, enemy mix)
 
 ## Phase 6 — Score, leaderboard & saving
 
 - [ ] Scoring: destroyed rocks, enemies, bosses, time bonus, no-hit bonus, combo multiplier
 - [ ] Arcade-style name entry (3 letters) on a new high score
-- [ ] Top-10 leaderboard per mode (levels / endless), saved to `save.json`
-- [ ] Persist unlocked levels and settings
+- [x] Minimal records: top 5 (score, level, date) in `save.json`, shown on the title screen
+- [ ] Top-10 leaderboard per mode (levels / endless)
+- [x] Persist unlocked levels
+- [ ] Persist settings
 
 ## Phase 7 — Asteroid variety & sound
 

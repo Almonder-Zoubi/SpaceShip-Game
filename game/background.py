@@ -12,7 +12,7 @@ class Nebula:
 
     SPEED = 4  # px/s
 
-    def __init__(self, rng):
+    def __init__(self, rng, colors=NEBULA):
         w, h = LOW_W // 2, LOW_H // 2
         low = opaque_surface((w, h))
         low.fill(SPACE)
@@ -24,7 +24,7 @@ class Nebula:
                 v = big.sample(x, y) * 0.7 + small.sample(x, y) * 0.3
                 v = (v - 0.52) * 2.6          # only the dense parts show
                 if v > 0:
-                    low.set_at((x, y), NEBULA[dither(v, x, y, len(NEBULA))])
+                    low.set_at((x, y), colors[dither(v, x, y, len(colors))])
         self.tile = pygame.transform.scale(low, (LOW_W, LOW_H))
         self.offset = 0.0
 
@@ -106,10 +106,17 @@ class Starfield:
 
 class Background:
     def __init__(self, rng=None):
-        rng = rng or random.Random()
-        self.nebula = Nebula(rng)
-        self.planet = Planet(rng)
-        self.stars = Starfield(rng)
+        self.rng = rng or random.Random()
+        self._nebulas = {}                 # built once per colour set, levels switch between them
+        self.set_nebula(NEBULA)
+        self.planet = Planet(self.rng)
+        self.stars = Starfield(self.rng)
+
+    def set_nebula(self, colors):
+        colors = tuple(colors)
+        if colors not in self._nebulas:
+            self._nebulas[colors] = Nebula(self.rng, colors)
+        self.nebula = self._nebulas[colors]
 
     def update(self, dt, world_speed):
         self.nebula.update(dt, world_speed)

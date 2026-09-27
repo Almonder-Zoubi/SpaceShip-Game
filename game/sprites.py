@@ -59,12 +59,28 @@ def _bank_rows(rows, direction):
     return out
 
 
-def build_ship_frames():
+# Ship models: MK II swaps the red paint for cobalt blue with gold trim and a green canopy.
+SHIP_PALETTES = {
+    "mk1": SHIP_COLORS,
+    "mk2": {**SHIP_COLORS,
+            "R": (52, 110, 220), "r": (26, 50, 136), "P": (150, 200, 255),
+            "Y": (255, 226, 96), "y": (200, 132, 30),
+            "C": (200, 255, 210), "B": (72, 208, 140), "b": (24, 104, 84)},
+    # MK III: violet stealth paint, gold trim, glowing amber canopy.
+    "mk3": {**SHIP_COLORS,
+            "R": (150, 72, 220), "r": (78, 30, 138), "P": (214, 168, 255),
+            "L": (176, 172, 196), "G": (112, 108, 136), "D": (66, 62, 90),
+            "Y": (255, 214, 80), "y": (196, 120, 24),
+            "C": (255, 244, 190), "B": (255, 170, 60), "b": (170, 90, 20)},
+}
+
+
+def build_ship_frames(colors=SHIP_COLORS):
     """Return {-1: bank left, 0: level, 1: bank right} surfaces."""
     return {
-        -1: sprite_from_rows(_bank_rows(SHIP_ROWS, -1), SHIP_COLORS),
-        0: sprite_from_rows(SHIP_ROWS, SHIP_COLORS),
-        1: sprite_from_rows(_bank_rows(SHIP_ROWS, 1), SHIP_COLORS),
+        -1: sprite_from_rows(_bank_rows(SHIP_ROWS, -1), colors),
+        0: sprite_from_rows(SHIP_ROWS, colors),
+        1: sprite_from_rows(_bank_rows(SHIP_ROWS, 1), colors),
     }
 
 
@@ -110,10 +126,10 @@ def rotate_pixel_art(rows, colors, degrees):
     return out
 
 
-def build_ship_tilts(max_degrees, steps):
+def build_ship_tilts(max_degrees, steps, colors=SHIP_COLORS):
     """Leaning frames for diagonal flight: index 0 = most left ('\\'), last = most right ('/')."""
     angles = [max_degrees * i / steps for i in range(-steps, steps + 1)]
-    return [rotate_pixel_art(SHIP_ROWS, SHIP_COLORS, a) for a in angles]
+    return [rotate_pixel_art(SHIP_ROWS, colors, a) for a in angles]
 
 
 # --- Asteroids ---------------------------------------------------------------
@@ -332,3 +348,256 @@ GUNSHIP_COLORS = {
 
 def build_gunship():
     return sprite_from_rows(outlined(mirrored(_gunship_half())), GUNSHIP_COLORS)
+
+
+# Boss 2 "CARRIER": wide carrier with two hangar pods that launch drones, side cannons
+# and a central energy core. Its lights change colour with every phase (3 phases).
+CARRIER_HALF_W, CARRIER_HALF_H = 46, 56
+# In final-sprite pixels (94x58 after mirror + outline).
+CARRIER_MUZZLES = {"left": (5, 47), "right": (88, 47), "core": (46, 41)}
+CARRIER_BAYS = ((13, 44), (80, 44))
+CARRIER_VENTS = ((13, 5), (80, 5), (43, 1), (50, 1))
+CARRIER_LIGHTS = (   # (light, dark) per phase: calm cyan -> angry orange -> furious red
+    ((110, 226, 255), (30, 110, 170)),
+    ((255, 176, 60), (176, 84, 20)),
+    ((255, 64, 64), (150, 20, 34)),
+)
+
+
+def _carrier_half(damaged=False):
+    c = CharCanvas(CARRIER_HALF_W, CARRIER_HALF_H)
+    # Strut between hull and pod.
+    c.poly([(33, 12), (20, 17), (20, 31), (33, 29)], "M")
+    c.line(33, 12, 20, 17, "L")
+    c.line(33, 29, 20, 31, "H")
+    for y in (20, 25):
+        c.line(21, y, 32, y - 1, "H")
+    # Engine blocks on top of the pod.
+    c.rect(8, 3, 17, 8, "H")
+    c.rect(9, 3, 16, 3, "V")
+    c.rect(9, 4, 16, 4, "y")
+    # Hangar pod: lit upper-left edge, shadowed right edge, hazard stripes, bay at the bottom.
+    c.rect(4, 8, 21, 42, "M")
+    c.rect(6, 43, 19, 44, "M")
+    c.line(4, 8, 21, 8, "W")
+    c.line(4, 9, 4, 42, "L")
+    c.line(5, 9, 5, 42, "L")
+    c.line(21, 9, 21, 42, "H")
+    for x in range(6, 20, 4):
+        c.rect(x, 19, x + 1, 20, "Y")
+        c.rect(x + 2, 19, x + 3, 20, "G")
+    c.line(8, 12, 17, 12, "H")
+    c.line(8, 27, 17, 27, "H")
+    c.rect(8, 34, 17, 34, "Q")
+    c.rect(8, 35, 17, 44, "G")
+    for y in (37, 40, 43):
+        c.line(9, y, 16, y, "q")
+    c.set(4, 9, "Q")                                    # pod-tip light
+    # Side cannon on the outer edge of the pod.
+    c.circle(4, 30, 3, "H")
+    c.circle(4, 30, 2, "M")
+    c.set(4, 29, "E")
+    c.rect(3, 33, 5, 45, "G")
+    c.line(4, 34, 4, 45, "g")
+    # Central hull with a rounded top, armour seams and a red stripe.
+    c.rect(32, 2, 45, 46, "L")
+    c.rect(36, 0, 45, 1, "L")
+    c.line(32, 2, 32, 46, "H")
+    c.line(33, 2, 33, 46, "M")
+    c.rect(38, 0, 45, 2, "W")
+    c.rect(41, 0, 45, 0, "V")
+    for y in (18, 30):
+        c.line(33, y, 45, y, "M")
+    c.rect(34, 22, 45, 23, "E")
+    c.line(34, 24, 45, 24, "e")
+    for y in (5, 27, 33):
+        c.set(35, y, "W")
+    # Bridge tower with windows.
+    c.rect(38, 6, 45, 16, "M")
+    c.line(38, 6, 45, 6, "W")
+    c.line(38, 7, 38, 16, "H")
+    c.rect(40, 9, 45, 9, "Q")
+    c.rect(40, 12, 45, 12, "q")
+    # Nose and energy core that fires the spirals.
+    c.poly([(32, 46), (46, 46), (46, 56), (39, 56)], "M")
+    c.line(33, 47, 38, 55, "H")
+    c.circle(45, 41, 6, "G")
+    c.circle(45, 41, 4, "q")
+    c.circle(45, 41, 2, "Q")
+    c.set(44, 40, "W")
+    if damaged:                                         # phase 3: cracked, burning armour
+        c.line(34, 4, 37, 10, "K")
+        c.line(37, 10, 35, 15, "K")
+        c.line(9, 14, 14, 18, "K")
+        c.line(14, 18, 12, 24, "K")
+        c.line(24, 19, 29, 26, "K")
+        for x, y in ((36, 11), (13, 19), (27, 24), (41, 35)):
+            c.set(x, y, "V")
+    return c.rows()
+
+
+def _carrier_colors(phase):
+    light, dark = CARRIER_LIGHTS[phase]
+    return {**GUNSHIP_COLORS, "Q": light, "q": dark}
+
+
+def build_carrier():
+    """One sprite per phase (lights recoloured, phase 3 cracked)."""
+    return [sprite_from_rows(outlined(mirrored(_carrier_half(damaged=phase == 2))),
+                             _carrier_colors(phase))
+            for phase in range(len(CARRIER_LIGHTS))]
+
+
+# --- Small enemies & pickups -------------------------------------------------
+DRONE_ROWS = (
+    "KK.......KK",
+    "KMK.....KMK",
+    "KMMK...KMMK",
+    ".KMLKKKLMK.",
+    "..KLQQQLK..",
+    "..KLQqQLK..",
+    "...KLLLK...",
+    "....KGK....",
+    ".....K.....",
+)
+DRONE_COLORS = {
+    "K": (18, 14, 30), "M": (120, 40, 76), "L": (196, 84, 110), "G": (40, 40, 56),
+    "Q": (255, 210, 96), "q": (255, 120, 40),
+}
+
+KIT_SMALL_ROWS = (
+    "...KKK...",
+    "..K...K..",
+    "KKKKKKKKK",
+    "KWWWRWWWK",
+    "KWWRRRWWK",
+    "KWWWRWWWK",
+    "KLLLLLLLK",
+    "KKKKKKKKK",
+)
+KIT_FULL_ROWS = (
+    "....KKK....",
+    "...K...K...",
+    "KKKKKKKKKKK",
+    "KYYYYWYYYYK",
+    "KYYYWRWYYYK",
+    "KYYWRRRWYYK",
+    "KYYYWRWYYYK",
+    "KYYYYWYYYYK",
+    "KyyyyyyyyyK",
+    "KKKKKKKKKKK",
+)
+POWER_ROWS = (
+    "....K....",
+    "...KCK...",
+    "..KCBCK..",
+    ".KCBWBCK.",
+    "KCBWWWBCK",
+    ".KCBWBCK.",
+    "..KCBCK..",
+    "...KCK...",
+    "....K....",
+)
+PICKUP_COLORS = {
+    "K": (18, 14, 30), "W": (250, 250, 245), "L": (170, 176, 196), "R": (228, 44, 64),
+    "Y": (255, 204, 64), "y": (184, 120, 36), "C": (110, 226, 255), "B": (40, 120, 220),
+}
+
+
+def build_drone():
+    return sprite_from_rows(DRONE_ROWS, DRONE_COLORS)
+
+
+def build_pickup(rows):
+    return sprite_from_rows(rows, PICKUP_COLORS)
+
+
+# Boss 3 "MOTHERSHIP": huge swept-wing alien flagship. Four wing turrets, two hangar bays,
+# a glowing eye dome and a beam cannon under the nose. Lights change with its 3 phases.
+MOTHERSHIP_HALF_W, MOTHERSHIP_HALF_H = 62, 58
+# In final-sprite pixels (126x60 after mirror + outline).
+MOTHERSHIP_MUZZLES = {"turrets": ((17, 42), (39, 46), (86, 46), (108, 42)),
+                      "eye": (62, 21), "beam": (62, 59)}
+MOTHERSHIP_BAYS = ((29, 42), (96, 42))
+MOTHERSHIP_VENTS = ((56, 1), (69, 1), (30, 12), (95, 12))
+MOTHERSHIP_LIGHTS = (   # calm green -> angry orange -> furious red
+    ((130, 255, 170), (30, 140, 90)),
+    ((255, 176, 60), (176, 84, 20)),
+    ((255, 64, 64), (150, 20, 34)),
+)
+MOTHERSHIP_COLORS = {
+    **GUNSHIP_COLORS,
+    "H": (44, 38, 68), "M": (78, 70, 112), "L": (124, 116, 162), "W": (184, 178, 218),
+    "E": (70, 200, 170), "e": (30, 110, 100),
+}
+
+
+def _mothership_half(damaged=False):
+    c = CharCanvas(MOTHERSHIP_HALF_W, MOTHERSHIP_HALF_H)
+    # Swept wing: lit leading edge, shadowed trailing edge, teal stripes and panel seams.
+    c.poly([(61, 6), (30, 10), (4, 26), (0, 34), (10, 38), (36, 40), (61, 44)], "M")
+    c.line(61, 6, 30, 10, "W")
+    c.line(30, 10, 4, 26, "L")
+    c.line(30, 11, 5, 26, "L")
+    c.line(0, 34, 10, 38, "H")
+    c.line(10, 38, 36, 40, "H")
+    c.line(36, 40, 61, 44, "H")
+    c.line(46, 14, 12, 30, "E")
+    c.line(46, 15, 12, 31, "e")
+    c.line(40, 21, 20, 33, "H")
+    for x in (22, 34):
+        c.line(x, 17 if x == 34 else 23, x, 38, "H")
+    c.set(0, 34, "Q")                                    # wing-tip light
+    # Engine pods on the wing.
+    c.rect(26, 8, 34, 13, "H")
+    c.rect(27, 8, 33, 8, "V")
+    c.rect(27, 9, 33, 9, "y")
+    # Hangar bay under the wing.
+    c.rect(24, 34, 32, 40, "G")
+    for y in (36, 38, 40):
+        c.line(25, y, 31, y, "q")
+    c.line(24, 33, 32, 33, "Q")
+    # Wing turrets with barrels.
+    for tx, ty, length in ((16, 30, 10), (38, 34, 10)):
+        c.circle(tx, ty, 3, "H")
+        c.circle(tx, ty, 2, "M")
+        c.set(tx, ty - 1, "E")
+        c.rect(tx - 1, ty + 3, tx + 1, ty + length, "G")
+        c.line(tx, ty + 4, tx, ty + length, "g")
+    # Central body with armour bands and rivets.
+    c.rect(48, 1, 61, 50, "L")
+    c.rect(52, 0, 61, 0, "W")
+    c.line(48, 1, 48, 50, "H")
+    c.line(49, 1, 49, 50, "M")
+    c.rect(52, 0, 58, 0, "V")
+    for y in (31, 39):
+        c.line(50, y, 61, y, "M")
+    for y in (5, 34, 42):
+        c.set(51, y, "W")
+    c.rect(50, 44, 61, 45, "E")
+    # Eye dome.
+    c.circle(61, 20, 8, "G")
+    c.circle(61, 20, 6, "q")
+    c.circle(61, 20, 4, "Q")
+    c.set(59, 17, "W")
+    # Beam cannon under the nose.
+    c.poly([(50, 50), (62, 50), (62, 55), (54, 55)], "M")
+    c.rect(57, 46, 61, 56, "G")
+    c.rect(59, 47, 61, 56, "g")
+    c.rect(58, 56, 61, 57, "Q")
+    if damaged:                                          # phase 3: cracked, burning armour
+        c.line(50, 4, 54, 11, "K")
+        c.line(54, 11, 52, 16, "K")
+        c.line(18, 24, 24, 29, "K")
+        c.line(24, 29, 21, 35, "K")
+        c.line(40, 16, 44, 22, "K")
+        for x, y in ((53, 12), (22, 30), (43, 21), (55, 36)):
+            c.set(x, y, "V")
+    return c.rows()
+
+
+def build_mothership():
+    """One sprite per phase (lights recoloured, phase 3 cracked)."""
+    return [sprite_from_rows(outlined(mirrored(_mothership_half(damaged=phase == 2))),
+                             {**MOTHERSHIP_COLORS, "Q": light, "q": dark})
+            for phase, (light, dark) in enumerate(MOTHERSHIP_LIGHTS)]
