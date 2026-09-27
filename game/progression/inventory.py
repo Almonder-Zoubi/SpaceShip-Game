@@ -43,12 +43,24 @@ class Inventory:
     def status(self, item_id):
         if self.owns(item_id):
             return OWNED
-        return SHOP if item_id in self.save.shop else LOCKED
+        sold_after = ITEMS[item_id].sold_after
+        if item_id in self.save.shop or (sold_after and sold_after in self.save.cleared):
+            return SHOP
+        return LOCKED
 
     @staticmethod
     def unlock_hint(item_id):
-        key = gift_level(item_id)
-        return f"GIFT AFTER LEVEL {key.split('-')[1]}" if key else "COMING LATER"
+        key = gift_level(item_id) or ITEMS[item_id].sold_after
+        if not key:
+            return "COMING LATER"
+        how = "GIFT" if gift_level(item_id) else "SHOP"
+        return f"{how} AFTER LEVEL {key.split('-')[1]}"
+
+    def unclaimed_gift(self):
+        """Key of a cleared level whose gift was never taken (e.g. gifts added in an update),
+        or None."""
+        return next((key for key in self.level_keys if key in GIFTS
+                     and key in self.save.cleared and key not in self.save.gifts), None)
 
     def gift_options(self, level_key):
         """Items offered after this level (empty once the gift is claimed)."""

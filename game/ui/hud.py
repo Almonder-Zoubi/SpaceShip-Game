@@ -5,9 +5,10 @@ from ..config.display import LOW_H, LOW_W
 from ..config.palette import (ACCENT, BOOST_COLORS, COIN, DANGER, EMPTY, GOOD, INK, LASER,
                               POWER, RAINBOW, TEXT, TEXT_DIM, TEXT_SHADOW)
 from ..config.tuning import (COMBO_STEP, FEVER_TIME, MAGNET_TIME, OVERDRIVE_TIME, POWER_MAX,
-                             SHIELD_HITS, SHIP_MAX_HP, SLOWDOWN_TIME)
+                             SHIELD_HITS, SHIP_MAX_HP, SLOWDOWN_TIME, TWIN_TIME)
 
-BOOST_TIMES = {"OVERDRIVE": OVERDRIVE_TIME, "MAGNET": MAGNET_TIME, "SLOW-MO": SLOWDOWN_TIME}
+BOOST_TIMES = {"OVERDRIVE": OVERDRIVE_TIME, "MAGNET": MAGNET_TIME, "SLOW-MO": SLOWDOWN_TIME,
+               "TWIN": TWIN_TIME}
 
 
 class Hud:

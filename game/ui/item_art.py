@@ -8,10 +8,13 @@ from ..config.palette import FLAME, INK
 from ..core.pixelart import sprite_from_rows
 from ..player.art import SHIP_PALETTES, build_ship_frames
 from ..player.hulls import hull_named
-from ..progression.items import ITEMS, SHIP
+from ..progression.items import ITEMS, SHIP, WINGMAN
+from ..wingmen.art import wingman_sprite
+from ..wingmen.types import WINGMEN
 
 PREVIEW_SCALE = 2
 ICON_SCALE = 3
+WINGMAN_SCALE = 4
 
 ICON_ROWS = {
     "GUN": (
@@ -169,10 +172,14 @@ class ItemArt:
     def image(self, item_id, paint, locked=False):
         key = (item_id, paint, locked)
         if key not in self._cache:
-            if ITEMS[item_id].kind == SHIP:
+            kind = ITEMS[item_id].kind
+            if kind == SHIP:
                 hull = hull_named(item_id)
                 frame = build_ship_frames(hull.rows, SHIP_PALETTES[paint])[0]
                 scale = PREVIEW_SCALE
+            elif kind == WINGMAN:
+                frame = wingman_sprite(item_id, WINGMEN[item_id].rows)[0]
+                scale = WINGMAN_SCALE
             else:
                 frame = sprite_from_rows(ICON_ROWS[item_id], ICON_COLORS)
                 scale = ICON_SCALE

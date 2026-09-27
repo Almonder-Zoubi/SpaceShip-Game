@@ -8,13 +8,16 @@ class Hit:
 
     (dx, dy) is the shot's direction; push is px/s applied to a radius-4 rock.
     charges=False for hits from BLAST / ULTIMATE, so they don't recharge themselves.
+    source: who fired it when that matters (a wingman gets XP for its kills).
     """
-    __slots__ = ("target", "damage", "x", "y", "dx", "dy", "push", "continuous", "charges")
+    __slots__ = ("target", "damage", "x", "y", "dx", "dy", "push", "continuous", "charges",
+                 "source")
 
-    def __init__(self, target, damage, x, y, dx, dy, push, continuous=False, charges=True):
+    def __init__(self, target, damage, x, y, dx, dy, push, continuous=False, charges=True,
+                 source=None):
         self.target, self.damage, self.x, self.y = target, damage, x, y
         self.dx, self.dy, self.push = dx, dy, push
-        self.continuous, self.charges = continuous, charges
+        self.continuous, self.charges, self.source = continuous, charges, source
 
 
 class Weapon:

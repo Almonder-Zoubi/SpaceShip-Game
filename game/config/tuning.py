@@ -191,3 +191,30 @@ COMBO_MAX = 8                    # score multiplier cap
 COMBO_COIN_CAP = 3               # coins are multiplied too, but at most x3 (economy)
 FEVER_AT = 25                    # combo that starts FEVER
 FEVER_TIME = 5.0                 # OVERDRIVE + rainbow trail
+
+# --- Wingmen (one slot in galaxy 1) ----------------------------------------------------
+# Never destroyed: a hit knocks one out for a few seconds. XP from kills, levels 1..5.
+WINGMAN_KO_TIME = 5.0
+WINGMAN_XP = (0, 40, 120, 250, 450)      # total XP needed for level 1 .. 5
+WINGMAN_XP_KILL = 1                      # any kill while it flies
+WINGMAN_XP_OWN = 3                       # extra for a kill of its own
+WINGMAN_XP_BOSS = 25                     # a boss destroyed while it flies
+WINGMAN_TRAIN_XP = 60                    # hangar: TRAIN buys this much XP ...
+WINGMAN_TRAIN_COST = 150                 # ... for this many coins
+# Its damage is part of the capped player edge (with upgrades): the smoke test checks that
+# a maxed build + a level 5 PIP still faces a 5x boss as >= 3.5x.
+PIP_SHARE = (0.035, 0.045, 0.055, 0.065, 0.075)   # of the player's gun DPS, per level
+PIP_INTERVAL = 0.14
+GUARDIAN_COOLDOWN = (2.0, 1.7, 1.4, 1.2, 1.0)  # seconds between blocked bullets
+GUARDIAN_ORBIT = 19                      # px from the ship
+GUARDIAN_SPIN = 2.6                      # rad/s
+MEDIC_RATE = (0.004, 0.006, 0.008, 0.01, 0.012)   # share of max HP repaired per second
+MEDIC_DELAY = 3.0                        # ... once no damage was taken for this long
+MEDIC_REVIVE = 0.25                      # level 5: revives once per level with this much HP
+HUNTER_INTERVAL = 2.0
+HUNTER_ROCKETS = (1, 1, 2, 2, 3)         # rockets per volley, per level
+HUNTER_DAMAGE = 2.5                      # x the player's gun damage per rocket (never bosses)
+MAGPIE_RADIUS = (60, 75, 90, 105, 120)   # px: coins and pickups this close fly to the ship
+MAGPIE_BONUS = 0.1                       # level 5: chance that a coin counts twice
+TWIN_TIME = 10.0                         # TWIN boost: a copy of the ship flies along ...
+TWIN_SHARE = 0.25                        # ... firing at this share of the gun's DPS

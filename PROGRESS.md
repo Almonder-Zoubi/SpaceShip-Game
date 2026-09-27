@@ -180,6 +180,31 @@ Options need a place in the menus: ask the user where (title? pause?) before add
 
 ## Log
 
+### 2026-09-27 — G6: wingmen
+- New package `game/wingmen/`: `Wingman` base (eases into a slot beside the ship, follows
+  the lean; a bullet or rock knocks it out for 5 s: it spins + smokes, then reboots; never
+  destroyed), `Bolts` (its shots, `Hit.source` = the wingman). Types: PIP (fires with you:
+  3.5% -> 7.5% of your gun DPS, LV5 angled shots), GUARDIAN (orbits, blocks a bullet every
+  2.0 -> 1.0 s, LV5 reflects it), MEDIC (repairs 0.4% -> 1.2% max HP/s after 3 s without
+  damage, LV5 revives once per level at 25%), HUNTER (homing rockets at minions / rocks every
+  2 s, 1 -> 3 per volley, never at bosses), MAGPIE (pickup radius 60 -> 120 px, LV5 10%
+  double coins). TWIN boost = a copy of your ship on the other side for 10 s (25% gun DPS).
+- XP: +1 per kill while it flies, +3 for its own kill, +25 per boss; levels at 0/40/120/
+  250/450 XP; banked when the level ends (won or lost). Hangar TRAIN: +60 XP for 150 CR.
+- `flow/wingmen.py` `WingmenMixin`; `weapons/homing.RocketSwarm` (shared with ROCKET POD
+  later); `Hit.source`; save: `wingman`, `wingmen_xp`.
+- Gifts: level 4 = PIP | GUARDIAN (the wingman slot opens). HUNTER / MEDIC become the level
+  6 / 8 gifts **(ask)**; until then they're "COMING LATER". MAGPIE: shop (300 CR) once level
+  4 is cleared (`Item.sold_after`). Level 4 is the last level for now, so the WIN screen
+  got ENTER = gift -> title (R still restarts). A cleared level whose gift was never taken
+  (e.g. the user's save: level 4 was cleared before the gift existed) is offered when the
+  hangar opens.
+- Hangar: WINGMEN tab (FLIES LV n / LV n, role, XP bar, level 5 perk); ENTER equips, ENTER
+  on the flying one = TRAIN (asks first). Gift cards say NEW WINGMAN.
+- Balance: wingman damage is part of the capped edge. Smoke test: maxed upgrades + a LV5
+  PIP still face every 5x boss as >= 3.5x with every hull (3.52 worst, TITAN).
+- Smoke test: new `wingmen` section. New SFX: wingman_down, wingman_up.
+
 ### 2026-09-27 — G5: boosts + combo / FEVER
 - `pickups/boosts.py`: `Boost` pickups OVERDRIVE (fire rate x2, white flames, 6 s), SHIELD
   (bubble absorbs 3 hits, 0.6 s grace after each), MAGNET (everything on screen flies in,

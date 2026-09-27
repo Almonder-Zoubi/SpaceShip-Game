@@ -42,16 +42,18 @@ from .options import OptionsMixin
 from .progression import ProgressionMixin
 from .sound import SoundMixin
 from .states import MENU_STATES, State
+from .wingmen import WingmenMixin
 from .world import WorldMixin
 
 
 class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixin, HangarMixin,
-           JuiceMixin, BoostsMixin, OptionsMixin, SoundMixin, DevMixin, ScreensMixin):
+           JuiceMixin, BoostsMixin, WingmenMixin, OptionsMixin, SoundMixin, DevMixin,
+           ScreensMixin):
     """Owns the window, the world objects and the state machine.
 
     Mixins (one file each in flow/ and ui/) add: key handling, level flow, world update,
     combat, progression (coins, rank, payout), hangar + gifts, game feel (juice, damage
-    numbers, radio), boosts + combo, options, sound, dev tools and drawing. They all work on the attributes
+    numbers, radio), boosts + combo, wingmen, options, sound, dev tools and drawing. They all work on the attributes
     created here.
     """
 

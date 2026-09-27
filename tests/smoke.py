@@ -23,8 +23,11 @@ from game.bosses.mothership import Mothership
 from game.config.display import FPS, SCALE, WIN_H, WIN_W
 from game.config.loadouts import MK1, MK2, MK3, MK4
 from game.config.tuning import (COMBO_COIN_CAP, COMBO_MAX, COMBO_STEP, COMBO_WINDOW,
-                                DEATH_DELAY, FEVER_AT, POWER_MAX, REPAIR_SMALL, SHIELD_HITS,
-                                UPGRADE_COSTS, UPGRADE_TIERS, WARNING_TIME)
+                                DEATH_DELAY, FEVER_AT, MEDIC_DELAY, MEDIC_REVIVE, PIP_SHARE,
+                                POWER_MAX, REPAIR_SMALL, SHIELD_HITS, UPGRADE_COSTS,
+                                UPGRADE_TIERS, WARNING_TIME, WINGMAN_KO_TIME,
+                                WINGMAN_TRAIN_COST, WINGMAN_TRAIN_XP, WINGMAN_XP,
+                                WINGMAN_XP_KILL, WINGMAN_XP_OWN)
 from game.core.input import Keys
 from game.core.storage import SaveData
 from game.flow.game import Game
@@ -38,7 +41,10 @@ from game.pickups.types import BigCoin, Coin, FullRepair, PowerCore, RepairKit
 from game.player.hulls import ARROW, HULLS, TITAN, WASP
 from game.progression import upgrades
 from game.progression.economy import level_payout
-from game.progression.items import UPGRADE
+from game.progression.inventory import LOCKED, SHOP
+from game.progression.items import UPGRADE, WINGMAN
+from game.wingmen.types import Guardian, Pip, Twin
+from game.minions.bullets import EnemyBullet
 from game.progression.results import RANKS, LevelStats, better_rank
 from game.ui.popup import DamageNumber
 from game.weapons.base import Hit
@@ -1087,6 +1093,173 @@ def test_boosts(h):
     game.to_title()
 
 
+def test_wingmen(h):
+    """G6: wingmen fly beside the ship, act by type, get knocked out (never destroyed), earn
+    XP; hangar WINGMEN tab (equip, train), the level 4 gift, MAGPIE in the shop, balance."""
+    game = h.game
+    game.save.wingmen_xp = {}
+    game.save.coins = 1000
+    game.choose_hull(ARROW)
+    game.open_hangar(0)
+    h.post(pygame.K_RIGHT)
+    h.post(pygame.K_RIGHT)                               # SHIPS -> WEAPONS -> WINGMEN
+    assert game.hangar_tab == WINGMAN and game.hangar_item.id == "PIP"
+    h.post(pygame.K_RETURN)
+    assert game.save.wingman == "PIP"
+    h.run(5)
+    h.shot("hangar_wingmen")
+    h.post(pygame.K_RETURN)                              # equipped: ENTER offers TRAIN
+    assert game.hangar_confirm == "PIP"
+    h.post(pygame.K_RETURN)
+    assert game.wingman_xp("PIP") == WINGMAN_TRAIN_XP and game.save.coins == 1000 - WINGMAN_TRAIN_COST
+    assert game.wingman_level("PIP") == 2
+
+    # PIP flies beside the ship and fires with it; its kills give extra XP.
+    h.post(pygame.K_SPACE)
+    game.radio = None
+    game.ship.hp = 10 ** 6
+    pip = game.wingman
+    assert isinstance(pip, Pip) and pip.level == 2
+    h.run(20, clear_rocks=True)
+    assert abs(pip.x - (game.ship.x - game.ship.w / 2 - 9)) < 3, "flies on the left"
+    rock = h.rock_ahead(8, dist=60)
+    rock.x = pip.x
+    rock.art = game.library.pick(8, 8, h.field.palettes)
+    game.asteroids = [rock]
+    hp = rock.hp
+    for _ in range(60):
+        rock.vy = rock.vx = 0
+        game.update(h.dt, FIRE)
+    assert rock.hp < hp, "PIP's bolts hit the rock beside the ship"
+    h.shot("wingman_pip")
+    xp = game.wingman_xp_gain
+    game.wingman_kill()
+    game.wingman_kill(source=pip)
+    assert game.wingman_xp_gain == xp + 2 * WINGMAN_XP_KILL + WINGMAN_XP_OWN
+
+    # Knocked out by a bullet, reboots later; never removed.
+    game.asteroids.clear()
+    game.enemy_bullets.append(EnemyBullet(pip.x, pip.y, 0, 0, 5))
+    h.run(1)
+    assert not pip.flying and pip in game.wingmen
+    h.run(h.seconds(WINGMAN_KO_TIME + 0.2), clear_rocks=True)
+    assert pip.flying, "rebooted"
+
+    # XP is banked when the level ends (here: game over).
+    gain = game.wingman_xp_gain
+    xp_before = game.wingman_xp("PIP")
+    h.die()
+    assert game.wingman_xp("PIP") == xp_before + gain
+
+    # GUARDIAN: blocks a bullet, then needs to recharge; level 5 reflects it.
+    game.save.choose_wingman("GUARDIAN")
+    game.save.wingmen_xp["GUARDIAN"] = WINGMAN_XP[-1]
+    game.start(0)
+    game.ship.hp = 10 ** 6
+    guard = game.wingman
+    assert isinstance(guard, Guardian) and guard.level == 5
+    h.run(10, clear_rocks=True)
+    game.enemy_bullets.append(EnemyBullet(guard.x, guard.y, 0, 0, 5))
+    h.run(1, clear_rocks=True)
+    assert not game.enemy_bullets and not guard.ready and guard.bolts.shots, "blocked + reflected"
+    h.shot("wingman_guardian")
+
+    # MEDIC: repairs after 3 s without damage; level 5 revives once.
+    game.save.choose_wingman("MEDIC")
+    game.save.wingmen_xp["MEDIC"] = WINGMAN_XP[-1]
+    game.start(0)
+    medic = game.wingman
+    game.ship.hp = 50
+    game.last_hurt = game.time
+    h.run(h.seconds(MEDIC_DELAY + 1.0), clear_rocks=True)
+    assert game.ship.hp > 50, "repaired"
+    game.ship.hp = 1
+    game.ship.invulnerable_time = 0
+    game.hurt_ship(50, game.ship.x, game.ship.y - 10)
+    assert game.ship.alive and game.state == State.PLAYING and medic.revived
+    assert game.ship.hp == int(game.ship.max_hp * MEDIC_REVIVE)
+
+    # HUNTER: rockets at a drone.
+    game.save.choose_wingman("HUNTER")
+    game.start(1)
+    game.ship.hp = 10 ** 6
+    game.radio = None
+    hunter = game.wingman
+    game.enemies = drone_formation()[:1]
+    game.enemies[0].x, game.enemies[0].y = game.ship.x, 60
+    hunter.timer = 0
+    h.run(3, clear_rocks=True)
+    assert hunter.swarm.rockets, "rockets launched at the drone"
+
+    # MAGPIE: pickups fly in from further away; sold in the shop after level 4.
+    game.save.choose_wingman("MAGPIE")
+    game.start(0)
+    assert game.wingman.radius >= 60
+    h.run(3, clear_rocks=True)
+    coin = Coin(game.ship.x + 50, game.ship.y, 0, 0)
+    game.pickups = [coin]
+    h.run(h.seconds(1.5), clear_rocks=True)
+    assert coin not in game.pickups
+
+    # TWIN boost: a copy of the ship on the other side for a while.
+    game.start_boost("TWIN")
+    assert any(isinstance(w, Twin) for w in game.wingmen)
+    h.run(10, FIRE, clear_rocks=True)
+    h.shot("wingman_twin")
+    game.boosts["TWIN"] = 0.01
+    h.run(2, clear_rocks=True)
+    assert not any(isinstance(w, Twin) for w in game.wingmen)
+
+    # Balance: maxed upgrades + a level 5 PIP still face a 5x boss as >= 3.5x.
+    maxed = {t: UPGRADE_TIERS for t in upgrades.TRACK_IDS}
+    for level in LEVELS:
+        for spec in (e.spec for wave in level.waves for e in wave.bosses if e.spec.strength >= 5):
+            for hull in HULLS:
+                ship = upgrades.apply(hull.apply(spec.player), maxed)
+                dps = ship.gun_dps * (1 + PIP_SHARE[-1])       # PIP fires a share of it
+                ratio = (spec.hp / dps) / (ship.max_hp / spec.dps)
+                assert ratio >= 3.5, (spec.name, hull.name, ratio)
+
+    # The level 4 gift (PIP or GUARDIAN) after the win; MAGPIE in the shop; a cleared level
+    # whose gift is missing (a save from before the update) gets it when the hangar opens.
+    game.save.gifts = [k for k in game.save.gifts if k != "1-4"]
+    game.save.owned = [i for i in game.save.owned if i not in ("PIP", "GUARDIAN", "MAGPIE")]
+    game.save.wingman = None
+    game.save.cleared.pop("1-4", None)
+    assert game.inventory.status("MAGPIE") == LOCKED
+    game.start(3, 0, 2, 0)
+    game.ship.hp = 10 ** 9
+    h.run(h.seconds(WARNING_TIME + 0.5), clear_rocks=True)
+    while not game.boss.fighting:                        # the Leviathan's entry is long
+        h.run(10, clear_rocks=True)
+    h.kill(game.boss)
+    for _ in range(h.seconds(10)):                    # the serpent dies plate by plate
+        h.run(1, clear_rocks=True)
+        if game.state == State.WIN:
+            break
+    assert game.state == State.WIN, game.state
+    h.run(h.seconds(1.2))
+    h.post(pygame.K_RETURN)
+    assert game.state == State.REWARD and [i.id for i in game.gift_options] == ["PIP", "GUARDIAN"]
+    h.run(h.seconds(0.6))
+    h.shot("gift_wingman")
+    h.post(pygame.K_RETURN)
+    assert game.inventory.owns("PIP") and game.save.wingman == "PIP"
+    assert game.state in (State.TITLE, State.DEV_MENU)
+    assert game.inventory.status("GUARDIAN") == SHOP and game.inventory.status("MAGPIE") == SHOP
+    game.save.gifts.remove("1-4")
+    game.save.owned.remove("PIP")
+    game.open_hangar(0)
+    assert game.state == State.REWARD and game.gift_key == "1-4", "missing gift offered"
+    game.state_time = 1.0
+    h.post(pygame.K_RETURN)
+    assert game.state == State.HANGAR
+    game.inventory.grant_all()
+    game.save.wingman = None
+    game.save.wingmen_xp = {}
+    game.to_title()
+
+
 def test_title_menus(h):
     """Title: level select with LEFT/RIGHT, scores alternate in; ENTER -> hangar -> launch."""
     game = h.game
@@ -1295,7 +1468,7 @@ SECTIONS = (
     ("campaign", test_campaign), ("level4", test_level4), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
     ("upgrades", test_upgrades), ("feel", test_feel),
-    ("boosts", test_boosts), ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
+    ("boosts", test_boosts), ("wingmen", test_wingmen), ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
     ("busy", test_busy),
 )
 

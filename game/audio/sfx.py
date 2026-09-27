@@ -203,6 +203,17 @@ def fever():
                tone("saw", 200, 800, 0.4, 0.15, attack=0.02))
 
 
+def wingman_down():
+    """A wingman is knocked out: falling whine + crackle."""
+    return mix(tone("square", 900, 150, 0.35, 0.25, duty=0.25),
+               noise(0.3, 5000, 800, 0.25))
+
+
+def wingman_up():
+    """A wingman reboots: three rising beeps."""
+    return seq(*(tone("square", freq(n), None, 0.05, 0.22, duty=0.25) for n in ("C6", "E6", "A6")))
+
+
 def select():
     return tone("square", 880, None, 0.04, 0.3, duty=0.25)
 
@@ -229,5 +240,6 @@ SOUNDS = {
     "power_up": power_up, "select": select, "confirm": confirm, "engine": engine_loop,
     "lock_on": lock_on, "dive": dive, "ice_break": ice_break, "coin": coin, "rank": rank,
     "denied": denied, "boost": boost, "shield": shield, "combo": combo, "fever": fever,
+    "wingman_down": wingman_down, "wingman_up": wingman_up,
 }
 LOOPS = ("laser", "engine")         # played on their own channel, looping

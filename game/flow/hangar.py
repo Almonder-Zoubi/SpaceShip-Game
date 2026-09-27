@@ -1,10 +1,11 @@
 """Hangar and gifts: the inventory screen before every level (equip, buy items and upgrades,
 launch) and the gift screen after a first level clear."""
 from ..config.palette import ACCENT, DANGER, GOOD, TEXT
-from ..levels.data import LEVELS
+from ..config.tuning import WINGMAN_TRAIN_COST, WINGMAN_TRAIN_XP, WINGMAN_XP
+from ..levels.data import LEVEL_KEYS, LEVELS
 from ..player.hulls import hull_named
 from ..progression.inventory import OWNED, SHOP
-from ..progression.items import ITEMS, SHIP, TABS, UPGRADE, items_of
+from ..progression.items import ITEMS, SHIP, TABS, UPGRADE, WINGMAN, items_of
 from ..progression.upgrades import TRACKS
 from ..ui.hangar import HangarView
 from .states import State
@@ -16,7 +17,12 @@ class HangarMixin:
 
     def open_hangar(self, level_index, score=0, focus=None, message=None):
         """The hangar before a level; LAUNCH starts level_index with this score.
-        focus: an item id to select (e.g. a gift just taken)."""
+        focus: an item id to select (e.g. a gift just taken). A cleared level's gift that
+        was never taken (added by an update) is offered first."""
+        key = self.inventory.unclaimed_gift()
+        if key and not focus:
+            self.offer_gift(key, ("hangar", level_index, score))
+            return
         self.next_launch = (level_index, score)
         self.hangar_confirm = None
         self.hangar_message = message
@@ -48,7 +54,8 @@ class HangarMixin:
         return HangarView(TABS, self.hangar_tab, items, self.hangar_cursor[self.hangar_tab],
                           self.hull.name, self.save.coins, LEVELS[self.next_launch[0]],
                           self.inventory.tiers, self.hangar_message,
-                          self.inventory.unlock_hint(item.id) if item else "")
+                          self.inventory.unlock_hint(item.id) if item else "",
+                          self.save.wingman, dict(self.save.wingmen_xp))
 
     def hangar_move(self, step):
         n = len(TRACKS) if self.hangar_tab == UPGRADE else len(items_of(self.hangar_tab))
@@ -77,6 +84,12 @@ class HangarMixin:
                 self.choose_hull(hull_named(item.id))
                 self.hangar_message = (f"{item.name} EQUIPPED", GOOD)
                 self.audio.play("confirm")
+            elif item.kind == WINGMAN and item.id != self.save.wingman:
+                self.save.choose_wingman(item.id)
+                self.hangar_message = (f"{item.name} JOINS YOU", GOOD)
+                self.audio.play("confirm")
+            elif item.kind == WINGMAN:
+                self._hangar_train(item)
             else:
                 self.hangar_launch()
         elif status == SHOP:
@@ -88,6 +101,8 @@ class HangarMixin:
                 self.hangar_confirm = None
                 if item.kind == SHIP:
                     self.choose_hull(hull_named(item.id))
+                elif item.kind == WINGMAN:
+                    self.save.choose_wingman(item.id)
                 self.hangar_message = (f"{item.name} BOUGHT!", GOOD)
                 self.audio.play("power_up")
             else:
@@ -96,6 +111,25 @@ class HangarMixin:
                 self.audio.play("denied")
         else:
             self.hangar_message = (self.inventory.unlock_hint(item.id), TEXT)
+            self.audio.play("denied")
+
+    def _hangar_train(self, item):
+        """ENTER on the equipped wingman: TRAIN (XP for coins), with the same confirm step."""
+        if self.wingman_level(item.id) >= len(WINGMAN_XP):
+            self.hangar_message = (f"{item.name} IS LEVEL {len(WINGMAN_XP)}", GOOD)
+            self.audio.play("denied")
+        elif self.hangar_confirm != item.id:
+            self.hangar_confirm = item.id
+            self.hangar_message = (f"TRAIN {item.name} +{WINGMAN_TRAIN_XP} XP FOR "
+                                   f"{WINGMAN_TRAIN_COST} CR? ENTER", ACCENT)
+            self.audio.play("select")
+        elif self.train_wingman(item.id):
+            self.hangar_confirm = None
+            self.hangar_message = (f"{item.name} TRAINED!", GOOD)
+            self.audio.play("power_up")
+        else:
+            self.hangar_confirm = None
+            self.hangar_message = ("NOT ENOUGH CREDITS", DANGER)
             self.audio.play("denied")
 
     def _hangar_upgrade(self, track):
@@ -125,13 +159,27 @@ class HangarMixin:
     # --- gifts -------------------------------------------------------------------------
     def after_level_clear(self):
         """ENTER on the results screen: the level's gift (first clear only), then the hangar."""
-        options = self.inventory.gift_options(self.level_key)
-        if options:
-            self.gift_options = [ITEMS[i] for i in options]
-            self.gift_cursor = 0
-            self.set_state(State.REWARD)
+        if self.inventory.gift_options(self.level_key):
+            self.offer_gift(self.level_key, ("hangar", self.level_index + 1, self.score))
         else:
             self.open_hangar(self.level_index + 1, self.score)
+
+    def after_win(self):
+        """ENTER on the win screen: the last level's gift (if any), then the title."""
+        if self.inventory.gift_options(self.level_key):
+            self.offer_gift(self.level_key, ("title",))
+        else:
+            self.to_title()
+
+    def offer_gift(self, key, then):
+        """REWARD screen for a level's gift; then = ("hangar", level_index, score) or
+        ("title",)."""
+        self.gift_key, self.gift_then = key, then
+        self.gift_options = [ITEMS[i] for i in self.inventory.gift_options(key)]
+        self.gift_cursor = 0
+        index = LEVEL_KEYS.index(key)
+        self.gift_paint = LEVELS[min(index + 1, len(LEVELS) - 1)].loadout.colors
+        self.set_state(State.REWARD)
 
     def gift_move(self, step):
         if len(self.gift_options) > 1:
@@ -140,10 +188,16 @@ class HangarMixin:
 
     def take_gift(self):
         item = self.gift_options[self.gift_cursor]
-        self.inventory.claim(self.level_key, item.id)
+        self.inventory.claim(self.gift_key, item.id)
         self.audio.play("power_up")
         self.screen_flash(0.1)
         if item.kind == SHIP:
             self.choose_hull(hull_named(item.id))
-        self.open_hangar(self.level_index + 1, self.score, focus=item.id,
-                         message=(f"NEW: {item.name}", GOOD))
+        elif item.kind == WINGMAN and not self.save.wingman:
+            self.save.choose_wingman(item.id)
+        if self.gift_then[0] == "title":
+            self.to_title()
+        else:
+            _, level_index, score = self.gift_then
+            self.open_hangar(level_index, score, focus=item.id,
+                             message=(f"NEW: {item.name}", GOOD))

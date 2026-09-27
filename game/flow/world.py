@@ -60,6 +60,8 @@ class WorldMixin:
             b.update(dt)
             if b.offscreen:
                 continue
+            if self.state == State.PLAYING and self.wingman_block(b):
+                continue
             if self.state == State.PLAYING and ship.alive and not ship.invulnerable:
                 sx, sy = ship.topleft
                 mx, my = int(b.x) - sx, int(b.y) - sy
@@ -110,6 +112,9 @@ class WorldMixin:
         hp = self.ship.hp
         died = self.ship.take_hit(damage, from_x, from_y, **kwargs)
         self.stats.damage_taken += max(0, hp - self.ship.hp)
+        self.last_hurt = self.time
+        if died and self.try_revive():               # MEDIC level 5
+            died = False
         if self.ship.hp < hp and not died:
             self.audio.play("ship_hurt")
         self.juice("medium")
@@ -130,6 +135,7 @@ class WorldMixin:
         self.shockwaves.append(Shockwave(x, y, max_radius=24, duration=0.3, color=(255, 255, 255)))
         self.juice("large", x, y)
         self.audio.play("ship_explode")
+        self._bank_wingman_xp()
         self.best = max(self.best, self.score)
         self.record_rank = self.save.add_record(self.score, self.level.number)
         self.set_state(State.DYING)

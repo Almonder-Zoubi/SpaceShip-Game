@@ -145,7 +145,9 @@ class EventsMixin:
             self.to_title()
 
     def _keys_win(self, key):
-        if key == pygame.K_r or key in START_KEYS:
+        if key in START_KEYS and self.state_time > 1.0:
+            self.after_win()
+        elif key == pygame.K_r:
             self.start()
         elif key == pygame.K_ESCAPE:
             self.to_title()

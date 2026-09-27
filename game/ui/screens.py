@@ -31,6 +31,7 @@ class ScreensMixin:
         if self.ship.alive and self.state not in (State.DEV_MENU, State.HANGAR, State.REWARD):
             self.ship.draw_flames(c)
             self.ship.draw(c)
+            self.draw_wingmen(c)
             if self.shield and self.state == State.PLAYING:
                 self._draw_shield(c)
         for weapon in self.weapons:
@@ -86,8 +87,8 @@ class ScreensMixin:
             self.hangar_screen.draw(c, self.hangar_view(), self.time, blink)
             return
         if s == State.REWARD:
-            self.gift_screen.draw(c, self.gift_options, self.gift_cursor, self.level.number,
-                                  LEVELS[self.level_index + 1].loadout.colors, self.time, blink)
+            self.gift_screen.draw(c, self.gift_options, self.gift_cursor,
+                                  self.gift_key.split("-")[1], self.gift_paint, self.time, blink)
             return
         loadout = self.ship.loadout
         self.hud.draw(c, self.ship, self.score, max(self.best, self.score),
@@ -250,7 +251,8 @@ class ScreensMixin:
         if win:
             self._draw_record_rank(c, 160)
             if blink and self.state_time > 1.0:
-                f.draw(c, "R: PLAY AGAIN", (mid, 214), TEXT, shadow=TEXT_SHADOW, center=True)
+                f.draw(c, "ENTER: CONTINUE   R: PLAY AGAIN", (mid, 214), TEXT,
+                       shadow=TEXT_SHADOW, center=True)
             return
         nxt = LEVELS[self.level_index + 1]
         if nxt.loadout != self.level.loadout:

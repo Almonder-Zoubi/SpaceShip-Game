@@ -4,7 +4,9 @@ import pygame
 
 from ..config.display import LOW_W
 from ..config.palette import ACCENT, EMPTY, INK, TEXT, TEXT_DIM, TEXT_SHADOW
-from ..progression.items import SHIP
+from ..progression.items import SHIP, WINGMAN
+
+KIND_LABEL = {SHIP: "NEW SHIP", WINGMAN: "NEW WINGMAN"}
 
 CARD_W, CARD_H, CARD_Y = 136, 150, 44
 
@@ -31,7 +33,7 @@ class GiftScreen:
             shade.fill((*(EMPTY if selected else INK), 220))
             surf.blit(shade, card)
             pygame.draw.rect(surf, ACCENT if selected else TEXT_DIM, card, 1)
-            kind = "NEW SHIP" if item.kind == SHIP else "NEW WEAPON"
+            kind = KIND_LABEL.get(item.kind, "NEW WEAPON")
             f.draw(surf, kind, (card.centerx, card.y + 6), TEXT_DIM, shadow=TEXT_SHADOW,
                    center=True)
             self.art.draw(surf, item.id, paint, (card.centerx, card.y + 58), time,

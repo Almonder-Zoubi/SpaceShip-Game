@@ -5,18 +5,19 @@ simple lookup. A level gift offers 1 or 2 items; the one not chosen goes to the 
 """
 from dataclasses import dataclass
 
-SHIP, WEAPON = "SHIP", "WEAPON"          # item kinds = inventory tabs
+SHIP, WEAPON, WINGMAN = "SHIP", "WEAPON", "WINGMAN"   # item kinds = inventory tabs
 UPGRADE = "UPGRADE"                      # the upgrades tab lists tracks, not items
-TABS = (SHIP, WEAPON, UPGRADE)           # (wingmen and skins tabs come later)
+TABS = (SHIP, WEAPON, WINGMAN, UPGRADE)  # (the skins tab comes later)
 
 
 @dataclass(frozen=True)
 class Item:
     id: str
     name: str
-    kind: str                            # SHIP or WEAPON
+    kind: str                            # SHIP, WEAPON or WINGMAN
     blurb: tuple                         # 1-2 short lines for the hangar and the gift cards
     price: int                           # shop price (after it was offered as a gift)
+    sold_after: str = None               # never a gift: in the shop once this level is cleared
 
 
 ITEMS = {item.id: item for item in (
@@ -28,6 +29,12 @@ ITEMS = {item.id: item for item in (
     Item("LASER", "LASER", WEAPON, ("PIERCING BEAM.", "OVERHEATS WHEN HELD."), 200),
     Item("SPECIALS", "BLAST + ULTIMATE", WEAPON, ("HITS CHARGE A BLAST", "AND A MISSILE STORM."), 0),
     Item("OVERDRIVE", "OVERDRIVE BOOST", WEAPON, ("BOOST PICKUP: FIRE", "RATE X2 FOR 6 S."), 250),
+    Item("PIP", "PIP", WINGMAN, ("WINGMAN: A GUNNER", "THAT FIRES WITH YOU."), 300),
+    Item("GUARDIAN", "GUARDIAN", WINGMAN, ("WINGMAN: ORBITS YOU,", "BLOCKS BULLETS."), 300),
+    Item("HUNTER", "HUNTER", WINGMAN, ("WINGMAN: HOMING", "ROCKETS AT MINIONS."), 350),
+    Item("MEDIC", "MEDIC", WINGMAN, ("WINGMAN: REPAIRS YOUR", "HULL BETWEEN HITS."), 350),
+    Item("MAGPIE", "MAGPIE", WINGMAN, ("WINGMAN: PULLS IN", "COINS FROM AFAR."), 300,
+         sold_after="1-4"),
 )}
 BLURB_CHARS = 21                         # a gift card fits this many characters per line
 
@@ -38,6 +45,7 @@ GIFTS = {
     "1-1": ("LASER", "WASP"),
     "1-2": ("SPECIALS",),                # level 3 is built around BLAST + ULTIMATE
     "1-3": ("TITAN", "LANCE"),
+    "1-4": ("PIP", "GUARDIAN"),          # the wingman slot opens
 }
 
 

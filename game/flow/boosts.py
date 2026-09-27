@@ -7,17 +7,19 @@ from ..config.palette import BOOST_COLORS, RAINBOW
 from ..config.tuning import (BOOST_INTERVAL, BOOST_MINION_CHANCE, BOSS_BOOST_INTERVAL,
                              COMBO_COIN_CAP, COMBO_MAX, COMBO_STEP, COMBO_WINDOW, FEVER_AT,
                              FEVER_TIME, MAGNET_TIME, OVERDRIVE_RATE, OVERDRIVE_TIME,
-                             SHIELD_GRACE, SHIELD_HITS, SLOWDOWN_SCALE, SLOWDOWN_TIME)
+                             SHIELD_GRACE, SHIELD_HITS, SLOWDOWN_SCALE, SLOWDOWN_TIME, TWIN_TIME)
 from ..core.particles import Shockwave
 from ..pickups.boosts import BOOSTS
 from ..ui.popup import Popup
 from .states import Phase, State
 
-TIMED = {"OVERDRIVE": OVERDRIVE_TIME, "MAGNET": MAGNET_TIME, "SLOW-MO": SLOWDOWN_TIME}
+TIMED = {"OVERDRIVE": OVERDRIVE_TIME, "MAGNET": MAGNET_TIME, "SLOW-MO": SLOWDOWN_TIME,
+         "TWIN": TWIN_TIME}
 
 
 class BoostsMixin:
-    """Game mixin: boost timers + drops, the shield, and the combo counter.
+    """Game mixin: boost timers + drops, the shield, and the combo counter (the TWIN boost's
+    ship lives with the wingmen, flow/wingmen.py).
 
     Kills within COMBO_WINDOW of each other build a combo; every COMBO_STEP kills raise the
     score multiplier (coins too, capped at COMBO_COIN_CAP). A combo of FEVER_AT starts FEVER.
@@ -47,6 +49,8 @@ class BoostsMixin:
             self.shield = SHIELD_HITS
             return "SHIELD!"
         self.boosts[name] = TIMED[name]
+        if name == "TWIN":
+            self.start_twin()
         return f"{name}!"
 
     def boost_left(self, name):

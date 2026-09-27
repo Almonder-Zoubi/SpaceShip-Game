@@ -35,7 +35,7 @@ class ProgressionMixin:
         return self.galaxy.key(self.level)
 
     def collect_coins(self, value):
-        self.pending_coins += value
+        self.pending_coins += self.coin_bonus(value)
         self.coin_flash = 0.25
 
     def drop_coins(self, x, y, count, big=False, homing=False):
@@ -72,6 +72,7 @@ class ProgressionMixin:
             if isinstance(pickup, Coin):
                 self.pending_coins += pickup.value
         self.pickups = [p for p in self.pickups if not isinstance(p, Coin)]
+        self._bank_wingman_xp()
         self.level_rank = self.stats.rank()
         first = not self.save.is_cleared(self.level_key)
         self.payout = level_payout(self.pending_coins, self.level.number, self.level_rank, first)

@@ -1,6 +1,6 @@
 """Boost pickups: temporary, automatic power (no key). The game runs them (flow/boosts.py)."""
 from ..config.palette import BOOST_COLORS
-from .art import MAGNET_ROWS, OVERDRIVE_ROWS, SHIELD_ROWS, SLOWDOWN_ROWS
+from .art import MAGNET_ROWS, OVERDRIVE_ROWS, SHIELD_ROWS, SLOWDOWN_ROWS, TWIN_ROWS
 from .base import Pickup
 
 
@@ -42,4 +42,11 @@ class SlowDown(Boost):
     glow = BOOST_COLORS[name]
 
 
-BOOSTS = {cls.name: cls for cls in (Overdrive, Shield, Magnet, SlowDown)}
+class TwinBoost(Boost):
+    """A copy of the ship flies alongside and fires with it."""
+    name = "TWIN"
+    rows = TWIN_ROWS
+    glow = BOOST_COLORS[name]
+
+
+BOOSTS = {cls.name: cls for cls in (Overdrive, Shield, Magnet, SlowDown, TwinBoost)}

@@ -8,14 +8,16 @@ from ..config.display import LOW_W
 from ..config.palette import (ACCENT, COIN, DANGER, EMPTY, GOOD, INK, TEXT, TEXT_DIM,
                               TEXT_SHADOW)
 from ..config.tuning import (BLAST_DPS, BLAST_TIME, GUN_INTERVAL, ULT_INTERVAL, ULT_TIME,
-                             UPGRADE_TIERS)
+                             UPGRADE_TIERS, WINGMAN_XP)
 from ..player.hulls import HULLS, hull_named
 from ..progression import upgrades
 from ..progression.inventory import LOCKED, OWNED, SHOP
-from ..progression.items import SHIP, UPGRADE, WEAPON
+from ..progression.items import SHIP, UPGRADE, WEAPON, WINGMAN
+from ..wingmen.base import level_for
+from ..wingmen.types import WINGMEN
 from .item_art import ItemArt
 
-TAB_NAMES = {SHIP: "SHIPS", WEAPON: "WEAPONS", UPGRADE: "UPGRADES"}
+TAB_NAMES = {SHIP: "SHIPS", WEAPON: "WEAPONS", WINGMAN: "WINGMEN", UPGRADE: "UPGRADES"}
 PREVIEW = pygame.Rect(8, 40, 112, 106)
 LIST_X, LIST_Y, ROW_H = 130, 42, 13
 
@@ -33,6 +35,8 @@ class HangarView:
     tiers: dict                  # upgrade track -> tier bought
     message: tuple = None        # (text, colour) under the details, e.g. a buy prompt
     unlock_hint: str = ""        # how the selected locked item is unlocked
+    wingman: str = None          # equipped wingman
+    wingmen_xp: dict = None      # wingman -> XP
 
     @property
     def power(self):
@@ -71,12 +75,14 @@ class HangarScreen:
         pygame.draw.rect(surf, ACCENT if status == OWNED else TEXT_DIM, PREVIEW, 1)
         self.art.draw(surf, item.id, paint, PREVIEW.center, time, locked=status == LOCKED,
                       lively=True)
-        tag, color = self._status(item, status, view.equipped)
+        tag, color = self._status(item, status, view)
         f.draw(surf, tag, (PREVIEW.centerx, PREVIEW.bottom + 4), color, shadow=TEXT_SHADOW,
                center=True)
         self._list(surf, view)
         if item.kind == SHIP:
             self._ship_stats(surf, hull_named(item.id), view)
+        elif item.kind == WINGMAN:
+            self._wingman_stats(surf, item.id, view)
         else:
             self._weapon_stats(surf, item.id, view.model(), len(view.items))
         self._blurb(surf, item.blurb)
@@ -178,10 +184,14 @@ class HangarScreen:
         surf.fill(EMPTY, (8, 35, LOW_W - 16, 1))
 
     @staticmethod
-    def _status(item, status, equipped):
+    def _status(item, status, view):
         if status == OWNED:
             if item.kind == SHIP:
-                return ("EQUIPPED", GOOD) if item.id == equipped else ("OWNED", TEXT)
+                return ("EQUIPPED", GOOD) if item.id == view.equipped else ("OWNED", TEXT)
+            if item.kind == WINGMAN:
+                level = level_for((view.wingmen_xp or {}).get(item.id, 0))
+                return (f"FLIES LV{level}", GOOD) if item.id == view.wingman else (
+                    f"LV{level}", TEXT)
             return "ON BOARD", GOOD
         if status == SHOP:
             return f"{item.price} CR", COIN[2]
@@ -196,7 +206,7 @@ class HangarScreen:
                 surf.fill(EMPTY, (LIST_X - 4, y - 3, LOW_W - LIST_X - 4, ROW_H - 1))
                 f.draw(surf, ">", (LIST_X - 2, y), ACCENT, shadow=TEXT_SHADOW)
             f.draw(surf, item.name, (LIST_X + 6, y), ACCENT if selected else TEXT, shadow=TEXT_SHADOW)
-            tag, color = self._status(item, status, view.equipped)
+            tag, color = self._status(item, status, view)
             f.draw(surf, tag, (LOW_W - 10 - f.size(tag)[0], y), color, shadow=TEXT_SHADOW)
 
     def _size(self, hull):
@@ -224,6 +234,24 @@ class HangarScreen:
         for i, (label, value, top, text) in enumerate(rows):
             self._bar_row(surf, y0 + i * 10, label, value / top, text,
                           TEXT_DIM if label == "SIZE" else GOOD)   # size: smaller is better
+
+    def _wingman_stats(self, surf, name, view):
+        """Role, level + XP bar, the level 5 perk."""
+        f = self.font
+        cls = WINGMEN[name]
+        xp = (view.wingmen_xp or {}).get(name, 0)
+        level = level_for(xp)
+        y0 = LIST_Y + len(view.items) * ROW_H + 8
+        for i, line in enumerate(cls.role):
+            f.draw(surf, line, (LIST_X, y0 + i * 10), TEXT_DIM, shadow=TEXT_SHADOW)
+        if level < len(WINGMAN_XP):
+            lo, hi = WINGMAN_XP[level - 1], WINGMAN_XP[level]
+            ratio, text = (xp - lo) / (hi - lo), f"{xp}/{hi}"
+        else:
+            ratio, text = 1.0, "MAX"
+        self._bar_row(surf, y0 + 22, f"LV {level}", ratio, text, GOOD)
+        f.draw(surf, cls.perk, (LIST_X, y0 + 33), ACCENT if level >= 5 else TEXT_DIM,
+               shadow=TEXT_SHADOW)
 
     def _weapon_stats(self, surf, item_id, base, rows):
         f = self.font

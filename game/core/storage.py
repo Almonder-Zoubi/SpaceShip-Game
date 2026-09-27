@@ -31,6 +31,8 @@ class SaveData:
         self.gifts = []          # level keys whose gift was claimed
         self.upgrades = {}       # upgrade track -> tier bought (missing = 0)
         self.options = {}        # core.options values (volumes, reduce shake / flashes)
+        self.wingman = None      # equipped wingman (item id) or None
+        self.wingmen_xp = {}     # wingman -> total XP
         self.load()
 
     @property
@@ -57,6 +59,10 @@ class SaveData:
             self.upgrades = {str(k): min(UPGRADE_TIERS, max(0, int(v)))
                              for k, v in dict(data.get("upgrades", {})).items()}
             self.options = {str(k): int(v) for k, v in dict(data.get("options", {})).items()}
+            wingman = data.get("wingman")
+            self.wingman = None if wingman is None else str(wingman)
+            self.wingmen_xp = {str(k): max(0, int(v))
+                               for k, v in dict(data.get("wingmen_xp", {})).items()}
         except (OSError, ValueError, TypeError, KeyError, AttributeError):
             self._reset()                               # unreadable: start fresh
 
@@ -65,6 +71,7 @@ class SaveData:
         self.coins, self.cleared = 0, {}
         self.owned, self.shop, self.gifts = None, [], []
         self.upgrades, self.options = {}, {}
+        self.wingman, self.wingmen_xp = None, {}
 
     def save(self):
         if not self.path:
@@ -76,7 +83,8 @@ class SaveData:
                            "unlocked": self.unlocked, "ship": self.ship, "coins": self.coins,
                            "cleared": self.cleared, "owned": self.owned, "shop": self.shop,
                            "gifts": self.gifts, "upgrades": self.upgrades,
-                           "options": self.options}, f, indent=2)
+                           "options": self.options, "wingman": self.wingman,
+                           "wingmen_xp": self.wingmen_xp}, f, indent=2)
             os.replace(tmp, self.path)
         except OSError:
             pass                                        # read-only folder: play on without saving
@@ -99,6 +107,11 @@ class SaveData:
     def unlock(self, level_number):
         if level_number > self.unlocked:
             self.unlocked = level_number
+            self.save()
+
+    def choose_wingman(self, name):
+        if name != self.wingman:
+            self.wingman = name
             self.save()
 
     def choose_ship(self, name):

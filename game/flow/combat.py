@@ -32,6 +32,7 @@ class CombatMixin:
             weapon.rate = self.fire_rate                  # OVERDRIVE / FEVER
             active = firing and weapon is self.weapon and not self.blast.active
             hits += weapon.update(dt, active, self.ship, targets, self.fire)
+        hits += self._update_wingmen(dt, firing)
         missile_hits = self.ultimate.update(dt, False, self.ship, targets, self.fire)
         if missile_hits:
             self.audio.play("missile_hit")
@@ -60,9 +61,9 @@ class CombatMixin:
             self.smoke.emit(hit.x, hit.y, math.cos(a) * 40, math.sin(a) * 40,
                             random.uniform(0.2, 0.5), colors, drag=2)
         if rock.destroyed:
-            self._destroy_rock(rock, scored=True)
+            self._destroy_rock(rock, scored=True, source=hit.source)
 
-    def _destroy_rock(self, rock, scored):
+    def _destroy_rock(self, rock, scored, source=None):
         """Explode a rock; big ones break into smaller fragments."""
         r = rock.radius
         colors = rock.art.palette[:0:-1]    # light -> dark, without outline
@@ -82,6 +83,7 @@ class CombatMixin:
         self.audio.play(rock.break_sound())
         if scored:
             self.score += self.add_kill(r * POINTS_PER_RADIUS, rock.x, rock.y)
+            self.wingman_kill(source)
             self.stats.destroyed += 1
             self._drop_rock_coins(rock)
             if r >= 10 and random.random() < ROCK_KIT_CHANCE:
@@ -114,9 +116,9 @@ class CombatMixin:
         if hit.charges:
             self._charge(hit.damage, killed=enemy.destroyed, minion=True)
         if enemy.destroyed:
-            self._destroy_enemy(enemy, scored=True)
+            self._destroy_enemy(enemy, scored=True, source=hit.source)
 
-    def _destroy_enemy(self, enemy, scored):
+    def _destroy_enemy(self, enemy, scored, source=None):
         self.explosion(enemy.x, enemy.y, size=0.6)
         if scored:
             self.juice("medium", enemy.x, enemy.y)
@@ -125,6 +127,7 @@ class CombatMixin:
             self.enemies.remove(enemy)
         if scored and self.state == State.PLAYING:
             self.score += self.add_kill(enemy.points, enemy.x, enemy.y)
+            self.wingman_kill(source)
             self.stats.destroyed += 1
             self._drop_minion_coins(enemy)
             self._minion_boost(enemy)
@@ -172,6 +175,7 @@ class CombatMixin:
         self.screen_flash(0.15)
         self.audio.play("boss_explode")
         if self.state == State.PLAYING:
+            self.wingman_kill(boss=True)
             self.score += POINTS_BOSS
             self._record_boss_time(b)
             self._drop_boss_coins(b)
