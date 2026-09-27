@@ -35,6 +35,8 @@ python3 ESA3.py --level 4 --boss # final boss (Leviathan)
 python3 ESA3.py --dev            # dev menu: any level / wave / boss / ship, god mode, hotkeys
 python3 tools/build_audio.py     # re-render sounds + music after changing game/audio/ recipes
 python3 tools/build_audio.py boss gun    # ...or only some of them
+SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 tools/playtest.py 1-4 --tank [--maxed] [--seed N]
+                                 # headless bot plays levels, prints damage / rank / coins / frame times
 ```
 
 Headless smoke test (no window, no audio device) — run after every change. It drives every state
@@ -87,7 +89,8 @@ Every folder's `__init__.py` docstring lists what its modules do.
 | `flow/` | `game`, `states`, `events`, `level_flow`, `world`, `combat`, `progression`, `hangar`, `juice`, `boosts`, `wingmen`, `skins`, `options`, `sound`, `dev` | `Game` = setup, main loop, update order. The rest is one **mixin per responsibility**: key handling (one `_keys_<state>` method per state), level/wave/phase flow + hull choice, world update + hazards, player hits, coins + stats + rank + payout, hangar + gifts + shop, juice (tiers, hit-stop, slow-mo, damage numbers, radio), boosts + combo / FEVER, wingmen (hits, knock-outs, XP banked at level end), skins + achievements, options, music/loops, dev tools |
 
 Other folders: `tests/smoke.py` (headless smoke test, `run_smoke_test(shots, seed, only)`),
-`tools/build_audio.py` (renders `game/audio` recipes to WAV).
+`tools/build_audio.py` (renders `game/audio` recipes to WAV), `tools/playtest.py` (bot playtest:
+balance numbers per level; a poor dodger, so use `--tank` to compare levels by damage taken).
 
 Where to look when debugging:
 - A key does the wrong thing → `flow/events.py`, the `_keys_<state>` handler.

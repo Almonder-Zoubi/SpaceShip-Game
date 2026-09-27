@@ -180,6 +180,22 @@ Options need a place in the menus: ask the user where (title? pause?) before add
 
 ## Log
 
+### 2026-09-27 — G9 (automated part): bot playtest of levels 1–4 with every system
+- No human playtest possible from the cloud session, so `tools/playtest.py`: a headless
+  autopilot (fires, lines up under targets, sidesteps what will cross its row, presses T)
+  plays whole levels for a new player or a maxed profile; `--tank` refills the hull at
+  half so every level completes and "damage taken" compares difficulty. ~3–6 s per level.
+- Findings (4 runs each): every level completes with every system active, no crash; level
+  times 3.5–4.5 min (design: 3–4); worst update ~16 ms headless incl. a draw (the dummy
+  driver's `music.load` stalls ~600 ms on a track change — headless only, ignored).
+- Coins: the G5 combo coin multiplier (x3) inflated levels 3–4 to 600–700 CR per level
+  (BLAST makes combos of 50–150). Without it levels 3–4 pay ~450–550 (bosses, clear bonus
+  grows with the level). **Cap lowered to x2** (+10–20%). Level 1 still pays ~170, level 2
+  ~280 for this bot (rank C).
+- The bot dodges badly (5–10 hull refills per level as a new player), so rank / damage
+  numbers are an upper bound on difficulty, not a human's experience. **The user's playtest
+  of levels 1–4 with all systems is still open (G9 not ticked).**
+
 ### 2026-09-27 — G8: skins + achievements
 - Skins are inventory items (`kind=SKIN`, `slot` PAINT / TRAIL / TRACER / BEAM / DEATH,
   `look` = the palette key), so gifts, shop and locks work as for everything else. Never

@@ -188,7 +188,7 @@ SLOWDOWN_SCALE = 0.5
 COMBO_WINDOW = 1.5               # seconds: a kill within this keeps the combo going
 COMBO_STEP = 3                   # kills per multiplier step: 3 kills = x2 ... 21 kills = x8
 COMBO_MAX = 8                    # score multiplier cap
-COMBO_COIN_CAP = 3               # coins are multiplied too, but at most x3 (economy)
+COMBO_COIN_CAP = 2               # coins are multiplied too, but at most x2 (economy, playtest)
 FEVER_AT = 25                    # combo that starts FEVER
 FEVER_TIME = 5.0                 # OVERDRIVE + rainbow trail
 
