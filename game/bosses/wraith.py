@@ -72,20 +72,20 @@ class Wraith(Boss):
     PHASES = 3
     RAGE = (1.0, 1.2, 1.4)
     PATTERNS = (
-        (("teleport", 0.9), ("fans", 2.4), ("teleport", 0.9), ("stream", 2.0), ("rest", 0.6)),
-        (("teleport", 0.9), ("fans", 2.2), ("stream", 1.8), ("teleport", 0.9), ("fans", 2.2),
+        (("teleport", 0.7), ("fans", 2.4), ("teleport", 0.7), ("stream", 2.0), ("rest", 0.6)),
+        (("teleport", 0.7), ("fans", 2.2), ("stream", 1.8), ("teleport", 0.7), ("fans", 2.2),
          ("rest", 0.5)),
         (("teleport", 0.8), ("curves", 2.4), ("teleport", 0.8), ("fans", 2.0), ("curves", 2.0),
          ("rest", 0.4)),
     )
-    STATIC = 0.5                     # s of static at the arrival spot before it appears
+    STATIC = 0.4                     # s of static at the arrival spot before it appears
     TELL = 0.35                      # phase 3: its flare burns this long before each shot
     FAN_INTERVAL, FAN_SHOTS, FAN_GAP, FAN_SPEED = 0.6, 5, 0.2, 112
     STREAM_INTERVAL, STREAM_SPEED = 0.22, 140
     CURVE_INTERVAL, CURVE_SPEED, CURVE_TURN = 0.3, 105, 1.3
     # Phase 1 aimed shots per second at a rocket sitting still: the centre of every fan and
     # every stream shot.
-    AIMED_RATE = (2.4 / FAN_INTERVAL + 2.0 / STREAM_INTERVAL) / (0.9 + 2.4 + 0.9 + 2.0 + 0.6)
+    AIMED_RATE = (2.4 / FAN_INTERVAL + 2.0 / STREAM_INTERVAL) / (0.7 + 2.4 + 0.7 + 2.0 + 0.6)
 
     _alpha_frames = None
 
@@ -142,6 +142,11 @@ class Wraith(Boss):
         self.attack_time = 0.0
         self.fire_timer = 0.4
         self.decoys = []
+        if self.hidden:                      # it was mid-jump: land where it was going
+            self.spot = self.arrival or self.spot
+            self.x, self.y = self.spot
+        self.hidden = False
+        self.arrival = None
 
     def _pattern(self):
         pattern = self.PATTERNS[self.phase]

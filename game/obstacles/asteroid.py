@@ -5,8 +5,8 @@ import random
 from ..config.display import LOW_H, LOW_W
 import pygame
 
-from ..config.tuning import (ROCK_HP_BASE, ROCK_HP_PER_AREA, ROCK_MIN_FALL, ROCK_SPLIT_RADIUS,
-                             WRECK_HP)
+from ..config.tuning import (COMET_SPEED, ROCK_HP_BASE, ROCK_HP_PER_AREA, ROCK_MIN_FALL,
+                             ROCK_SPLIT_RADIUS, WRECK_HP)
 from ..core.pixelart import make_glow
 
 HIT_FLASH = 0.06   # seconds a rock shows white after being hit
@@ -24,6 +24,7 @@ class Asteroid:
     EXPLODES = False                   # blows up nearby rocks and minions (magma)
     REFRACTS = False                   # splits a laser beam (crystal)
     METAL = False                      # wreck metal: clangs, drops extra coins
+    FRAGMENT = None                    # class of its fragments (None = the same class)
 
     def __init__(self, art, x, y, vx, vy, spin, hp_scale=1.0):
         self.art = art
@@ -188,8 +189,31 @@ class WreckChunk(Asteroid):
         return "metal_break"
 
 
+class Comet(IceRock):
+    """A comet: icy, fast, falls at a slant and drags a glowing tail."""
+
+    FRAGMENT = IceRock
+
+    def __init__(self, art, x, y, vx, vy, spin, hp_scale=1.0):
+        super().__init__(art, x, y, vx * 3, vy * COMET_SPEED, spin, hp_scale)
+        self.tail = []
+
+    def update(self, dt, world_speed):
+        super().update(dt, world_speed)
+        self.tail.append((self.x, self.y))
+        del self.tail[:-10]
+
+    def draw(self, surf):
+        for i, (x, y) in enumerate(self.tail[:-1]):
+            k = (i + 1) / len(self.tail)
+            c = (int(90 * k), int(150 * k), int(220 * k))
+            r = max(1, int(self.radius * 0.6 * k))
+            pygame.draw.circle(surf, c, (int(x), int(y)), r)
+        super().draw(surf)
+
+
 ROCK_KINDS = {"ice": IceRock, "magma": MagmaRock,          # palette name -> rock class
-              "crystal": CrystalRock, "wreck": WreckChunk}
+              "crystal": CrystalRock, "wreck": WreckChunk, "comet": Comet}
 
 
 def rock_class(palette_name):

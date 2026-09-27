@@ -109,6 +109,7 @@ def play_level(game, index, report, tank=False):
             "game_s": round(frames * DT), "damage": int(game.stats.damage_taken),
             "rank": game.level_rank or "-", "coins": game.payout.total if game.payout else 0,
             "pending": game.pending_coins, "combo": best_combo, "refills": refills,
+            "boss": f"{int(game.stats.boss_time)}/{int(game.stats.boss_par)}",
             "hp": game.ship.max_hp,
             "worst_ms": round(worst * 1000, 1), "wall_s": round(time.perf_counter() - t0, 1),
         })
@@ -134,6 +135,7 @@ def main():
         numbers = [int(n) for n in spec.split(",")]
     save = os.path.join(tempfile.mkdtemp(), "save.json")
     game = Game(save_path=save)
+    game.library.finish()                    # rocks the menus would build in the background
     if maxed:
         game.inventory.grant_all()
         game.save.upgrades = {t: UPGRADE_TIERS for t in TRACK_IDS}
@@ -150,12 +152,12 @@ def main():
             if options:
                 game.inventory.claim(game.level_key, options[0])
     print(f"playtest {'maxed' if maxed else 'new player'} (seed {seed})")
-    print(" lvl try  ok   time  dmg/hp refill rank coins pend combo worst_ms wall_s")
+    print(" lvl try  ok   time  dmg/hp refill rank coins pend combo worst_ms wall_s  boss/par s")
     for r in report:
         print(f" {r['level']:>3} {r['attempt']:>3} {'Y' if r['cleared'] else 'N':>3} "
               f"{r['game_s']:>5}s {r['damage']:>4}/{r['hp']:<4} {r['refills']:>3} "
               f"{r['rank']:>4} {r['coins']:>5} {r['pending']:>4} {r['combo']:>5} "
-              f"{r['worst_ms']:>8} {r['wall_s']:>6}")
+              f"{r['worst_ms']:>8} {r['wall_s']:>6}  {r['boss']:>8}")
     print(f"bank {game.save.coins} CR, owned {len(game.save.owned)} items, "
           f"achievements {game.save.achievements}")
     pygame.quit()

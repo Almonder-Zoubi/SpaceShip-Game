@@ -8,12 +8,15 @@ from ..bosses.leviathan import Leviathan
 from ..bosses.mothership import Mothership
 from ..bosses.scrapjaw import Scrapjaw
 from ..bosses.spec import BossSpec
+from ..bosses.twins import Twins
 from ..bosses.wraith import Wraith
-from ..config.loadouts import MK1, MK2, MK3, MK4, MK5, MK6, MK7, MK8
+from ..config.loadouts import MK1, MK2, MK3, MK4, MK5, MK6, MK7, MK8, MK9
 from ..config.palette import (NEBULA, NEBULA_ABYSS, NEBULA_CRIMSON, NEBULA_CRYSTAL, NEBULA_FORGE,
-                              NEBULA_FROST, NEBULA_GHOST, NEBULA_RUST)
+                              NEBULA_FROST, NEBULA_GHOST, NEBULA_HORIZON, NEBULA_RUST)
+from ..hazards.blackhole import BlackHole
 from ..hazards.fog import FogBanks
 from ..config.tuning import LEVEL_LENGTH
+from ..minions.interceptor import interceptor_pair
 from ..minions.minelayer import minelayer_squad
 from ..minions.phantom import phantom_pair
 from ..minions.prism import prism_turret
@@ -111,8 +114,8 @@ GALAXY_1_LEVELS = (
                        "WATCH THE RING: IT GLOWS BEFORE A FLARE.",
                        "FLY THROUGH THE GAPS IN THE FIRE!"))),
           music="level5", event=SunCorona,
-          radio=("THE SOLAR FORGE. THE SWARM SMELTS SHIPS HERE.",
-                 "MAGMA ROCKS EXPLODE: USE THEM, BURN THE REST.",
+          radio=("THE SOLAR FORGE: THE SWARM SMELTS SHIPS.",
+                 "MAGMA ROCKS EXPLODE. USE THE CHAIN!",
                  "SHOOT THE MINES BEFORE THEY ARM."),
           upgrade_notes=("MAGMA ROCKS EXPLODE: CHAIN REACTIONS",
                          "MINE LAYERS: SHOOT THE MINES")),
@@ -183,11 +186,36 @@ GALAXY_1_LEVELS = (
                        "SHOOT THE ARMOUR OFF - IT THROWS IT BACK.",
                        "STAY AWAY FROM ITS MAGNET CLAW."))),
           music="level8", event=Wrecks,
-          radio=("THE IRON GRAVEYARD. A WHOLE FLEET DIED HERE.",
+          radio=("IRON GRAVEYARD. A WHOLE FLEET DIED HERE.",
                  "WRECK CHUNKS ARE TOUGH BUT FULL OF CREDITS.",
-                 "SALVAGERS STEAL. SHOOT THEM, GET IT BACK X2."),
+                 "SALVAGERS STEAL: SHOOT THEM, GET IT X2."),
           upgrade_notes=("WRECKS: TOUGH, FULL OF COINS",
                          "SALVAGERS STEAL - GET IT BACK X2")),
+    # The black hole: it pulls everything, the ship too. Comets, interceptors, Scrapjaw
+    # again, THE TWINS.
+    Level(9, "EVENT HORIZON", MK9,
+          Difficulty(spawn_interval=0.55, speed_min=60, speed_max=118, radius_min=4,
+                     radius_max=13, drift=16, palettes=("comet", "slate", "grey"),
+                     formation_interval=14, extras=((interceptor_pair, 9),), rock_hp=2.4,
+                     enemy_hp=2.3),
+          tuple(NEBULA_HORIZON),
+          (Wave(45, name="THE EVENT HORIZON"),
+           Wave(40, (BossEntry(Scrapjaw, BossSpec("SCRAPJAW", strength=1.5, fight_time=35,
+                                                  player=MK9)),),
+                name="THE JUNK KING RETURNS",
+                radio=("SCRAPJAW REBUILT ITSELF FROM THE DEBRIS.",)),
+           Wave(40, (BossEntry(Twins, BossSpec("THE TWINS", strength=5.0, fight_time=80,
+                                               player=MK9), music="twins"),),
+                name="ORA AND ZEN",
+                radio=("TWO SHIPS, ONE TETHER: DON'T TOUCH IT!",
+                       "KILL ONE AND THE OTHER REVIVES IT IN 8 S:",
+                       "BRING THEM DOWN TOGETHER."))),
+          music="level9", hazard=BlackHole,
+          radio=("EVENT HORIZON. IT PULLS EVERYTHING - YOU.",
+                 "FLY THE BLUE RING: TRIPLE SCORE AND COINS.",
+                 "WHEN THE DISC TURNS WHITE, IT SPITS IT OUT!"),
+          upgrade_notes=("THE BLACK HOLE PULLS YOU",
+                         "INTERCEPTORS: HIT THEM FROM THE SIDE")),
 )
 
 GALAXIES = (

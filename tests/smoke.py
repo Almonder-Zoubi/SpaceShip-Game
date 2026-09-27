@@ -42,6 +42,12 @@ from game.minions.bullets import ColoredBullet
 from game.minions.prism import prism_turret
 from game.obstacles.asteroid import CrystalRock, WreckChunk
 from game.bosses.scrapjaw import JunkShot, Scrapjaw
+from game.bosses.twins import Twin as TwinShip, Twins
+from game.config.tuning import SLINGSHOT_SCORE, WHITE_HOLE_WARN
+from game.hazards.blackhole import BlackHole
+from game.minions.interceptor import Interceptor, interceptor_pair
+from game.obstacles.asteroid import Comet
+from game.weapons.gun import Bullet as GunBullet
 from game.minions.salvager import Salvager
 from game.config.tuning import REFRACT_BEAMS
 from game.hazards.fog import FogBanks
@@ -78,6 +84,7 @@ class Harness:
         self.save_path = os.path.join(tempfile.mkdtemp(), "save.json")   # never the player's
         self.game = Game(save_path=self.save_path)
         self.game.inventory.grant_all()     # sections below test levels 1-4 with every item
+        self.game.library.finish()          # the rocks the menus would build in the background
         self.dt = 1 / FPS
         self.field = LEVELS[0].difficulty
 
@@ -810,6 +817,8 @@ def test_level6(h):
     boss.roar = 0
     assert boss.phase == 1
     boss.pattern_index, boss.attack_time = 0, 0.0
+    for weapon in game.weapons:                        # no stray shots to pop the decoys
+        weapon.reset()
     h.run(h.seconds(1.0), clear_rocks=True)
     assert len(boss.decoys) == 2
     hp0, decoy = boss.hp, boss.decoys[0]
@@ -1008,6 +1017,149 @@ def test_level8(h):
     h.kill(boss)
     h.run(h.seconds(boss.DEATH_TIME + JUICE_PAD + 1.7), clear_rocks=True)
     assert game.state in (State.LEVEL_CLEAR, State.WIN)
+    game.to_title()
+
+
+def test_level9(h):
+    """Level 9 EVENT HORIZON: the black hole pulls rocks and the ship (full thrust escapes),
+    the event horizon hurts, the SLINGSHOT ring triples score and powers shots, the WHITE
+    HOLE pushes everything out and spits swallowed bullets back; comets; interceptors block
+    head-on shots; THE TWINS: the tether hurts, a twin revives unless both go down; the
+    final win gives the last gift and CHAMPION."""
+    game = h.game
+    for level in LEVELS:                              # every radio line fits on its card
+        for line in list(level.radio) + [x for wave in level.waves for x in wave.radio]:
+            assert len(line) <= 43, line
+    game.choose_hull(ARROW)
+    game.start(8)
+    game.radio = None
+    game.ship.hp = 10 ** 6
+    hole = game.hazard
+    assert isinstance(hole, BlackHole) and game.ship.loadout.name == "MK IX"
+    assert game._music_track() == "level9"
+    h.run(h.seconds(2.0))
+    h.shot("level9")
+
+    # The pull: a rock falls towards it; the ship drifts in, but full thrust escapes.
+    lib = game.library
+    rock = Asteroid(lib.pick(5, 5, ("slate",)), hole.x + 60, hole.y, 0, 0, 0)
+    game.asteroids = [rock]
+    h.run(20)
+    assert rock.vx < 0 or rock not in game.asteroids, "pulled towards the hole"
+    game.asteroids.clear()
+    ship = game.ship
+    ship.x, ship.y = hole.x + 45, hole.y + 50
+    d0 = math.hypot(ship.x - hole.x, ship.y - hole.y)
+    h.run(30, clear_rocks=True)
+    assert math.hypot(ship.x - hole.x, ship.y - hole.y) < d0, "the ship is pulled in"
+    ship.x, ship.y = hole.x + 45, hole.y + 50
+    h.run(40, Keys(pygame.K_DOWN, pygame.K_RIGHT), clear_rocks=True)
+    assert math.hypot(ship.x - hole.x, ship.y - hole.y) > d0, "thrust escapes"
+    # The event horizon hurts; the ring triples score.
+    hp0 = ship.hp
+    ship.invulnerable_time = 0
+    ship.x, ship.y = hole.x, hole.y
+    h.run(1, clear_rocks=True)
+    assert ship.hp < hp0
+    lo, hi = hole.ring
+    ship.x, ship.y = hole.x + (lo + hi) / 2, hole.y
+    ship.invulnerable_time = 5
+    h.run(1, clear_rocks=True)
+    assert game.slingshot
+    game.break_combo()
+    assert game.add_kill(100, 0, 0) == 100 * SLINGSHOT_SCORE
+    h.shot("slingshot")
+    ship.x, ship.y = game.SHIP_START
+    h.run(2, clear_rocks=True)
+    # A gun shot through the ring is boosted.
+    gun = game.weapons[0]
+    b = GunBullet(hole.x + (lo + hi) / 2, hole.y + 5, 0, -300)
+    gun.bullets = [b]
+    hole._pull_shots(h.dt, game)
+    assert b.boost
+    # WHITE HOLE: warning, then it pushes out and spits swallowed bullets back.
+    hole.stored = 6
+    hole.flip_timer = WHITE_HOLE_WARN - 0.1
+    h.run(3, clear_rocks=True)
+    assert hole.warning
+    h.shot("white_hole_warning")
+    hole.flip_timer = 0.01
+    game.enemy_bullets.clear()
+    h.run(2, clear_rocks=True)
+    assert hole.white > 0 and len(game.enemy_bullets) >= 6 and hole.stored == 0
+    assert hole.pull_at(hole.x + 50, hole.y)[0] > 0, "a white hole pushes away"
+    h.run(h.seconds(0.5), clear_rocks=True)
+    h.shot("white_hole")
+    hole.white = 0
+
+    # Comets fall fast; interceptors block head-on shots, not while cooling down.
+    comet = Comet(lib.pick(6, 6, ("comet",)), 100, 0, 5, 60, 0)
+    assert comet.vy > 60
+    inter = Interceptor(160)
+    inter.y, inter.facing = 60, math.pi / 2
+    inter.mode = "aim"
+    assert inter.armour(Hit(inter, 5, 0, 0, 0, -1, 0)) == 0.0
+    assert inter.armour(Hit(inter, 5, 0, 0, 1, 0, 0)) == 1.0, "from the side it's open"
+    inter.mode = "cool"
+    assert inter.armour(Hit(inter, 5, 0, 0, 0, -1, 0)) == 1.0
+    game.enemies = interceptor_pair(game)
+    game.asteroids = [comet]
+    h.run(h.seconds(2.5))
+    h.shot("interceptors")
+    game.enemies.clear()
+
+    # THE TWINS (the final boss of galaxy 1 so far).
+    game.start(8, 0, 2, 0)
+    game.radio = None
+    game.ship.hp = 10 ** 6
+    h.run(h.seconds(WARNING_TIME + Twins.ENTER_TIME + 0.3), clear_rocks=True)
+    boss = game.boss
+    game.ship.hp = 10 ** 6                            # (the WARNING refilled the hull)
+    assert isinstance(boss, Twins) and boss.fighting and game.is_final_boss()
+    assert game._music_track() == "twins" and len(boss.parts()) == 2
+    h.run(h.seconds(2.0), FIRE, clear_rocks=True)
+    h.shot("twins")
+    ax, ay, bx, by = boss.tether()
+    game.ship.x, game.ship.y = ax * 0.8 + bx * 0.2, ay * 0.8 + by * 0.2   # off the core
+    game.ship.invulnerable_time, hp0 = 0, game.ship.hp
+    game.shield = 0                                   # (a SHIELD boost may have dropped)
+    h.run(1, clear_rocks=True)
+    assert game.ship.hp < hp0, "the tether hurts"
+    game.ship.x, game.ship.y = game.SHIP_START
+    game.god = True                                   # (repair kits clamp the test hull)
+    ora, zen = boss.twins
+    while ora.alive:                                  # (phase thresholds stop each burst)
+        boss.roar = 0
+        game._damage_boss(Hit(ora, ora.hp + 1, 0, 0, 0, -1, 0))
+    boss.roar = 0
+    h.run(2, clear_rocks=True)
+    assert not ora.alive and boss.tether() is None and boss.revive_text
+    h.shot("twins_revive")
+    h.run(h.seconds(TwinShip.REVIVE + JUICE_PAD + 0.5), clear_rocks=True)
+    assert ora.alive and ora.hp > 0, "ZEN revived ORA"
+    boss.roar = 0
+    h.kill(boss)
+    assert boss.state == "dying", "both went down together"
+    for _ in range(h.seconds(10)):
+        h.run(1, clear_rocks=True)
+        if game.state == State.WIN:
+            break
+    game.god = False
+    assert game.state == State.WIN, (game.state, game.phase, boss.state)
+    assert "CHAMPION" in game.save.achievements
+    h.run(h.seconds(1.2))
+    h.shot("win")
+    game.save.gifts = [k for k in game.save.gifts if k != "1-9"]
+    game.save.owned.remove("SPECTER")
+    h.post(pygame.K_RETURN)
+    assert game.state == State.REWARD and [i.id for i in game.gift_options] == ["ARC", "SPECTER"]
+    game.gift_cursor = 1
+    h.run(h.seconds(0.6))
+    h.shot("gift_specter")
+    h.post(pygame.K_RETURN)
+    assert game.inventory.owns("SPECTER") and game.hull.name == "SPECTER"
+    assert game.state in (State.TITLE, State.DEV_MENU)
+    game.choose_hull(ARROW)
     game.to_title()
 
 
@@ -2050,7 +2202,7 @@ SECTIONS = (
     ("damage", test_damage), ("balance", test_balance), ("pickups", test_pickups),
     ("campaign", test_campaign), ("level4", test_level4),
     ("level5", test_level5), ("level6", test_level6), ("level7", test_level7),
-    ("level8", test_level8), ("save", test_save), ("menus", test_title_menus),
+    ("level8", test_level8), ("level9", test_level9), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
     ("upgrades", test_upgrades), ("feel", test_feel),
     ("boosts", test_boosts), ("wingmen", test_wingmen),

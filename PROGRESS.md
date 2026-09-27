@@ -5,44 +5,79 @@ Update this file at the end of every work session: what changed, what's next, op
 ## Status
 
 **Branch:** `design` (from `682a781` "level 4 and a complete guide.md"): Phase 10 design,
-then G1–G3 (coins + rank, gifts + HANGAR 2.0, upgrades).
-**Current phase:** 4 levels playable + mouse control. New direction from the user: **galaxies of
-10 levels + meta progression** (gifts per level, coins, upgrades, wingmen, inventory, skins,
-new weapons, bosses and effects). Designed in [docs/DESIGN.md](docs/DESIGN.md), milestones
-G0–G15 in [ROADMAP.md](ROADMAP.md) Phase 10.
-Design approved (answers in DESIGN.md section 14). G1 (coins, rank) playtested: "feels ok",
-215–250 CR per level is good. G2 done (gifts 1 of 2, HANGAR 2.0 + shop, new players start
-with ARROW + gun), not playtested yet. **G3 done** (upgrades: 5 tracks x 5 tiers, UPGRADES
-tab, POWER %), waiting for the user's playtest together with G2. Next: **G4 game feel pass**.
-Systems first, then a full playtest of levels 1–4, then level 5.
-NEMESIS (Phase 9) is parked behind Phase 10.
+then G1–G14 (all systems + levels 5–9), one commit per milestone.
+**Current phase:** galaxy 1 levels 1–9 playable with every Phase 10 system: coins + rank,
+gifts + HANGAR 2.0, upgrades, game feel (juice, damage numbers, name cards, radio, options),
+boosts + combo / FEVER, wingmen, weapon slots + 5 new weapons, skins + achievements, and
+levels 5 SOLAR FORGE, 6 GHOST NEBULA, 7 CRYSTAL VEIL, 8 IRON GRAVEYARD, 9 EVENT HORIZON.
+G1 was playtested ("feels ok"); G3 "runs perfectly". **G2 and G4–G14 are not playtested by
+the user yet** (the G9 box stays open for that). Next: the user's playtest, then G15 (level 10
+SWARM HEART / OVERMIND). NEMESIS (Phase 9) is parked behind Phase 10.
 
 **Starting a new session?** Read this file's Snapshot + Decisions, then CLAUDE.md (module map,
 "where to look when debugging", conventions). Run the smoke test once before changing anything.
 
-## Handoff — next session: playtest G2 + G3, then G4 (game feel)
+## Handoff — next session: the user's playtest, then G15
 
-State at hand-off (2026-09-27): branch `design`, G1–G3 committed and pushed, full smoke test
-green, lint clean. **G2 and G3 are not playtested yet**: ask the user how the gift screen,
-hangar controls (ENTER equip / buy, ENTER again confirms, SPACE launch), prices and the
-upgrade feel (+3% per tier is deliberately small, see DESIGN 6.3) are before tuning anything.
-The real macOS window check of the UPGRADES tab was **not** done (cloud session, headless
-only): the screen uses only SRCALPHA icons and `fill`s on the canvas, but ask the user to look.
+State at hand-off (2026-09-27): branch `design`, everything committed and pushed, full smoke
+test green (29 sections, extra seeds for the new sections), lint clean. Built in one long
+cloud session without a real window: **nothing since G3 was seen on macOS** — ask the user
+to look (all surfaces are SRCALPHA or `opaque_surface`; screenshots from `--shots` looked
+right).
+
+Decisions I had to make alone are marked **(ask)** in the log entries below — the main ones:
+options live in the pause menu (G4); combo coins capped at x2 (G5/G9); OVERDRIVE only drops
+once owned (G5); HUNTER / MEDIC are the level 6 / 8 gifts, MAGPIE a shop item (G6);
+secondaries never hurt bosses (G7); the Wraith's music keeps playing while it hides (G11).
+
+Ask the user first: how levels 5–9 feel (the bot says bosses 6–7 run 1.2–1.4x their par
+time, levels take 4.5–5.5 min vs the designed 3–4), whether +3% upgrade tiers feel worth it,
+wingman strength, prices (upgrades 10,000 CR in total, levels 5–9 pay 550–900 CR).
+
+G15 plan (DESIGN section 3): SWARM HEART — spore pods (telegraphed bullet rings), larvae
+(boids), a boss rush (Mothership, Leviathan, the Twins), OVERMIND (camera scroll allowed:
+hive wall with 4 glands -> heart with 3 callback phases -> 20 s ESCAPE), warp cut-scene,
+galaxy medal + SWARMBANE skin (gift after level 10). Tools that help: `tools/playtest.py`
+(bot, `--tank`, boss time vs par), `--dev` (every start point), `--shots`.
 
 Working headless (cloud): `pip install -r requirements.txt pyflakes`, then
 `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test [--only a,b]
 [--shots DIR]` and `python3 -m pyflakes ESA3.py game/ tests/ tools/`. The first start renders
-the sounds into `sounds/generated/` (git-ignored, ~9 s).
-
-G4 (ROADMAP Phase 10, DESIGN section on juice tiers): shake / hit-stop / particles per tier,
-boss damage numbers, boss name cards, radio cards, options (volume, reduce shake / flashes).
-Options need a place in the menus: ask the user where (title? pause?) before adding keys.
+the sounds into `sounds/generated/` (git-ignored, ~12 s now).
 
 ## Snapshot — what the game is right now
 
 - **Code layout:** one package per area under `game/` (config, core, background, player, weapons,
-  obstacles, minions, bosses, pickups, levels, audio, ui, flow); `Game` = mixins, one per
-  responsibility. Module map + "where to look when debugging" in CLAUDE.md.
+  obstacles, minions, bosses, hazards, wingmen, pickups, levels, progression, audio, ui, flow);
+  `Game` = mixins, one per responsibility. Module map + "where to look when debugging" in
+  CLAUDE.md.
+- **Levels 5–9 (G10–G14)**, each 3 waves (field 45 s; field 40 s -> the previous level boss at
+  1.5x; field 40 s -> the level boss at 5x), own music, radio lines, gift:
+  5 SOLAR FORGE (MK V): magma rocks explode (chain reactions), mine layers, sun corona ->
+  HELIOS (pods detach, solar flares with gaps, magma rain). 6 GHOST NEBULA (MK VI): fog banks
+  hide rocks + minions (never the ship / enemy bullets), lightning, phantoms -> WRAITH
+  (teleports, decoys, fogged screen + curving shots). 7 CRYSTAL VEIL (MK VII): crystals split
+  the laser into 3 beams, prism turrets ride crystals -> KALEIDOS (mirror shards reflect the
+  laser, light lattice, 7-colour spirals). 8 IRON GRAVEYARD (MK VIII): wreck chunks (tough,
+  coins), salvagers steal pickups, battleship silhouettes -> SCRAPJAW (assembles itself,
+  throws its armour back, magnet claw, skeleton). 9 EVENT HORIZON (MK IX): the BLACK HOLE
+  pulls everything incl. the ship (thrust escapes), curves shots, SLINGSHOT ring (x3 score +
+  coins, x2 charge, gun shots +50%), WHITE HOLE flip every 25 s; comets, interceptors (front
+  shield) -> THE TWINS (tether, revive in 8 s unless both go down, orbit / swap / propeller).
+  Level 9 is the last level for now (WIN -> gift -> title, CHAMPION achievement).
+- **Game feel (G4):** juice tiers (medium: minion / big rock kill, ship hit = shake + 0.04 s
+  hit-stop + embers; large: boss phase / kill / death = 0.12 s hit-stop + 0.5 s slow-mo +
+  flash), boss damage numbers, boss name cards with an epithet, radio cards (COMMANDER VEGA,
+  ENTER skips), pause menu = options (music / sound volume, reduce shake / flashes).
+- **Boosts + combo (G5):** OVERDRIVE (fire rate x2), SHIELD (3 hits), MAGNET, SLOW-MO (enemy
+  side at 50%), TWIN (a copy of the ship for 10 s) fall every 20–30 s; combo x2..x8 on score
+  (coins x2 max), FEVER at 25.
+- **Wingmen (G6):** PIP, GUARDIAN (level 4 gift), HUNTER (6), MEDIC (8), MAGPIE (shop);
+  knocked out 5 s, never destroyed; XP levels 1–5, TRAIN in the hangar.
+- **Weapons (G7):** 2 primary slots (R) from GUN, LASER, SCATTER, PLASMA, ARC + an automatic
+  secondary (ROCKET POD, SIDE CANNONS: rocks + minions only). New primaries ~ gun DPS.
+- **Skins (G8):** paint jobs, engine trails, tracer / beam colours, death styles; 6
+  achievements unlock some of them.
 - **Flow:** title → HANGAR (pick a hull, ENTER launches) → LEVEL 1 (asteroid field 75 s → WARNING, hull repaired → Gunship) → LEVEL 1 CLEAR
   screen (ship upgrade to MK II, ENTER) → LEVEL 2 "CRIMSON BELT" (rust rocks + drone formations,
   80 s → Gunship rematch 1.5x → WARNING → CARRIER 4x) → LEVEL 2 CLEAR (MK III) → LEVEL 3
@@ -55,13 +90,15 @@ Options need a place in the menus: ask the user where (title? pause?) before add
 - **Hulls** (`player/hulls.py`, picked in the hangar, remembered in `save.json`): ARROW 17x25
   (the original rocket, x1), WASP 13x17 (hp x0.8, firepower x1.25, speed x1.15, one engine),
   TITAN 27x25 (hp x1.4, firepower x0.71, speed x0.85, 3 engines, barrels on the pods),
-  LANCE 13x33 (laser x1.3, speed x0.95, one big engine). They multiply the level's MK model and
+  LANCE 13x33 (laser x1.3, speed x0.95, one big engine), SPECTER 15x18 (secret, level 9
+  gift: hp x0.9, firepower x1.11, speed x1.1). They multiply the level's MK model and
   get its paint job; `hp * firepower == 1` keeps every boss's strength exact. Level-clear screen
   computes the upgrade numbers for the chosen hull.
 - **Ship models** (`Loadout` in `config/loadouts.py`): MK I 100 HP / gun 5 / laser 80; MK II (level 2, blue
   paint) 150 HP / gun 7 / laser 110 dps, cooler laser, faster; MK III (level 3, violet) 200 HP /
   gun 9 / laser 140 + BLAST + ULTIMATE; MK IV (level 4, gold on gunmetal, ice-blue canopy)
-  250 HP / gun 11 / laser 170, speed 155, BLAST + ULTIMATE. Boss balance uses the level's model.
+  250 HP / gun 11 / laser 170, speed 155, BLAST + ULTIMATE; MK V–IX (levels 5–9) +50 HP,
+  +2 gun, +30 laser per level up to 500 / 21 / 320. Boss balance uses the level's model.
 - **Boss 4 Leviathan** (`bosses/leviathan.py`, final boss): a space serpent — rotating head
   (16 RotSprite frames x 3 phases) + 11 armour plates that follow the head's trail. Every piece
   is a weapon target (`Boss.parts()`), the head takes x1.5 (announced: "ITS HEAD IS THE WEAK
@@ -96,8 +133,8 @@ Options need a place in the menus: ask the user where (title? pause?) before add
   rounds; laser +35% dps / -20% heat per level, wider beam. Reset at every level start.
 - **Controls:** arrows/WASD move directly (light inertia, stops fast). UP = boost (long flames,
   world x1.35), DOWN = retro (small blue flame, world x0.8). UP+LEFT/RIGHT = diagonal and the rocket
-  leans `\` / `/` (30°), straightening on release. SPACE fires along the nose, R switches gun/laser,
-  P pause, C scanlines, Esc menu/quit, Enter/R restart. `--boss` flag skips to the boss.
+  leans `\` / `/` (30°), straightening on release. SPACE fires along the nose, R switches the
+  2 equipped primaries, T ultimate, ENTER skips a radio card, P pause (+ options), C scanlines, Esc menu/quit, Enter/R restart. `--boss` flag skips to the boss.
   **Mouse:** the rocket flies to the pointer (wanted speed = distance x 7, capped, eases in,
   1.5 px dead zone) and its velocity counts as the arrows it would press (boost / retro / bank
   / lean all work); left button = fire; R / T unchanged. Takes over after the pointer moves
@@ -179,6 +216,43 @@ Options need a place in the menus: ask the user where (title? pause?) before add
   the key is decided then.
 
 ## Log
+
+### 2026-09-27 — G14: level 9 EVENT HORIZON (+ fixes found by the bot)
+- `hazards/blackhole.BlackHole`: drifts across the top third; pulls rocks, enemy bullets, the
+  player's gun / scatter / plasma shots and pickups (accelerations), minions and the ship
+  (the ship: an extra velocity, capped at 60% of its top speed, so thrust always escapes —
+  checked in the smoke test). Event horizon: 20% max HP per hit. SLINGSHOT ring: x3 score and
+  coins, x2 BLAST / ULT charge, gun shots through it +30% speed and +50% damage
+  (`Bullet.boost`). Spaghettification: rocks that fall in stream out as orbiting shards.
+  WHITE HOLE every 25 s (2 s warning: the disc blinks white, a red ring): 3 s of pushing
+  everything out, a shockwave, swallowed enemy bullets come back as a ring. Lensing rings +
+  accretion disc drawn behind the rocks.
+- `Comet` (fast, slanted, a glowing tail; breaks into ice). `Interceptor` (pairs every 9 s):
+  lines up with a dotted lock line, dashes, cools down 0.8 s; a front shield blocks shots
+  that hit it head-on (`Enemy.armour(hit)`), open from the side and while cooling.
+- THE TWINS (`bosses/twins.py`): ORA + ZEN, half the boss HP each (phases and death work on
+  the sum), a laser TETHER between them hurts; a twin that goes down revives after 8 s with
+  35% unless the other goes down too ("ORA REVIVES 7" over it). P1 orbit the black hole
+  (their shots curve), P2 swap sides through the ring and feed bullets into the hole, P3 the
+  tether spins like a propeller and the hole grows x1.35. Music `level9` (B phrygian drift),
+  `twins` (C# minor chase, 176 bpm); SFX white_hole.
+- SPECTER hull (15x18, secret: hp x0.9, firepower x1/0.9, speed x1.1). Gift after level 9:
+  ARC | SPECTER. Level 9 is the last level: WIN -> ENTER -> gift -> title.
+- Found with `tools/playtest.py` (now also prints boss time vs par):
+  - a 245 ms frame when a rock size / colour wasn't prebuilt (prism crystals, magma rain):
+    `AsteroidLibrary.pick()` now falls back to the nearest prebuilt size;
+  - adding 4 rock palettes had thinned out the big rocks of levels 1–4 (the prebuild
+    round-robin spreads 11 sizes over all palettes): levels 1–4 get exactly their old set
+    again; later palettes get 3 big signature sizes built in the background during the
+    menus (`queue` / `build_step`, <= 3.4 ms a frame, ~5 s) — startup stays 2.8 s;
+  - bosses 6–9 ran 1.2–1.9x their par time: Kaleidos shards pass 60% of gun damage to the
+    hive and regrow after 10 s, Scrapjaw's junk 25 HP and skeleton x1.5, the Twins revive at
+    35%, the Wraith jumps faster (0.7 s, 0.4 s static). Now ~1.0–1.4x for the bot.
+  - a phase change in the middle of a Wraith jump left stale jump state (no decoys).
+- Hangar ship stats tightened (5 hulls). README / GUIDE (recipes: extras spawners, rock flags,
+  hazards + event layers) / CLAUDE.md updated.
+- Smoke test: new `level9` section (incl. every radio line fits its card); 6 extra seeds for
+  levels 5–9 pass.
 
 ### 2026-09-27 — G13: level 8 IRON GRAVEYARD
 - `WreckChunk` (palette "wreck"): 2.5x tougher, clangs (`hit_metal`, new `metal_break`),

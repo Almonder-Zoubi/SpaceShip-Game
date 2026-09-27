@@ -6,16 +6,18 @@ import pygame
 
 from ..config.display import LOW_H, LOW_W
 from ..config.palette import POWER, SPARK, TRACER
-from ..config.tuning import GUN_INTERVAL, GUN_PUSH, GUN_SIDE_ANGLE, GUN_SPEED, GUN_SPREAD
+from ..config.tuning import (GUN_INTERVAL, GUN_PUSH, GUN_SIDE_ANGLE, GUN_SPEED, GUN_SPREAD,
+                             SLINGSHOT_SHOT)
 from .base import Hit, Weapon
 
 
 class Bullet:
-    __slots__ = ("x", "y", "vx", "vy", "life")
+    __slots__ = ("x", "y", "vx", "vy", "life", "boost")
 
     def __init__(self, x, y, vx, vy):
         self.x, self.y, self.vx, self.vy = x, y, vx, vy
         self.life = 1.5
+        self.boost = False          # flew through the black hole's SLINGSHOT ring
 
 
 class MachineGun(Weapon):
@@ -75,7 +77,8 @@ class MachineGun(Weapon):
                 for t in targets:
                     if abs(x - t.x) < t.bound and abs(y - t.y) < t.bound and t.contains(x, y):
                         speed = math.hypot(b.vx, b.vy) or 1.0
-                        hit = Hit(t, self.loadout.gun_damage, x, y, b.vx / speed, b.vy / speed, GUN_PUSH)
+                        damage = self.loadout.gun_damage * (SLINGSHOT_SHOT if b.boost else 1)
+                        hit = Hit(t, damage, x, y, b.vx / speed, b.vy / speed, GUN_PUSH)
                         break
                 if hit:
                     break

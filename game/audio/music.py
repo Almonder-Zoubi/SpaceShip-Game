@@ -291,6 +291,34 @@ def scrapjaw():
                 bass_rhythm="R R R R O O R R", beat=beat, fill=fill)
 
 
+def level9():
+    """EVENT HORIZON: vast B phrygian drift, echoing lead, a pulse that feels like gravity."""
+    chords = ["Bm", "C", "Bm", "A", "Bm", "C", "G", "F#",
+              "Em", "C", "Bm", "Bm", "G", "C", "F#", "F#"]
+    melody = """B4 . . . D5 . F#5 . | E5 . . . C5 . G4 . | F#4 . B4 . D5 . F#5 . | E5 . . . C#5 . A4 .
+                B4 . D5 . F#5 . B5 . | C6 . . . G5 . E5 . | D5 . . . G5 . B5 . | A#5 . . . F#5 . C#5 .
+                E5 . . . G5 . B5 . | C6 . . . E6 . G6 . | F#6 . . . D6 . B5 . | F#5 . B5 . D6 . F#6 .
+                G6 . . . D6 . B5 . | C6 . . . G5 . E5 . | F#5 . . . A#5 . C#6 . | F#6 . . . - - - -"""
+    beat = "k . . . h . . . k . . . s . . h"
+    return song(132, chords, melody, lead=LEAD_SOFT, arp_pattern=(0, 1, 2, 1, 2, 3), arp_octave=5,
+                bass_rhythm="R . . R . . R .", beat=beat, lead_echo=(0.45, 0.4),
+                arp_echo=(0.3, 0.45), bass_instrument=BASS_LONG)
+
+
+def twins():
+    """THE TWINS: two voices chasing each other in C# minor, a fast call and answer."""
+    chords = ["C#m", "C#m", "A", "B", "C#m", "C#m", "F#m", "G#",
+              "A", "B", "C#m", "C#m", "F#m", "G#", "A", "G#7"]
+    melody = """C#5 . E5 . G#5 . C#6 . | G#5 . C#6 . E6 . G#6 . | A5 . C#6 . E6 . A6 . | F#6 . D#6 . B5 . F#5 .
+                C#6 . G#5 . E5 . C#5 . | E5 . G#5 . C#6 . E6 . | F#6 . C#6 . A5 . F#5 . | G#5 . C6 . D#6 . G#6 .
+                A6 . E6 . C#6 . A5 . | B5 . D#6 . F#6 . B6 . | G#6 . E6 . C#6 . G#5 . | C#6 . E6 . G#6 . C#7 .
+                A6 . F#6 . C#6 . A5 . | G#5 . C6 . D#6 . G#6 . | E6 . C#6 . A5 . E5 . | G#5 . . . - - - -"""
+    beat = "k k h k s . h k k . h k s k s h"
+    fill = "k k h k s . h k s s s s s s s s"
+    return song(176, chords, melody, arp_pattern=(0, 2, 1, 2), bass_rhythm="R O R O R O R O",
+                beat=beat, fill=fill, lead_echo=(0.17, 0.4))
+
+
 # --- jingles (play once) ----------------------------------------------------------------------------
 def level_clear():
     lead = "C5 E5 G5 C6 . . G5 C6 . . . . . . . . - - - -"
@@ -323,5 +351,6 @@ SONGS = {"title": title, "level1": level1, "level2": level2, "level3": level3,
          "level5": level5, "helios": helios, "level6": level6,
          "wraith": wraith, "level7": level7, "kaleidos": kaleidos,
          "level8": level8, "scrapjaw": scrapjaw,
+         "level9": level9, "twins": twins,
          "level_clear": level_clear, "game_over": game_over, "win": win}
 JINGLES = ("level_clear", "game_over", "win")      # play once instead of looping

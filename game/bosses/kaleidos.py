@@ -60,7 +60,7 @@ def _core_rows(phase):
 class Shard:
     """One of the six crystal shards: a mirror in phase 1, a beam post in phase 2."""
 
-    REGROW = 8.0
+    REGROW = 10.0
 
     def __init__(self, boss, index, image, mask):
         self.boss, self.index = boss, index
@@ -99,8 +99,9 @@ class Kaleidos(Boss):
     """Boss 7. A crystal hive with six shards.
 
     Phase 1 (calm)    -- the shards form a MIRROR SHIELD towards the rocket: laser hits on a
-                         shard bounce back at the ship (weaker); the gun breaks shards (they
-                         regrow). Prism fans from the core, shard shots
+                         shard bounce back at the ship (weaker); other weapons break shards
+                         (60% of that damage reaches the hive; they regrow). Prism fans
+                         from the core, shard shots
     Phase 2 (angry)   -- x1.2; the shards spread out and join into a slowly turning LATTICE
                          of light beams (they blink first) — stay out of the lines
     Phase 3 (furious) -- x1.4; the queen splits her light into 7 coloured spirals
@@ -116,7 +117,8 @@ class Kaleidos(Boss):
         (("spiral7", 3.2), ("prism", 2.0), ("lattice", 3.0), ("spiral7", 2.6), ("rest", 0.4)),
     )
     MIRROR_R, LATTICE_R = 34, 72
-    SHARD_HP = 0.025                 # share of the boss's max hp per shard
+    SHARD_HP = 0.02                  # share of the boss's max hp per shard
+    SHARD_PASS = 0.6                 # a shard hit by a gun (not the laser) passes this on
     REFLECT_X = 0.6                  # a reflected laser hurts like this many bullets
     PRISM_INTERVAL, PRISM_SPEED, PRISM_GAP = 0.5, 118, 0.22
     SHARD_INTERVAL, SHARD_SPEED = 0.3, 125
@@ -173,6 +175,7 @@ class Kaleidos(Boss):
             self.reflections.append(part)          # the mirror: it bounces back
             return
         part.hp -= amount
+        self.damage(amount * self.SHARD_PASS, flash)            # the hive feels it
         if part.hp <= 0:
             part.broken = Shard.REGROW
             part.hp = part.max_hp

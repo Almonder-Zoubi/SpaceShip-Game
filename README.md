@@ -17,29 +17,38 @@ from a small pure-Python synthesizer.
 | Down | Retro — flames die down, the world slows |
 | Up + Left / Right | Diagonal — the rocket leans like `\` or `/` and fires that way |
 | Space / left click | Fire where the nose points (a click also works as Enter in menus) |
-| R | Switch weapon: machine gun / laser (laser overheats) |
-| P | Pause |
+| R | Switch between your 2 primary weapons (chosen in the hangar) |
+| P | Pause — the pause menu has the options (volume, reduce shake / flashes) |
 | C | Toggle CRT scanlines |
 | Enter | Start (opens the hangar) / equip or buy in the hangar (again = launch) / restart |
-| Left / Right | Title: choose an unlocked level. Hangar: switch tab (ships / weapons). Gift: choose |
-| Up / Down | Hangar: pick an item |
+| Left / Right | Title: choose an unlocked level. Hangar: switch tab. Gift: choose. Pause: change an option |
+| Up / Down | Hangar: pick an item. Pause: pick an option |
 | Space | Hangar: launch |
 | T | Ultimate missile storm (from level 3) |
+| Enter (in flight) | Skip the radio message |
 | Esc | Back to menu / quit |
 
 You start with the balanced ARROW and a machine gun. Destroyed rocks, drones and bosses drop
 **coins**, but they only go into your bank when you win the level. Every cleared level shows
-your **rank** (S/A/B/C) and pays out, and the first clear gives a **gift**: choose the LASER or the
-tiny fast WASP, get BLAST + ULTIMATE, choose the armoured TITAN or the laser-focused LANCE. The
-gift you don't take is sold in the shop. The **hangar** before every level is your inventory:
-equip ships, buy items with coins, launch. Every ship is also upgraded between levels
-(MK I → MK II → MK III → MK IV). Levels belong to galaxies of 10 (galaxy 1: ORION REACH).
+your **rank** (S/A/B/C) and pays out, and the first clear gives a **gift** (choose 1 of 2, the
+other goes to the shop): the LASER or the tiny WASP, BLAST + ULTIMATE, TITAN or LANCE, the
+wingmen PIP or GUARDIAN, SCATTER or the OVERDRIVE boost, ROCKET POD or HUNTER, PLASMA or the SOLAR
+paint, SIDE CANNONS or MEDIC, ARC or the secret SPECTER hull. The **hangar** before every level is
+your base: ships, weapons (2 primaries + an automatic secondary), wingmen (they level up),
+upgrades (5 tracks, POWER %) and skins (paint, engine trail, tracers, beam, death style;
+achievements unlock some). Every ship is also upgraded between levels (MK I → MK IX). In flight,
+**boosts** fall like repair kits (OVERDRIVE, SHIELD, MAGNET, SLOW-MO, TWIN) and quick kills build a
+**combo** (up to x8) that ends in **FEVER**. Levels belong to galaxies of 10 (galaxy 1: ORION
+REACH, levels 1–9 playable).
 
 Fly to the end of the asteroid field (progress bar at the top). Asteroids drain your health
 bar — bigger rocks hurt more and take longer to destroy; shooting them slows their fall, and big
 rocks split into fragments. At the end: **WARNING** — your hull is repaired and the **Gunship**
-boss attacks. Four levels, each with its own bosses; in level 4 "FROZEN RIFT" ice rocks shatter,
-kamikaze divers lock on, and the LEVIATHAN, a giant space serpent, waits at the end.
+boss attacks. Nine levels, each with its own twist and boss: ice rocks and the serpent LEVIATHAN
+(4), magma chain reactions and the forge HELIOS (5), fog and the stealth frigate WRAITH (6),
+crystals that split your laser and the prism queen KALEIDOS (7), a ship graveyard and the junk
+king SCRAPJAW (8), and a black hole that pulls everything — you too — where the twins ORA and
+ZEN wait (9).
 (`python3 ESA3.py --boss` skips straight to the boss, `--dev` opens a menu of every start point.)
 
 ## Setup
@@ -69,20 +78,22 @@ ESA3.py          # entry point
 game/            # the game package, one folder per area (see CLAUDE.md for the module map)
   config/        #   resolution, colours, tuning numbers, ship models
   core/          #   pixel-art helpers, font, particles, input, save file
-  background/    #   nebula, planet, starfield
-  player/        #   hulls (ship shapes), ship art, the Ship
-  weapons/       #   machine gun, laser, BLAST, ULTIMATE
-  obstacles/     #   asteroids and their spawner
-  minions/       #   drones, kamikaze divers and enemy bullets
-  bosses/        #   Gunship, Carrier, Mothership, Leviathan (+ balance maths)
-  pickups/       #   repair kits, power cores, coins
+  background/    #   nebula, planet, starfield, one event layer per level (sun, lightning ...)
+  player/        #   hulls (ship shapes), ship art + paint jobs, the Ship
+  weapons/       #   gun, laser, scatter, plasma, arc, BLAST, ULTIMATE, rocket pod, side cannons
+  obstacles/     #   asteroids (ice, magma, crystal, wreck, comet) and their spawner
+  minions/       #   drones, divers, mine layers, phantoms, prism turrets, salvagers, interceptors
+  bosses/        #   Gunship ... Leviathan, Helios, Wraith, Kaleidos, Scrapjaw, the Twins
+  hazards/       #   level-wide mechanics: fog banks, the black hole
+  wingmen/       #   PIP, GUARDIAN, MEDIC, HUNTER, MAGPIE (+ the TWIN boost)
+  pickups/       #   repair kits, power cores, coins, boosts
   levels/        #   level data, grouped into galaxies
-  progression/   #   rank, coins / payout, item catalog + gifts, inventory (pure logic)
+  progression/   #   rank, coins / payout, items + gifts, inventory, upgrades, achievements
   audio/         #   synthesizer, sound effects, music, playback
-  ui/            #   HUD, hangar, gift cards, menus and result screens
-  flow/          #   the Game: main loop, states, level flow, combat, coins, hangar, sound, dev
+  ui/            #   HUD, hangar, gift cards, radio cards, menus and result screens
+  flow/          #   the Game: main loop + one mixin per area (combat, juice, boosts, wingmen ...)
 tests/smoke.py   # headless smoke test
-tools/           # build_audio.py: render sounds and music to WAV
+tools/           # build_audio.py: render sounds and music; playtest.py: bot plays levels
 sounds/generated/    # rendered audio cache (git-ignored, rebuilt on first start)
 images/, astroids/, sounds/*.wav|mp3   # legacy assets from v1 (no longer used)
 docs/GUIDE.md    # developer guide: assets, architecture, workflow, how to add levels / bosses / items

@@ -51,6 +51,10 @@ from .wingmen import WingmenMixin
 from .world import WorldMixin
 
 
+CLASSIC_PALETTES = 5            # rock colours of levels 1-4 (grey, brown, slate, rust, ice)
+SIGNATURE_RADII = (9, 11, 13)   # big rocks prebuilt for every later colour (magma, crystal ...)
+
+
 class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixin, HangarMixin,
            JuiceMixin, BoostsMixin, WingmenMixin, SkinsMixin, OptionsMixin, SoundMixin,
            DevMixin, ScreensMixin):
@@ -90,7 +94,10 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
         rng = random.Random()
         self.library = AsteroidLibrary(rng)
         palettes = tuple(dict.fromkeys(p for lv in LEVELS for p in lv.difficulty.palettes))
-        self.library.prebuild(radii=range(4, 15), palettes=palettes)
+        classic = palettes[:CLASSIC_PALETTES]     # levels 1-4: every size, shared round-robin
+        self.library.prebuild(radii=range(4, 15), palettes=classic)
+        for palette in palettes[CLASSIC_PALETTES:]:   # later levels: a few big signature rocks,
+            self.library.queue(radii=SIGNATURE_RADII, palettes=(palette,))   # built in the menus
         for palette in palettes:                  # fragments: every small size in every colour
             self.library.prebuild(radii=range(4, 9), palettes=(palette,))
         self.background = Background(rng)
@@ -196,6 +203,7 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
         real_dt, dt = dt, self.world_dt(dt)       # hit-stop / slow-mo slow the world down
         firing = False
         if self.state in MENU_STATES:
+            self.library.build_step()             # later levels' big rocks, a frame at a time
             self.ship.update(dt, Keys(), self.fire, self.smoke)
             self.ship.y = self.SHIP_START[1] + math.sin(self.time * 2) * 2   # gentle hover
         elif self.state == State.PLAYING:

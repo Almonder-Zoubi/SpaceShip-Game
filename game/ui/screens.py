@@ -117,6 +117,10 @@ class ScreensMixin:
                            shadow=TEXT_SHADOW)
         for popup in self.popups:
             popup.draw(c, self.font)
+        revive = getattr(self.boss, "revive_text", None)   # THE TWINS: the countdown
+        if revive and int(self.time * 4) % 2 == 0:
+            text, x, y = revive
+            self.font.draw(c, text, (int(x), int(y)), DANGER, shadow=TEXT_SHADOW, center=True)
         if s == State.PLAYING and self.phase == Phase.WARNING:
             self._draw_warning(c)
         elif s == State.PLAYING and self.alert:

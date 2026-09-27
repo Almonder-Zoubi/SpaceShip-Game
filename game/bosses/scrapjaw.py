@@ -240,7 +240,7 @@ class Scrapjaw(Boss):
 
     def fight(self, dt, world):
         rate = self.RAGE[self.phase]
-        fast = 2.0 if self.phase == 2 else 1.0
+        fast = 1.5 if self.phase == 2 else 1.0
         self.move_time += dt * rate * fast
         self.x = LOW_W / 2 + math.sin(self.move_time * 0.45) * (LOW_W / 2 - 50)
         self.y = self.home_y + math.sin(self.move_time * 1.1) * (4 + 6 * (self.phase == 2))

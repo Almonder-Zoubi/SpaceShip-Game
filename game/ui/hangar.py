@@ -271,9 +271,9 @@ class HangarScreen:
              f"{me.max_speed:.0f}"),
             ("SIZE", sizes[hull.name], max(sizes.values()), "{}X{}".format(*hull.size)),
         )
-        y0 = LIST_Y + len(HULLS) * ROW_H + 8
+        y0 = LIST_Y + min(len(HULLS), VISIBLE_ROWS) * ROW_H + 5
         for i, (label, value, top, text) in enumerate(rows):
-            self._bar_row(surf, y0 + i * 10, label, value / top, text,
+            self._bar_row(surf, y0 + i * 9, label, value / top, text,
                           TEXT_DIM if label == "SIZE" else GOOD)   # size: smaller is better
 
     def _skin_stats(self, surf, item, view):

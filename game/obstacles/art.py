@@ -18,7 +18,8 @@ class AsteroidArt:
 
     FRAMES = 24
 
-    def __init__(self, radius, palette_name, rng):
+    def __init__(self, radius, palette_name, rng, lazy=False):
+        """lazy: render the rotation frames later, one per render_step() call."""
         self.radius = radius
         self.palette_name = palette_name
         self.palette = ROCK_PALETTES[palette_name]
@@ -34,8 +35,19 @@ class AsteroidArt:
             ang, dist = rng.uniform(0, math.tau), rng.uniform(0, 0.62) * radius
             cr = max(1.5, rng.uniform(0.18, 0.36) * radius)
             self.craters.append((math.cos(ang) * dist, math.sin(ang) * dist, cr))
-        self.frames = [self._render(math.tau * i / self.FRAMES) for i in range(self.FRAMES)]
-        self.masks = [pygame.mask.from_surface(f) for f in self.frames]
+        self.frames, self.masks = [], []
+        while not lazy and not self.ready:
+            self.render_step()
+
+    @property
+    def ready(self):
+        return len(self.frames) == self.FRAMES
+
+    def render_step(self):
+        """Render the next rotation frame (a few ms)."""
+        frame = self._render(math.tau * len(self.frames) / self.FRAMES)
+        self.frames.append(frame)
+        self.masks.append(pygame.mask.from_surface(frame))
 
     def _radius_at(self, theta):
         return self.radius * (1 + sum(a * math.sin(k * theta + p) for k, a, p in self.harmonics))
@@ -95,17 +107,44 @@ class AsteroidLibrary:
 
     def __init__(self, rng):
         self.rng = rng
-        self.variants = []   # list of AsteroidArt
+        self.variants = []   # list of AsteroidArt (only finished ones are picked)
+        self.pending = []    # rocks queued to be built a frame at a time (see build_step)
 
     def prebuild(self, radii, palettes):
         for i, r in enumerate(radii):
             self.variants.append(AsteroidArt(r, palettes[i % len(palettes)], self.rng))
 
+    def queue(self, radii, palettes):
+        """Rocks to build in the background (menus call build_step every frame)."""
+        for i, r in enumerate(radii):
+            self.pending.append(AsteroidArt(r, palettes[i % len(palettes)], self.rng, lazy=True))
+
+    def build_step(self, frames=1):
+        """Render a few frames of the queued rocks; finished ones join the library."""
+        for _ in range(frames):
+            if not self.pending:
+                return
+            art = self.pending[0]
+            art.render_step()
+            if art.ready:
+                self.variants.append(self.pending.pop(0))
+
+    def finish(self):
+        while self.pending:
+            self.build_step()
+
     def pick(self, radius_min, radius_max, palettes):
+        """A random prebuilt rock in the radius range and palettes; if there is none in that
+        range, the closest size in those palettes (building a rock mid-game would hitch)."""
         matches = [v for v in self.variants
                    if radius_min <= v.radius <= radius_max
                    and v.palette_name in palettes]
         if not matches:
+            near = [v for v in self.variants if v.palette_name in palettes]
+            if near:
+                mid = (radius_min + radius_max) / 2
+                best = min(abs(v.radius - mid) for v in near)
+                return self.rng.choice([v for v in near if abs(v.radius - mid) == best])
             art = AsteroidArt(self.rng.randint(radius_min, radius_max),
                               self.rng.choice(palettes), self.rng)
             self.variants.append(art)

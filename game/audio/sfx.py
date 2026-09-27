@@ -273,6 +273,13 @@ def metal_break():
                lowpass(noise(0.4, 5000, 600, 0.6), 0.5))
 
 
+def white_hole():
+    """The black hole flips: a reversed whoosh swelling up into a bright chord."""
+    swell = noise(1.0, 400, 9000, 0.5, attack=0.8, power=0.6)
+    return mix(swell, at(0.8, mix(*(tone("triangle", freq(n), None, 0.6, 0.15)
+                                    for n in ("C6", "E6", "G6", "B6")))))
+
+
 def select():
     return tone("square", 880, None, 0.04, 0.3, duty=0.25)
 
@@ -303,5 +310,6 @@ SOUNDS = {
     "plasma": plasma, "arc": arc_loop, "rocket": rocket,
     "achievement": achievement, "magma_burst": magma_burst, "flare": flare,
     "teleport": teleport, "metal_break": metal_break,
+    "white_hole": white_hole,
 }
 LOOPS = ("laser", "engine", "arc")         # played on their own channel, looping

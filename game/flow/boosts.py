@@ -7,7 +7,8 @@ from ..config.palette import BOOST_COLORS, RAINBOW
 from ..config.tuning import (BOOST_INTERVAL, BOOST_MINION_CHANCE, BOSS_BOOST_INTERVAL,
                              COMBO_COIN_CAP, COMBO_MAX, COMBO_STEP, COMBO_WINDOW, FEVER_AT,
                              FEVER_TIME, MAGNET_TIME, OVERDRIVE_RATE, OVERDRIVE_TIME,
-                             SHIELD_GRACE, SHIELD_HITS, SLOWDOWN_SCALE, SLOWDOWN_TIME, TWIN_TIME)
+                             SHIELD_GRACE, SHIELD_HITS, SLINGSHOT_SCORE, SLOWDOWN_SCALE,
+                             SLOWDOWN_TIME, TWIN_TIME)
 from ..core.particles import Shockwave
 from ..pickups.boosts import BOOSTS
 from ..ui.popup import Popup
@@ -130,6 +131,8 @@ class BoostsMixin:
         """A rock or minion destroyed: extend the combo; returns the points to add."""
         if self.state != State.PLAYING:
             return points
+        if self.slingshot:
+            points *= SLINGSHOT_SCORE
         before = self.combo_mult
         self.combo += 1
         self.combo_time = COMBO_WINDOW
@@ -148,7 +151,12 @@ class BoostsMixin:
 
     @property
     def coin_mult(self):
-        return min(COMBO_COIN_CAP, self.combo_mult)
+        return min(COMBO_COIN_CAP, self.combo_mult) * (SLINGSHOT_SCORE if self.slingshot else 1)
+
+    @property
+    def slingshot(self):
+        """The ship flies in the black hole's SLINGSHOT ring (level 9)."""
+        return bool(self.hazard and getattr(self.hazard, "ship_in_ring", False))
 
     def break_combo(self):
         self.combo = 0

@@ -60,6 +60,29 @@ WASP_ROWS = (
 )
 
 
+# --- SPECTER: secret 15x18 stealth delta (level 9 gift) -------------------------------
+SPECTER_ROWS = (
+    ".......K.......",
+    "......KPK......",
+    "......KRK......",
+    ".....KPRrK.....",
+    ".....KCBbK.....",
+    "....KPCBbrK....",
+    "....KRBBbrK....",
+    "...KRWLLLGrK...",
+    "..KPRKWLGKRrK..",
+    ".KPRRKWLGKRRrK.",
+    "KPRRRKWLGKRRRrK",
+    "KRRRrKWLGKrRRrK",
+    "KRRrrKLLDKrrRrK",
+    "KRrrKKDDDKKrrRK",
+    "KKK..KYYyK..KKK",
+    ".....KKKKK.....",
+    "....KOK.KOK....",
+    "...KOOOKOOOK...",
+)
+
+
 def _titan_rows():
     """TITAN: wide 27x25 heavy gunship — central hull, two engine pods, three engines."""
     c = CharCanvas(25, 23)
@@ -184,7 +207,11 @@ LANCE = Hull("LANCE", "LASER SPECIALIST  -  LONG AND THIN", _lance_rows(),
              nozzles=(0,), barrels=((-4.0, -3.5), (4.0, -3.5)),
              speed=0.95, laser=1.3, flame=1.3)
 
-HULLS = (ARROW, WASP, TITAN, LANCE)
+SPECTER = Hull("SPECTER", "SECRET HULL  -  SWIFT, HITS HARD", SPECTER_ROWS,
+               nozzles=(-2, 2), barrels=((-5.0, 1.0), (5.0, 1.0)),
+               hp=0.9, firepower=1 / 0.9, speed=1.1, flame=0.9)
+
+HULLS = (ARROW, WASP, TITAN, LANCE, SPECTER)
 
 
 def hull_named(name):

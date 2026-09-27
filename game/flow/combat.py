@@ -4,7 +4,7 @@ import random
 
 from ..config.palette import ACCENT, DANGER, FLAME, ICE_SHARDS, LASER, POWER, SMOKE, SPARK
 from ..config.tuning import (MAGMA_BLAST, MAGMA_BLAST_DAMAGE, REFRACT_BEAMS, REFRACT_RANGE,
-                             REFRACT_SHARE, BLAST_CHARGE_PER_DAMAGE, BLAST_CHARGE_PER_KILL, BOSS_ROAR_TIME,
+                             REFRACT_SHARE, SLINGSHOT_CHARGE, BLAST_CHARGE_PER_DAMAGE, BLAST_CHARGE_PER_KILL, BOSS_ROAR_TIME,
                              DRONE_KIT_CHANCE, POINTS_BOSS, POINTS_PER_RADIUS, ROCK_KIT_CHANCE,
                              ULT_CHARGE_PER_BOSS_THIRD, ULT_CHARGE_PER_DAMAGE, ULT_CHARGE_PER_KILL)
 from ..core.particles import Shockwave
@@ -149,7 +149,7 @@ class CombatMixin:
             a = base + math.tau * i / count + random.uniform(-0.4, 0.4)
             speed = random.uniform(kick_min, kick_max)
             dx, dy = math.cos(a), math.sin(a)
-            self.asteroids.append(type(rock)(
+            self.asteroids.append((rock.FRAGMENT or type(rock))(
                 art, rock.x + dx * r * 0.5, rock.y + dy * r * 0.5,
                 rock.vx + dx * speed, rock.vy * 0.8 + dy * speed,
                 spin=random.choice((-1, 1)) * random.uniform(1.5, 3.5), hp_scale=rock.hp_scale))
@@ -239,6 +239,8 @@ class CombatMixin:
     def _charge(self, damage, killed, minion=False):
         """Hitting rocks and minions fills the MK III's BLAST and ULTIMATE meters."""
         bonus = 3 if minion else 1
+        if self.slingshot:
+            damage, bonus = damage * SLINGSHOT_CHARGE, bonus * SLINGSHOT_CHARGE
         loadout = self.ship.loadout
         if loadout.blast and self.blast.add_charge(loadout.charge_rate * (
                 damage * BLAST_CHARGE_PER_DAMAGE + killed * BLAST_CHARGE_PER_KILL * bonus)):

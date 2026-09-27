@@ -30,6 +30,7 @@ ITEMS = {item.id: item for item in (
     Item("WASP", "WASP", SHIP, ("SMALL, FAST, AGILE.", "FRAGILE, HITS HARDER."), 250),
     Item("TITAN", "TITAN", SHIP, ("HEAVY ARMOUR.", "WIDE AND SLOW."), 350),
     Item("LANCE", "LANCE", SHIP, ("LONG AND THIN.", "LASER SPECIALIST."), 350),
+    Item("SPECTER", "SPECTER", SHIP, ("THE SECRET HULL.", "SWIFT, HITS HARD."), 500),
     Item("GUN", "MACHINE GUN", WEAPON, ("STREAM OF TRACERS.", "NEVER OVERHEATS."), 0,
          slot=PRIMARY),
     Item("LASER", "LASER", WEAPON, ("PIERCING BEAM.", "OVERHEATS WHEN HELD."), 200,
@@ -112,6 +113,7 @@ GIFTS = {
     "1-6": ("ROCKET POD", "HUNTER"),
     "1-7": ("PLASMA", "SOLAR"),
     "1-8": ("SIDE CANNONS", "MEDIC"),
+    "1-9": ("ARC", "SPECTER"),
 }
 
 

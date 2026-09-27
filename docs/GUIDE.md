@@ -101,7 +101,12 @@ loop. Its behaviour is split into **mixins**, one file each, all working on the 
 | `WorldMixin` | `flow/world.py` | move rocks, enemies, bullets, pickups; hazards that hurt the ship |
 | `CombatMixin` | `flow/combat.py` | the player's hits: damage, kills, splitting, score, BLAST / ULT charge |
 | `ProgressionMixin` | `flow/progression.py` | pending coins, `LevelStats`, rank + payout into the bank when a level is won |
-| `HangarMixin` | `flow/hangar.py` | hangar tabs (ships, weapons, upgrades), buying with a confirm step, launching, gift screen |
+| `HangarMixin` | `flow/hangar.py` | hangar tabs (ships, weapons, wingmen, upgrades, skins), buying with a confirm step, weapon slots, launching, gift screen |
+| `JuiceMixin` | `flow/juice.py` | juice tiers (`juice(tier, x, y)`: shake, hit-stop, embers, flash, slow-mo), `world_dt()`, boss damage numbers, radio cards |
+| `BoostsMixin` | `flow/boosts.py` | boost timers and drops, the shield, `enemy_dt()` (SLOW-MO), combo / FEVER |
+| `WingmenMixin` | `flow/wingmen.py` | the flying wingmen, their hits and knock-outs, XP (banked at level end) |
+| `SkinsMixin` | `flow/skins.py` | skins worn (trail, tracers, beam, paint, death style), achievements |
+| `OptionsMixin` | `flow/options.py` | pause-menu options (volume, reduce shake / flashes), saved |
 | `SoundMixin` | `flow/sound.py` | which music plays in which state, engine / laser loops |
 | `DevMixin` | `flow/dev.py` | dev menu items, god mode, hotkeys |
 | `ScreensMixin` | `ui/screens.py` | drawing every frame and every state's overlay |
@@ -214,10 +219,14 @@ colours shared by several things go in `config/palette.py`.
          music="level5", upgrade_notes=("SOMETHING NEW",))
    ```
    Every `BossSpec` must use `player=` the level's loadout (the smoke test checks this).
-5. Automatic: level select, unlocking, dev menu entries, level-clear screen, WIN after the last level.
-6. Tests: the `level4` section expects WIN after level 4. With a level 5 it ends at
-   LEVEL_CLEAR instead, so move the WIN checks into a new `level5` section in `tests/smoke.py`
-   and add it to `SECTIONS`.
+5. Optional per level: `radio=(...)` lines (<= 43 characters, the smoke test checks),
+   `event=` a background event layer class, `hazard=` a level-wide mechanic class, and in
+   `Difficulty`: `extras=((spawn_function, seconds), ...)` minion spawners, `rock_hp`,
+   `enemy_hp` (later ship models hit much harder, so later fields need tougher rocks).
+6. The gift after its first clear: `GIFTS["1-n"] = (item_a, item_b)` in `progression/items.py`.
+7. Automatic: level select, unlocking, dev menu entries, level-clear screen, WIN after the last level.
+8. Tests: the `level9` section expects WIN after level 9 (the last level). A level 10 moves
+   the WIN checks into a new `level10` section in `tests/smoke.py` (add it to `SECTIONS`).
 
 ### A new boss
 
@@ -246,17 +255,36 @@ colours shared by several things go in `config/palette.py`.
 1. `minions/<name>.py`: sprite rows + colours, `class X(Enemy)` with `points`,
    `contact_damage`, `move(dt, world)` and `attack(dt, world)`. Add `prebuild()` if it rotates.
 2. A formation function returning a list of instances (like `drone_formation()`).
-3. Spawn it: add a field to `Difficulty` (`levels/model.py`, e.g. `x_interval: float = 0`),
-   a timer in `LevelFlowMixin.new_run()` and `_spawn_field_extras()` (copy the diver block).
+3. Spawn it as data: `Difficulty(extras=((x_squad, 9),))` — a function `x_squad(game)` that
+   returns a list of new enemies, and the seconds between squads. The level's `enemy_hp`
+   scales them (`LevelFlowMixin.spawn_enemies`).
 4. Shooting it, charging BLAST / ULT, scoring and ramming damage all work automatically.
+   Hooks: `armour(hit)` (a damage multiplier, e.g. a shield that faces one way),
+   `on_death(world, scored)` (e.g. a mine's blast), `drops_coins`, `stat` (False = doesn't
+   count for or against the "destroyed" rating), `contact_damage` can be a property.
 
 ### A new obstacle type
 
 1. Palette in `config/palette.ROCK_PALETTES` (`[outline, darkest ... lightest]`).
 2. Subclass `Asteroid` in `obstacles/asteroid.py`: change `SPLIT_RADIUS`, `HP_FACTOR`,
-   `SPARKLE`, `fragments()`, `break_sound()` (see `IceRock`).
+   `SPARKLE`, `fragments()`, `break_sound()` (see `IceRock`), or the flags the game reacts
+   to: `EXPLODES` (magma: `area_blast`), `REFRACTS` (crystal: splits the laser), `METAL`
+   (wreck: clang, coins), `FRAGMENT` (class of its pieces).
 3. Register it: `ROCK_KINDS = {"ice": IceRock, "metal": MetalRock}`.
-4. Use the palette name in a level's `Difficulty(palettes=(...))`.
+4. Use the palette name in a level's `Difficulty(palettes=(...))`. The five classic palettes
+   are prebuilt at startup; later palettes get big "signature" rocks built in the background
+   while the menus run (`AsteroidLibrary.queue` / `build_step`), and `pick()` falls back to
+   the nearest prebuilt size, so nothing is rendered mid-game.
+
+### A level hazard or a background event layer
+
+- **Event layer** (looks only): a class in `background/events.py` with `update(dt,
+  world_speed)` and `draw(surf)`; keep it dark (<= 40% brightness). Set `Level(event=X)`.
+- **Hazard** (gameplay, like the fog banks or the black hole): a `Hazard` subclass in
+  `hazards/<name>.py` with `update(dt, game)` (it can move anything in the world) and
+  `draw_back` (behind rocks), `draw_mid` (over rocks and minions, under the ship and enemy
+  bullets) and `draw_front`. Set `Level(hazard=X)`; the game creates one per attempt as
+  `game.hazard`.
 
 ### A new player ship (hull)
 
