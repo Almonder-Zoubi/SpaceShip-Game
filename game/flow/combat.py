@@ -2,11 +2,10 @@
 import math
 import random
 
-from ..config.palette import ACCENT, DANGER, FLAME, LASER, POWER, SMOKE, SPARK
+from ..config.palette import ACCENT, DANGER, FLAME, ICE_SHARDS, LASER, POWER, SMOKE, SPARK
 from ..config.tuning import (BLAST_CHARGE_PER_DAMAGE, BLAST_CHARGE_PER_KILL, BOSS_ROAR_TIME,
                              DRONE_KIT_CHANCE, POINTS_BOSS, POINTS_PER_RADIUS, ROCK_KIT_CHANCE,
-                             ROCK_SPLIT_RADIUS, ULT_CHARGE_PER_BOSS_THIRD, ULT_CHARGE_PER_DAMAGE,
-                             ULT_CHARGE_PER_KILL)
+                             ULT_CHARGE_PER_BOSS_THIRD, ULT_CHARGE_PER_DAMAGE, ULT_CHARGE_PER_KILL)
 from ..core.particles import Shockwave
 from ..minions.base import Enemy
 from ..obstacles.asteroid import Asteroid
@@ -22,8 +21,8 @@ class CombatMixin:
         """Every weapon keeps simulating (bullets in flight, laser cooling); only the active one fires.
         A charged BLAST takes over from the normal weapon while it lasts."""
         targets = self.asteroids + self.enemies
-        if self.boss and self.boss.targetable:
-            targets.append(self.boss)
+        boss_parts = self.boss.parts() if self.boss and self.boss.targetable else []
+        targets += boss_parts
         firing = firing and self.ship.alive
         hits = []
         if self.ship.loadout.blast:
@@ -36,7 +35,7 @@ class CombatMixin:
         if missile_hits:
             self.audio.play("missile_hit")
         for hit in hits + missile_hits:
-            if hit.target is self.boss:
+            if hit.target is self.boss or hit.target in boss_parts:
                 self._damage_boss(hit)
             elif isinstance(hit.target, Enemy):
                 self._damage_enemy(hit)
@@ -70,28 +69,31 @@ class CombatMixin:
         self.fire.burst(rock.x, rock.y, 4 + r * 2, 50 + r * 5, 0.45, FLAME[:4], size=(1, 2), drag=3)
         self.shockwaves.append(Shockwave(rock.x, rock.y, max_radius=r * 2 + 4, duration=0.3,
                                          color=colors[0]))
+        if rock.SPARKLE:
+            self.fire.burst(rock.x, rock.y, 6 + r * 2, 70 + r * 6, 0.5, ICE_SHARDS, size=(1, 1),
+                            drag=2)
         self.shake.add(0.04 + r * 0.012)
         if rock in self.asteroids:
             self.asteroids.remove(rock)
-        self.audio.play("rock_break_big" if r >= ROCK_SPLIT_RADIUS else "rock_break")
+        self.audio.play(rock.break_sound())
         if scored:
             self.score += r * POINTS_PER_RADIUS
             if r >= 10 and random.random() < ROCK_KIT_CHANCE:
                 self.pickups.append(RepairKit(rock.x, rock.y))
-        if r >= ROCK_SPLIT_RADIUS:
+        if rock.splits:
             self._split(rock)
 
     def _split(self, rock):
+        """Fragments of the same kind (ice shatters into ice)."""
         r = rock.radius
-        count = 2 if r < 12 else 3
+        count, r_min, r_max, (kick_min, kick_max) = rock.fragments()
         base = random.uniform(0, math.tau)
         for i in range(count):
-            art = self.library.pick(max(4, int(r * 0.4)), max(4, int(r * 0.6)),
-                                    (rock.art.palette_name,))
+            art = self.library.pick(r_min, r_max, (rock.art.palette_name,))
             a = base + math.tau * i / count + random.uniform(-0.4, 0.4)
-            speed = random.uniform(25, 55)
+            speed = random.uniform(kick_min, kick_max)
             dx, dy = math.cos(a), math.sin(a)
-            self.asteroids.append(Asteroid(
+            self.asteroids.append(type(rock)(
                 art, rock.x + dx * r * 0.5, rock.y + dy * r * 0.5,
                 rock.vx + dx * speed, rock.vy * 0.8 + dy * speed,
                 spin=random.choice((-1, 1)) * random.uniform(1.5, 3.5)))
@@ -120,7 +122,7 @@ class CombatMixin:
 
     def _damage_boss(self, hit):
         phase = self.boss.phase
-        self.boss.damage(hit.damage, flash=not hit.continuous)
+        self.boss.hit_part(hit.target, hit.damage, flash=not hit.continuous)
         if self.boss.phase != phase:
             self._boss_phase_changed()
         b = self.boss

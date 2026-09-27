@@ -3,7 +3,8 @@
 To add a sound: write a function here, add it to SOUNDS, run tools/build_audio.py,
 then call game.audio.play("name").
 """
-from .synth import RATE, at, echo, freq, lowpass, make_loop, mix, noise, oscillate, seq, tone
+from .synth import (RATE, at, echo, freq, lowpass, make_loop, mix, noise, oscillate, seq, silence,
+                    tone)
 
 
 # --- player weapons ------------------------------------------------------------------------
@@ -102,6 +103,26 @@ def enemy_shot():
     return tone("square", 900, 380, 0.08, 0.28, duty=0.25)
 
 
+def lock_on():
+    """Diver / Leviathan target lock: two quick high beeps."""
+    beep = tone("square", freq("A6"), None, 0.05, 0.22, duty=0.25)
+    return seq(beep, silence(0.04), beep)
+
+
+def dive():
+    """Leviathan lunge: a rushing roar that swoops down."""
+    rush = lowpass(noise(0.9, 1200, 5000, 0.5, attack=0.08, power=0.9), 0.5)
+    growl = tone("saw", 110, 45, 0.9, 0.45, attack=0.05, power=0.8, vibrato=1.0, vibrato_rate=18)
+    return mix(rush, lowpass(growl, 0.3))
+
+
+def ice_break():
+    """Ice rock shattering: glassy pings over a bright crunch."""
+    pings = mix(tone("sine", 2600, 2450, 0.28, 0.25), at(0.03, tone("sine", 3300, 3150, 0.22, 0.2)),
+                at(0.07, tone("triangle", 1950, 1850, 0.3, 0.22)))
+    return mix(noise(0.16, 14000, 5000, 0.35), lowpass(noise(0.2, 3000, 800, 0.35), 0.6), pings)
+
+
 def boss_roar():
     """Phase change: a deep rising growl with a crash."""
     growl = tone("saw", 55, 110, 1.4, 0.6, attack=0.1, power=0.7, vibrato=1.2, vibrato_rate=16)
@@ -160,5 +181,6 @@ SOUNDS = {
     "ship_explode": ship_explode, "boss_explode": boss_explode, "enemy_shot": enemy_shot,
     "boss_roar": boss_roar, "beam": beam, "warning": warning, "pickup": pickup,
     "power_up": power_up, "select": select, "confirm": confirm, "engine": engine_loop,
+    "lock_on": lock_on, "dive": dive, "ice_break": ice_break,
 }
 LOOPS = ("laser", "engine")         # played on their own channel, looping

@@ -1,4 +1,4 @@
-"""Keyboard events: what each key does in each state (one handler method per state)."""
+"""Input events: what each key does in each state (one handler method per state), mouse."""
 import pygame
 
 from ..config.palette import ACCENT
@@ -11,6 +11,8 @@ class EventsMixin:
     """Game mixin: turns the pygame event queue into actions (and fills self.held).
 
     Each state has a `_keys_<state>(key)` handler; a handler returns False to quit the game.
+    The mouse steers while playing (see core.input.Mouse); a left click in a menu counts
+    as ENTER.
     """
 
     def handle_events(self):
@@ -22,16 +24,38 @@ class EventsMixin:
                 self.held.pressed.discard(event.key)
             elif event.type == pygame.WINDOWFOCUSLOST:
                 self.held.pressed.clear()     # avoid keys "stuck" after alt-tab
+                self.mouse.firing = False
+            elif event.type == pygame.MOUSEMOTION:
+                self.mouse.move(event.pos, event.rel)
+            elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+                self.mouse.firing = False
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                self.mouse.click(event.pos)
+                if self.state not in (State.PLAYING, State.PAUSED):
+                    if self._handler()(pygame.K_RETURN) is False:
+                        return False
             if event.type != pygame.KEYDOWN:
                 continue
             self.held.pressed.add(event.key)
+            if event.key in MOVE_KEYS + (pygame.K_RETURN, pygame.K_KP_ENTER):
+                self.mouse.release()          # keyboard takes over
             if event.key == pygame.K_c:
                 self.show_scanlines = not self.show_scanlines
                 continue
-            handler = getattr(self, "_keys_" + self.state.name.lower())
-            if handler(event.key) is False:
+            if self._handler()(event.key) is False:
                 return False
+        self._update_cursor()
         return True
+
+    def _handler(self):
+        return getattr(self, "_keys_" + self.state.name.lower())
+
+    def _update_cursor(self):
+        """Hide the system pointer while flying (the game draws its own reticle)."""
+        shown = self.state != State.PLAYING
+        if shown != self._cursor_shown:
+            self._cursor_shown = shown
+            pygame.mouse.set_visible(shown)
 
     # --- one handler per state ---------------------------------------------------------
     def _keys_title(self, key):

@@ -2,7 +2,7 @@
 import random
 
 from ..config.display import LOW_W
-from .asteroid import Asteroid
+from .asteroid import rock_class
 
 
 class AsteroidSpawner:
@@ -23,7 +23,7 @@ class AsteroidSpawner:
         # Big rocks fall slower, small ones faster.
         size_k = (art.radius - d.radius_min) / max(1, d.radius_max - d.radius_min)
         speed = random.uniform(d.speed_min, d.speed_max) * (1.15 - 0.3 * size_k)
-        return [Asteroid(
+        return [rock_class(art.palette_name)(
             art,
             x=random.uniform(8, LOW_W - 8),
             y=-art.size / 2,

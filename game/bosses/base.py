@@ -5,7 +5,7 @@ import pygame
 
 from ..config.display import LOW_W
 from ..config.palette import DANGER, FLAME, SMOKE, SPARK
-from ..config.tuning import BOSS_ROAR_TIME
+from ..config.tuning import BOSS_CONTACT_DAMAGE, BOSS_ROAR_TIME
 from ..minions.bullets import shoot
 from ..minions.drone import Drone
 
@@ -14,6 +14,8 @@ class Boss:
     """Common boss behaviour: enter, fight (subclass), dying explosions, dead.
 
     Shares the weapon-target interface with asteroids: x, y, bound, contains(), damage().
+    A boss made of several pieces (the Leviathan) returns them from parts(); weapons aim at
+    the parts and hit_part() turns a hit on any of them into damage to the boss.
     `world` passed to update() is the Game: it provides ship, enemies, enemy_bullets, fire,
     smoke, shake, audio, hurt_ship() and explosion(x, y, size).
     """
@@ -52,7 +54,24 @@ class Boss:
         n = self.PHASES if self.PHASES > 1 else 4
         return [i / n for i in range(1, n)]
 
+    @classmethod
+    def prebuild(cls):
+        """Hook: build expensive sprites now (the game calls it at startup), not mid-fight."""
+
     # --- target interface ---------------------------------------------------------
+    def parts(self):
+        """What the player's weapons can hit."""
+        return [self]
+
+    def hit_part(self, part, amount, flash=True):
+        """A weapon hit one of parts()."""
+        self.damage(amount, flash)
+
+    @property
+    def contact_damage(self):
+        """Damage for ramming the boss."""
+        return BOSS_CONTACT_DAMAGE
+
     @property
     def bound(self):
         return max(self.w, self.h) / 2 + 1
@@ -122,8 +141,7 @@ class Boss:
         self._emit_vents(dt, world)
         if self.state == "enter":
             k = min(1.0, self.state_time / self.ENTER_TIME)
-            start = -self.h / 2 - 4
-            self.y = start + (self.home_y - start) * (1 - (1 - k) ** 3)
+            self.enter(k)
             if k >= 1:
                 self._set_state("fight")
         elif self.state == "fight":
@@ -143,6 +161,11 @@ class Boss:
                 self._set_state("dead")
                 return "defeated"
         return None
+
+    def enter(self, k):
+        """Entry movement, k = 0..1 over ENTER_TIME: glide down to home_y."""
+        start = -self.h / 2 - 4
+        self.y = start + (self.home_y - start) * (1 - (1 - k) ** 3)
 
     def fight(self, dt, world):
         raise NotImplementedError

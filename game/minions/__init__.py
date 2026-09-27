@@ -1,1 +1,2 @@
-"""Minions: small enemy ships (drones), their formations and the bullets every enemy fires."""
+"""Minions: small enemy ships (drones, kamikaze divers), their formations and the bullets
+every enemy fires."""

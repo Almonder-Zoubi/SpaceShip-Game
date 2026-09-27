@@ -1,7 +1,7 @@
 """World update: moving rocks, minions, the boss, enemy bullets and pickups; hazards to the ship."""
 from ..config.palette import FLAME, HEAL, POWER, SMOKE, SPARK
-from ..config.tuning import (BOSS_CONTACT_DAMAGE, BULLET_KNOCKBACK, POINTS_DODGE,
-                             ROCK_DAMAGE_BASE, ROCK_DAMAGE_PER_RADIUS)
+from ..config.tuning import (BULLET_KNOCKBACK, POINTS_DODGE, ROCK_DAMAGE_BASE,
+                             ROCK_DAMAGE_PER_RADIUS)
 from ..core.particles import Shockwave
 from ..pickups.types import PowerCore
 from ..ui.popup import Popup
@@ -38,7 +38,7 @@ class WorldMixin:
                 self._destroy_enemy(enemy, scored=False)
         if (self.state == State.PLAYING and self.boss.fighting and not self.ship.invulnerable
                 and self.boss.collides_with(self.ship)):
-            self.hurt_ship(BOSS_CONTACT_DAMAGE, self.boss.x, self.boss.y)
+            self.hurt_ship(self.boss.contact_damage, self.boss.x, self.boss.y)
 
     def _update_enemies(self, dt):
         ship = self.ship

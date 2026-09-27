@@ -11,12 +11,13 @@ from ..config.display import FPS, LOW_H, LOW_W, MAX_DT, SAVE_FILE, SCALE, TITLE,
 from ..config.palette import SPACE, TEXT_DIM
 from ..config.tuning import (DEATH_DELAY, THROTTLE_BOOST, THROTTLE_IDLE, THROTTLE_RETRO,
                              WORLD_SPEED_FAST, WORLD_SPEED_SLOW)
-from ..core.input import Keys
+from ..core.input import Keys, Mouse
 from ..core.particles import ParticleSystem, ScreenShake
 from ..core.pixelart import opaque_surface, window_icon
 from ..core.pixelfont import PixelFont
 from ..core.storage import SaveData
 from ..levels.data import LEVELS
+from ..minions.diver import Diver
 from ..obstacles.art import AsteroidLibrary
 from ..player.hulls import HULLS, hull_named
 from ..player.ship import Ship
@@ -73,8 +74,12 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, SoundMixin, Dev
         for palette in palettes:                  # fragments: every small size in every colour
             self.library.prebuild(radii=range(4, 9), palettes=(palette,))
         self.background = Background(rng)
-        for level in LEVELS:                      # build every nebula now, not mid-game
+        for level in LEVELS:                      # build every nebula and boss now, not mid-game
             self.background.set_nebula(level.nebula)
+            for wave in level.waves:
+                for entry in wave.bosses:
+                    entry.boss_class.prebuild()
+        Diver.prebuild()
         self.ship = Ship(*self.SHIP_START)
         self.audio = Audio()
         if bank.missing():
@@ -96,6 +101,8 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, SoundMixin, Dev
         self.hurt_flash = 0.0
 
         self.held = Keys()
+        self.mouse = Mouse()                   # mouse steering + left-click fire
+        self._cursor_shown = True
         self.best = self.save.best
         self.record_rank = None                # rank of the last finished run in the records
         self.time = 0.0
@@ -142,12 +149,13 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, SoundMixin, Dev
     def run(self):
         while self.handle_events():
             dt = min(self.clock.tick(FPS) / 1000, MAX_DT)
-            self.update(dt, self.held)
+            self.update(dt, self.held, self.mouse)
             self.draw()
             self._present()
         pygame.quit()
 
-    def update(self, dt, keys):
+    def update(self, dt, keys, mouse=None):
+        """Advance one frame. keys: held keys; mouse: a Mouse (None = keyboard only)."""
         self.time += dt
         self.state_time += dt
         self._update_audio()                      # music + loops follow last frame's state
@@ -159,8 +167,8 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, SoundMixin, Dev
             self.ship.update(dt, Keys(), self.fire, self.smoke)
             self.ship.y = self.SHIP_START[1] + math.sin(self.time * 2) * 2   # gentle hover
         elif self.state == State.PLAYING:
-            firing = keys[pygame.K_SPACE]
-            self.ship.update(dt, keys, self.fire, self.smoke)
+            firing = keys[pygame.K_SPACE] or bool(mouse and mouse.firing)
+            self.ship.update(dt, keys, self.fire, self.smoke, target=mouse and mouse.aim)
         elif self.state in (State.WIN, State.LEVEL_CLEAR):
             self.ship.update(dt, keys, self.fire, self.smoke, autopilot=True)
 

@@ -24,6 +24,8 @@ class ScreensMixin:
             enemy.draw(c)
         for pickup in self.pickups:
             pickup.draw(c)
+        if self.state == State.PLAYING and self.ship.alive and self.mouse.aim:
+            self._draw_reticle(c, *self.mouse.aim)
         if self.ship.alive and self.state not in (State.DEV_MENU, State.HANGAR):   # menus need room
             self.ship.draw_flames(c)
             self.ship.draw(c)
@@ -44,6 +46,13 @@ class ScreensMixin:
         if self.flash > 0:
             v = int(255 * min(1.0, self.flash / 0.12))
             c.fill((v, v, v), special_flags=pygame.BLEND_ADD)
+
+    def _draw_reticle(self, c, x, y):
+        """Mouse target: four small ticks around the point (drawn under the ship)."""
+        x, y = int(x), int(y)
+        color = DANGER if self.mouse.firing else TEXT_DIM
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            c.fill(color, (x + dx * 3 - (dx < 0), y + dy * 3 - (dy < 0), 1 + abs(dx), 1 + abs(dy)))
 
     def _draw_overlay(self, c):
         blink = int(self.time * 2.5) % 2 == 0
@@ -178,10 +187,10 @@ class ScreensMixin:
                 f.draw(c, line, (LOW_W // 2, 147 + i * 10), TEXT if i == 0 else TEXT_DIM,
                        shadow=TEXT_SHADOW, center=True)
             return
-        lines = ("ARROWS / WASD  MOVE",
+        lines = ("ARROWS / WASD / MOUSE  MOVE",
                  "UP  BOOST     DOWN  RETRO",
-                 "SPACE  FIRE    R  GUN / LASER",
-                 "T  ULTIMATE  (LEVEL 3)",
+                 "SPACE / LEFT CLICK  FIRE",
+                 "R  GUN / LASER    T  ULTIMATE",
                  "P PAUSE   C SCANLINES   ESC QUIT")
         for i, line in enumerate(lines):
             f.draw(c, line, (LOW_W // 2, 134 + i * 11), TEXT_DIM, shadow=TEXT_SHADOW, center=True)
@@ -192,9 +201,17 @@ class ScreensMixin:
         f = self.font
         f.draw(c, "DEV MODE", (LOW_W // 2, 8), DANGER, scale=2, shadow=TEXT_SHADOW, center=True)
         f.draw(c, "PICK A START POINT", (LOW_W // 2, 28), TEXT_DIM, shadow=TEXT_SHADOW, center=True)
-        for i, (label, *_) in enumerate(self.dev_items()):
+        items, rows = self.dev_items(), 10               # scrolls when there are more
+        first = max(0, min(self.dev_cursor - rows // 2, len(items) - rows))
+        if first > 0:
+            pygame.draw.polygon(c, TEXT_DIM, [(LOW_W // 2 - 3, 40), (LOW_W // 2 + 3, 40),
+                                              (LOW_W // 2, 37)])
+        if first + rows < len(items):
+            pygame.draw.polygon(c, TEXT_DIM, [(LOW_W // 2 - 3, 159), (LOW_W // 2 + 3, 159),
+                                              (LOW_W // 2, 162)])
+        for i, (label, *_) in enumerate(items[first:first + rows], first):
             selected = i == self.dev_cursor
-            y = 42 + i * 12
+            y = 42 + (i - first) * 12
             if selected:
                 c.fill(EMPTY, (60, y - 2, LOW_W - 120, 11))
                 f.draw(c, ">", (66, y), ACCENT, shadow=TEXT_SHADOW)

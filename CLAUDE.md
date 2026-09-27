@@ -8,6 +8,8 @@ Guidance for Claude (and humans) working on this repo.
 built for the THB course "Objektorientierte Skriptsprachen" (ESA3). Keep the code object-oriented
 and readable: it is graded coursework as well as a game.
 
+- Developer guide (assets, randomness, workflow, recipes for new levels / bosses / modes):
+  [docs/GUIDE.md](docs/GUIDE.md) — keep it in sync when adding a new kind of thing.
 - Plan and phases: [ROADMAP.md](ROADMAP.md)
 - What's done / what's next: [PROGRESS.md](PROGRESS.md) — **read it first, update it last** in every session.
   Its "Snapshot" section describes the current game in one screen; the "Decisions" section is binding.
@@ -26,15 +28,16 @@ source .venv/bin/activate        # Python 3.9–3.13, pygame >= 2.5
 python3 ESA3.py
 python3 ESA3.py --boss           # skip the asteroid field, straight to the level boss
 python3 ESA3.py --level 2        # start at level 2 (with --boss: straight to the Carrier)
-python3 ESA3.py --level 3 --boss # final boss (Mothership)
+python3 ESA3.py --level 3 --boss # Mothership
+python3 ESA3.py --level 4 --boss # final boss (Leviathan)
 python3 ESA3.py --dev            # dev menu: any level / wave / boss / ship, god mode, hotkeys
 python3 tools/build_audio.py     # re-render sounds + music after changing game/audio/ recipes
 python3 tools/build_audio.py boss gun    # ...or only some of them
 ```
 
 Headless smoke test (no window, no audio device) — run after every change. It drives every state
-and mechanic in named sections (controls, weapons, damage, balance, pickups, campaign, save,
-menus, hulls, dev, retry, audio, busy); each section starts from its own state:
+and mechanic in named sections (title, controls, mouse, weapons, damage, balance, pickups,
+campaign, level4, save, menus, hulls, dev, retry, audio, busy); each section starts from its own state:
 
 ```bash
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test [--shots DIR]
@@ -65,14 +68,14 @@ Every folder's `__init__.py` docstring lists what its modules do.
 
 | Folder | Modules | Responsibility |
 |---|---|---|
-| `config/` | `display`, `palette`, `tuning`, `loadouts` | Resolution + paths, shared colours, gameplay numbers, ship models `MK1..MK3` (`Loadout`) |
-| `core/` | `pixelart`, `pixelfont`, `particles`, `input`, `storage` | Engine helpers: sprite-from-rows, `CharCanvas`, `mirrored`/`outlined`, RotSprite, dithering, noise, glow; 5x7 font; `ParticleSystem`/`Shockwave`/`ScreenShake`; `Keys` + key groups; `SaveData` (`save.json`) |
+| `config/` | `display`, `palette`, `tuning`, `loadouts` | Resolution + paths, shared colours, gameplay numbers, ship models `MK1..MK4` (`Loadout`) |
+| `core/` | `pixelart`, `pixelfont`, `particles`, `input`, `storage` | Engine helpers: sprite-from-rows, `CharCanvas`, `mirrored`/`outlined`, RotSprite, dithering, noise, glow; 5x7 font; `ParticleSystem`/`Shockwave`/`ScreenShake`; `Keys` + key groups, `Mouse` (steering target + left-click fire); `SaveData` (`save.json`) |
 | `background/` | `nebula`, `planet`, `starfield`, `background` | One layer per module; `Background` draws them back to front |
 | `player/` | `hulls`, `art`, `ship` | `Hull` shapes (ARROW, WASP, TITAN, LANCE: rows, nozzles, barrels, stat multipliers); MK paint jobs + banked/lean frames; `Ship` (controls, lean, throttle, flames, health) |
 | `weapons/` | `base`, `gun`, `laser`, `specials` | `Hit`, `Weapon`, `raycast()`; `MachineGun`; `Laser`; `Charged` → `Blast`, `Ultimate` (+`Missile`) |
-| `obstacles/` | `art`, `asteroid`, `spawner` | Procedural `AsteroidArt`/`AsteroidLibrary`; `Asteroid` (hp, push, pixel-exact hits); `AsteroidSpawner` (driven by a `Difficulty`) |
-| `minions/` | `bullets`, `base`, `drone` | `EnemyBullet`, `shoot()`, `bullet()`; `Enemy` base; `Drone` sprite + class + `drone_formation()` |
-| `bosses/` | `spec`, `base`, `art`, `gunship`, `carrier`, `mothership` | `BossSpec` balance maths; `Boss` base (phases, roar, drones); shared hull colours; **one file per boss = its sprite, muzzles/vents and class** |
+| `obstacles/` | `art`, `asteroid`, `spawner` | Procedural `AsteroidArt`/`AsteroidLibrary`; `Asteroid` (hp, push, pixel-exact hits, how it splits) + `IceRock` (brittle, shatters), `rock_class(palette)`; `AsteroidSpawner` (driven by a `Difficulty`) |
+| `minions/` | `bullets`, `base`, `drone`, `diver` | `EnemyBullet`, `shoot()`, `bullet()`; `Enemy` base; `Drone` sprite + class + `drone_formation()`; `Diver` (kamikaze: lock on, dive) + `diver_squad()` |
+| `bosses/` | `spec`, `base`, `art`, `gunship`, `carrier`, `mothership`, `leviathan` | `BossSpec` balance maths; `Boss` base (phases, roar, drones, `parts()`/`hit_part()` for multi-part bosses, `prebuild()`); shared hull colours; **one file per boss = its sprite, muzzles/vents and class** |
 | `pickups/` | `art`, `base`, `types` | Sprites; `Pickup` base; `RepairKit`, `FullRepair`, `PowerCore` |
 | `levels/` | `model`, `data` | `Difficulty`, `Level`, `Wave`, `BossEntry` (incl. music track); `LEVELS` |
 | `audio/` | `synth`, `sfx`, `music`, `bank`, `player` | Pure-Python chiptune synth; SFX recipes (`SOUNDS`); songs as chords + melodies (`SONGS`); WAV cache in `sounds/generated/`; `Audio` (`play`, `loop`, `music`) |
@@ -127,8 +130,17 @@ Where to look when debugging:
   attributes are created in `Game.__init__` / `new_run()`.
 - Weapons never apply damage themselves: `update()` returns `Hit`s and `Game` applies them,
   so new target types (enemies, bosses) only need `x`, `y`, `bound`, `contains()` (+ `damage()`).
+  A boss made of pieces returns them from `Boss.parts()`; hits on a part go through
+  `Boss.hit_part()` (the Leviathan's head takes x1.5).
+- Expensive sprites (rotated frames) are built at startup via `Boss.prebuild()` /
+  `Diver.prebuild()`, never when the enemy first appears (that would hitch mid-game).
 - Input: `Game.held` (a `Keys` set filled from KEYDOWN/KEYUP) — not `pygame.key.get_pressed()`,
   which is unreliable on macOS. Tests pass `Keys(...)` directly to `Game.update()`.
+- Mouse: `Game.mouse` (`core.input.Mouse`) is passed as `Game.update(dt, keys, mouse)`. It
+  takes over after the pointer really moves (6 px) or a click, and hands back on any arrow key
+  or ENTER. `Ship.update(target=...)` turns the pointer into a wanted velocity and the arrows
+  that velocity "presses", so flames / bank / lean behave exactly as with the keyboard.
+  A left click in a menu = ENTER. The system cursor is hidden while PLAYING (own reticle).
 - Big sprites (bosses) are drawn as a left half on a `CharCanvas`, then `mirrored()` + `outlined()`
   (`bosses/art.build_boss_sprite`). Keep muzzle/vent coordinates next to the sprite, in the boss's file.
 - Heading/lean: angles in radians clockwise from "nose up"; `Ship.angle`, `forward`, `right`.

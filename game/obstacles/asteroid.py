@@ -1,15 +1,22 @@
-"""Asteroids: falling, spinning, destructible rocks."""
+"""Asteroids: falling, spinning, destructible rocks (plain rock and brittle ice)."""
 import math
 import random
 
 from ..config.display import LOW_H, LOW_W
-from ..config.tuning import ROCK_HP_BASE, ROCK_HP_PER_AREA, ROCK_MIN_FALL
+from ..config.tuning import ROCK_HP_BASE, ROCK_HP_PER_AREA, ROCK_MIN_FALL, ROCK_SPLIT_RADIUS
 
 HIT_FLASH = 0.06   # seconds a rock shows white after being hit
 
 
 class Asteroid:
-    """A rock drawn from pre-rendered AsteroidArt frames. Bigger rocks have more hp."""
+    """A rock drawn from pre-rendered AsteroidArt frames. Bigger rocks have more hp.
+
+    Subclasses change how tough a rock is and how it breaks (see IceRock).
+    """
+
+    SPLIT_RADIUS = ROCK_SPLIT_RADIUS   # rocks at least this big break into fragments
+    HP_FACTOR = 1.0
+    SPARKLE = False                    # glittering shards when it breaks
 
     def __init__(self, art, x, y, vx, vy, spin):
         self.art = art
@@ -17,13 +24,25 @@ class Asteroid:
         self.vx, self.vy = vx, vy
         self.angle = random.uniform(0, math.tau)
         self.spin = spin
-        self.max_hp = ROCK_HP_BASE + ROCK_HP_PER_AREA * art.radius ** 2
+        self.max_hp = (ROCK_HP_BASE + ROCK_HP_PER_AREA * art.radius ** 2) * self.HP_FACTOR
         self.hp = self.max_hp
         self.flash = 0.0
 
     @property
     def radius(self):
         return self.art.radius
+
+    @property
+    def splits(self):
+        return self.radius >= self.SPLIT_RADIUS
+
+    def fragments(self):
+        """How it breaks: (count, min radius, max radius, (min, max) kick speed)."""
+        r = self.radius
+        return 2 if r < 12 else 3, max(4, int(r * 0.4)), max(4, int(r * 0.6)), (25, 55)
+
+    def break_sound(self):
+        return "rock_break_big" if self.splits else "rock_break"
 
     @property
     def bound(self):
@@ -91,3 +110,25 @@ class Asteroid:
             surf.blit(white, self.topleft)
         else:
             surf.blit(self.art.frames[self.frame_index], self.topleft)
+
+
+class IceRock(Asteroid):
+    """Brittle ice: less hp, and even medium rocks shatter into a spray of fast shards."""
+
+    SPLIT_RADIUS = 7
+    HP_FACTOR = 0.6
+    SPARKLE = True
+
+    def fragments(self):
+        r = self.radius
+        return 3 if r < 11 else 4, 4, max(4, int(r * 0.45)), (45, 85)
+
+    def break_sound(self):
+        return "ice_break"
+
+
+ROCK_KINDS = {"ice": IceRock}          # palette name -> rock class (default: Asteroid)
+
+
+def rock_class(palette_name):
+    return ROCK_KINDS.get(palette_name, Asteroid)

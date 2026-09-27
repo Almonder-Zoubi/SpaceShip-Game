@@ -5,6 +5,7 @@ from ..config.display import LOW_W
 from ..config.palette import ACCENT
 from ..config.tuning import BOSS_KIT_INTERVAL, FULL_KIT_CHANCE, KIT_INTERVAL, WARNING_TIME
 from ..levels.data import LEVELS
+from ..minions.diver import diver_squad
 from ..minions.drone import drone_formation
 from ..obstacles.spawner import AsteroidSpawner
 from ..pickups.types import FullRepair, RepairKit
@@ -39,6 +40,7 @@ class LevelFlowMixin:
         self.popups = []
         self.kit_timer = random.uniform(*KIT_INTERVAL)
         self.formation_timer = level.difficulty.formation_interval
+        self.diver_timer = level.difficulty.diver_interval
         self.boss_kit_timer = BOSS_KIT_INTERVAL
         self.alert = [f"LEVEL {level.number}", level.name, ACCENT, 3.0]   # title, sub, colour, time
         self.weapon_index = 0
@@ -151,7 +153,7 @@ class LevelFlowMixin:
                 and self.boss_index == len(self.wave.bosses) - 1)
 
     def _spawn_field_extras(self, dt):
-        """Repair kits and (from level 2) drone formations in the asteroid field."""
+        """Repair kits, drone formations (from level 2) and diver squads (level 4)."""
         self.kit_timer -= dt
         if self.kit_timer <= 0:
             self.kit_timer = random.uniform(*KIT_INTERVAL)
@@ -163,6 +165,12 @@ class LevelFlowMixin:
             if self.formation_timer <= 0:
                 self.formation_timer = interval * random.uniform(0.8, 1.2)
                 self.enemies += drone_formation()
+        interval = self.level.difficulty.diver_interval
+        if interval and self.distance < self.wave.length - 4:
+            self.diver_timer -= dt
+            if self.diver_timer <= 0:
+                self.diver_timer = interval * random.uniform(0.8, 1.2)
+                self.enemies += diver_squad(random.choice((2, 3, 3, 4)))
 
     def _level_label(self):
         waves = len(self.level.waves)

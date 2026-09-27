@@ -12,25 +12,27 @@ from a small pure-Python synthesizer.
 | Key | Action |
 |---|---|
 | Arrows / WASD | Move (UP + LEFT/RIGHT = diagonal) |
+| Mouse | Move: the rocket flies to the pointer (an arrow key switches back to the keyboard) |
 | Up | Boost — full burn, long flames, the world speeds up |
 | Down | Retro — flames die down, the world slows |
 | Up + Left / Right | Diagonal — the rocket leans like `\` or `/` and fires that way |
-| Space | Fire where the nose points |
+| Space / left click | Fire where the nose points (a click also works as Enter in menus) |
 | R | Switch weapon: machine gun / laser (laser overheats) |
 | P | Pause |
 | C | Toggle CRT scanlines |
 | Enter | Start (opens the hangar) / launch / restart |
 | Left / Right | Title: choose an unlocked level. Hangar: choose your ship |
-| T | Ultimate missile storm (level 3) |
+| T | Ultimate missile storm (from level 3) |
 | Esc | Back to menu / quit |
 
 Pick a ship in the **hangar**: the balanced ARROW, the tiny fast WASP, the heavily armoured
-TITAN or the laser-focused LANCE. Every ship is upgraded between levels (MK I → MK II → MK III).
+TITAN or the laser-focused LANCE. Every ship is upgraded between levels (MK I → MK II → MK III → MK IV).
 
 Fly to the end of the asteroid field (progress bar at the top). Asteroids drain your health
 bar — bigger rocks hurt more and take longer to destroy; shooting them slows their fall, and big
 rocks split into fragments. At the end: **WARNING** — your hull is repaired and the **Gunship**
-boss attacks. Three levels, each with its own bosses; the Mothership waits at the end.
+boss attacks. Four levels, each with its own bosses; in level 4 "FROZEN RIFT" ice rocks shatter,
+kamikaze divers lock on, and the LEVIATHAN, a giant space serpent, waits at the end.
 (`python3 ESA3.py --boss` skips straight to the boss, `--dev` opens a menu of every start point.)
 
 ## Setup
@@ -64,8 +66,8 @@ game/            # the game package, one folder per area (see CLAUDE.md for the 
   player/        #   hulls (ship shapes), ship art, the Ship
   weapons/       #   machine gun, laser, BLAST, ULTIMATE
   obstacles/     #   asteroids and their spawner
-  minions/       #   drones and enemy bullets
-  bosses/        #   Gunship, Carrier, Mothership (+ balance maths)
+  minions/       #   drones, kamikaze divers and enemy bullets
+  bosses/        #   Gunship, Carrier, Mothership, Leviathan (+ balance maths)
   pickups/       #   repair kits, power cores
   levels/        #   level data
   audio/         #   synthesizer, sound effects, music, playback
@@ -75,6 +77,7 @@ tests/smoke.py   # headless smoke test
 tools/           # build_audio.py: render sounds and music to WAV
 sounds/generated/    # rendered audio cache (git-ignored, rebuilt on first start)
 images/, astroids/, sounds/*.wav|mp3   # legacy assets from v1 (no longer used)
+docs/GUIDE.md    # developer guide: assets, architecture, workflow, how to add levels / bosses / modes
 CLAUDE.md        # architecture, conventions and workflow for contributors / Claude
 ROADMAP.md       # planned phases: bosses, levels, endless mode, leaderboard, sound
 PROGRESS.md      # current snapshot, decisions, log and next steps

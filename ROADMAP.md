@@ -1,9 +1,10 @@
 # Roadmap
 
 Goal: turn the simple "dodge falling pictures" prototype into a polished retro arcade shooter
-with simple arcade controls, weapons, bosses, three levels, an endless mode and a saved leaderboard.
+with simple arcade controls, weapons, bosses, four levels, an endless mode and a saved leaderboard.
 
-Status: Phases 1–4 done, Phase 5: all three levels playable (endless missing), Phase 7: sound done.
+Status: Phases 1–4 done, Phase 5: all four levels playable (endless missing), Phase 7: sound done,
+mouse control added. Next big feature (proposed): Phase 9 — NEMESIS, a boss that learns.
 Code restructured into one package per area (see CLAUDE.md).
 Details and next steps: [PROGRESS.md](PROGRESS.md).
 
@@ -29,6 +30,8 @@ Tried drift physics + 360° rotation + spin: too hard to control, reverted at th
 Decided: **direct arcade controls, the rocket always faces up, never rotates.**
 
 - [x] Arrows move the ship directly with light inertia; two arrows (UP + LEFT/RIGHT) = diagonal
+- [x] Mouse control: the rocket flies to the pointer (eases in), left click fires, R / T as
+      before; an arrow key hands control back to the keyboard. Click = ENTER in menus
 - [x] Diagonal lean: UP+RIGHT tilts the rocket like '/', UP+LEFT like '\' (30°, 3 RotSprite
       frames per side); straightens on release. Shots, laser and flames follow the lean
 - [x] UP = boost flames + faster world, DOWN = retro flames + slower world (Phase 1 behaviour)
@@ -85,6 +88,10 @@ level 3 boss 5x. Rematched earlier bosses are weakened to ~1.5x so they're a war
 - [x] MK III (level 3): BLAST (charged piercing beam, auto on SPACE when full) and
       ULTIMATE (key T, homing missile storm; charges from hits + every third of boss health)
 - [x] Levels 1, 2 and 3 playable
+- [x] Level 4 "FROZEN RIFT" (MK IV): ice rocks that shatter into shards, kamikaze DIVERS
+      (lock on, then dive), Mothership rematch 1.5x, final boss LEVIATHAN 5x — a segmented
+      space serpent (every plate is a target, head = weak spot x1.5, locks on and lunges,
+      ripple fire tail->head, 4-way bursts, spiral + shedding scales in phase 3)
 - [x] Structure: asteroids + enemies → boss rush → level boss
   - Level 1: Boss 1
   - Level 2: Boss 1 (weakened) → Boss 2
@@ -134,6 +141,50 @@ level 3 boss 5x. Rematched earlier bosses are weakened to ~1.5x so they're a war
 - [ ] New minions: kamikaze diver, mine layer, shielded interceptor, rock turret
 - [ ] Architecture doc with UML class diagram; pytest unit tests for pure logic
 - [ ] Gamepad support, packaged app (PyInstaller)
+
+## Phase 9 — NEMESIS: a boss that learns (proposed, needs the user's go)
+
+The user's idea: a separate endless mode where the player is thrown straight into a boss
+fight, the boss gets stronger every round, and it **learns from the player** like a human
+opponent who studies you — different each time, so the player wants "one more try".
+
+**Honest scope note:** no neural network. Training one (reinforcement learning) needs numpy /
+torch, hours of offline training and would not adapt to *one* player in real time; the game's
+rule is "pygame only". Instead: online learning in pure Python that updates during and between
+fights, is saved in `save.json`, and can be *shown* to the player. This is real learning
+(a player model + a multi-armed bandit), explainable, and testable — good for the coursework too.
+
+How the NEMESIS learns:
+1. **Player model** (recorded every frame, persisted): where the rocket spends its time
+   (8x6 heatmap), which way it dodges when a bullet comes close (L/R/U/D counts), gun vs laser
+   share, reaction time to telegraphs (lock-on -> first move), how often T is used.
+2. **Attack choice = multi-armed bandit** (epsilon-greedy or UCB1): every attack pattern keeps
+   an average "damage dealt per second". The boss picks what works on *you*, still exploring
+   ~10% of the time. The values persist between runs = its memory.
+3. **Aiming from the model:** leads shots by your velocity, biases fans toward your usual dodge
+   side, drops bullet walls / mines on your heatmap hot spots, times dives to your reaction time.
+4. **Counters** (unlocked by generation): hug the bottom -> floor sweepers; laser-heavy ->
+   a mirror shield only the gun breaks; ULT spam -> decoy drones that soak missiles.
+5. **Generations:** each round won by the player -> the boss evolves (strength +8% via
+   `BossSpec`, one new ability from an unlock tree). Rounds = the leaderboard number.
+6. **Make the learning visible** (the addictive part): before a round an ANALYSIS card —
+   "NEMESIS GEN 7 / YOU DODGE LEFT 68% / YOU CAMP BOTTOM-LEFT / NEW: PREDICTIVE AIM";
+   after a death: "IT LEARNED: ...". Between rounds the player picks 1 of 3 perks.
+7. **Fairness rails:** capped learning rate, strength ramp per round only through `BossSpec`,
+   always-telegraphed attacks, a "RESET NEMESIS BRAIN" menu option.
+
+Code plan: `game/nemesis/` (`brain.py`: `PlayerModel`, `Bandit` — pure logic, unit-testable;
+`boss.py`: `Nemesis(Boss)` + attack library; `perks.py`), `flow/arena.py` (`ArenaMixin`: rounds,
+perks, analysis), `ui/analysis.py`, states `ARENA_INTRO` / `ARENA_PERK`, `SaveData.nemesis`
+(brain + arena leaderboard). Smoke section `nemesis` + seeded tests for the bandit.
+
+- [ ] N1 Arena shell: title menu entry, straight into a boss, rounds with rising `BossSpec`
+      strength, own leaderboard (best round + score) — no learning yet
+- [ ] N2 Player model recording + ANALYSIS card ("it watches you")
+- [ ] N3 Bandit attack choice + predictive aim (adapts within and across runs)
+- [ ] N4 Counter abilities, generations / unlock tree, perks between rounds
+- [ ] N5 Playtest tuning, reset-brain option, polish (own music + NEMESIS sprite that
+      visibly changes per generation)
 
 ## Later / nice to have
 

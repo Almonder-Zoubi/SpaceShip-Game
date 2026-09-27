@@ -7,8 +7,8 @@ import pygame
 from ..config.display import LOW_H, LOW_W
 from ..config.loadouts import MK1
 from ..config.palette import FLAME, FLAME_LEAN, RCS, SMOKE
-from ..config.tuning import (HIT_INVULNERABLE, HIT_KNOCKBACK, SHIP_ACCEL, SHIP_FRICTION,
-                             SHIP_MARGIN, THROTTLE_BOOST, THROTTLE_IDLE, THROTTLE_RESPONSE,
+from ..config.tuning import (HIT_INVULNERABLE, HIT_KNOCKBACK, MOUSE_DEADZONE, MOUSE_FOLLOW,
+                             MOUSE_LEAN, SHIP_ACCEL, SHIP_FRICTION, SHIP_MARGIN, THROTTLE_BOOST, THROTTLE_IDLE, THROTTLE_RESPONSE,
                              THROTTLE_RETRO, TILT_DEGREES, TILT_RATE, TILT_STEPS)
 from ..core.input import pressed
 from ..core.pixelart import make_glow, ramp
@@ -27,6 +27,8 @@ class Ship:
     UP    -> full boost: long white-hot flames, smoke trail, faster world.
     DOWN  -> retro: flames shrink to a lean blue flicker, world slows down.
     LEFT/RIGHT -> bank sprite + side thruster puffs.
+    Mouse: the ship flies towards a target point instead; its velocity counts as the
+    arrows it would press, so flames, banking and the lean work the same way.
     """
 
     GLOW_STEPS = 8
@@ -140,31 +142,41 @@ class Ship:
         return self.hp - before
 
     # --- update ----------------------------------------------------------------
-    def update(self, dt, keys, fire, smoke, autopilot=False):
-        """Apply input (or autopilot), move, and emit exhaust into the particle systems."""
+    def update(self, dt, keys, fire, smoke, autopilot=False, target=None):
+        """Apply input (or autopilot), move, and emit exhaust into the particle systems.
+        target: (x, y) to fly towards (mouse steering); arrow keys win over it."""
+        want = None
         if autopilot:
-            ax, ay, target = 0, -1, THROTTLE_BOOST
+            ax, ay, throttle = 0, -1, THROTTLE_BOOST
         else:
             ax = pressed(keys, pygame.K_RIGHT, pygame.K_d) - pressed(keys, pygame.K_LEFT, pygame.K_a)
             up = pressed(keys, pygame.K_UP, pygame.K_w)
             down = pressed(keys, pygame.K_DOWN, pygame.K_s)
             ay = down - up
-            target = THROTTLE_BOOST if ay < 0 else THROTTLE_RETRO if ay > 0 else THROTTLE_IDLE
+            if target and not (ax or ay):
+                want = self._follow(target)
+                ax, ay = self._stick(want)
+            throttle = THROTTLE_BOOST if ay < 0 else THROTTLE_RETRO if ay > 0 else THROTTLE_IDLE
 
-        self.throttle += (target - self.throttle) * min(1.0, THROTTLE_RESPONSE * dt)
+        self.throttle += (throttle - self.throttle) * min(1.0, THROTTLE_RESPONSE * dt)
         self.bank = ax
         tilt_target = TILT_DEGREES * ax if ay < 0 else 0.0
         step = TILT_RATE * dt
         self.tilt += max(-step, min(step, tilt_target - self.tilt))
         self.invulnerable_time = max(0.0, self.invulnerable_time - dt)
 
-        self.vx += ax * SHIP_ACCEL * dt
-        self.vy += ay * SHIP_ACCEL * dt
-        damp = max(0.0, 1 - SHIP_FRICTION * dt)
-        if not ax:
-            self.vx *= damp
-        if not ay:
-            self.vy *= damp
+        if want is not None:
+            step = SHIP_ACCEL * dt                   # steer the velocity towards the wanted one
+            self.vx += max(-step, min(step, want[0] - self.vx))
+            self.vy += max(-step, min(step, want[1] - self.vy))
+        else:
+            self.vx += ax * SHIP_ACCEL * dt
+            self.vy += ay * SHIP_ACCEL * dt
+            damp = max(0.0, 1 - SHIP_FRICTION * dt)
+            if not ax:
+                self.vx *= damp
+            if not ay:
+                self.vy *= damp
         speed = math.hypot(self.vx, self.vy)
         if speed > self.max_speed:
             self.vx, self.vy = self.vx / speed * self.max_speed, self.vy / speed * self.max_speed
@@ -177,6 +189,21 @@ class Ship:
         self._flicker = random.random()
         self._emit_exhaust(dt, fire, smoke)
         self._emit_rcs(dt, ax, smoke)
+
+    def _follow(self, target):
+        """Velocity that brings the ship to target: fast when far, easing in when close."""
+        dx, dy = target[0] - self.x, target[1] - self.y
+        dist = math.hypot(dx, dy)
+        if dist < MOUSE_DEADZONE:
+            return 0.0, 0.0
+        speed = min(self.max_speed, dist * MOUSE_FOLLOW)
+        return dx / dist * speed, dy / dist * speed
+
+    def _stick(self, want):
+        """The arrows a wanted velocity corresponds to (-1, 0, 1 per axis)."""
+        threshold = MOUSE_LEAN * self.max_speed
+        vx, vy = want
+        return (vx > threshold) - (vx < -threshold), (vy > threshold) - (vy < -threshold)
 
     def _keep_on_screen(self):
         hw, hh = self.w / 2 + SHIP_MARGIN, self.h / 2 + SHIP_MARGIN

@@ -18,17 +18,19 @@ import pygame
 from game.audio.music import SONGS
 from game.audio.sfx import SOUNDS
 from game.bosses.carrier import Carrier
+from game.bosses.leviathan import Leviathan
 from game.bosses.mothership import Mothership
-from game.config.display import FPS, WIN_H, WIN_W
-from game.config.loadouts import MK1, MK2, MK3
+from game.config.display import FPS, SCALE, WIN_H, WIN_W
+from game.config.loadouts import MK1, MK2, MK3, MK4
 from game.config.tuning import DEATH_DELAY, POWER_MAX, REPAIR_SMALL, WARNING_TIME
 from game.core.input import Keys
 from game.core.storage import SaveData
 from game.flow.game import Game
 from game.flow.states import Phase, State
 from game.levels.data import LEVELS
+from game.minions.diver import Diver
 from game.minions.drone import drone_formation
-from game.obstacles.asteroid import Asteroid
+from game.obstacles.asteroid import Asteroid, IceRock
 from game.pickups.types import FullRepair, PowerCore, RepairKit
 from game.player.hulls import ARROW, HULLS, TITAN, WASP
 from game.weapons.base import Hit
@@ -52,11 +54,11 @@ class Harness:
             pygame.image.save(pygame.transform.scale(self.game.canvas, (WIN_W, WIN_H)),
                               os.path.join(self.shots_dir, f"{name}.png"))
 
-    def run(self, frames, keys=Keys(), clear_rocks=False):
+    def run(self, frames, keys=Keys(), clear_rocks=False, mouse=None):
         for _ in range(frames):
             if clear_rocks:
                 self.game.asteroids.clear()
-            self.game.update(self.dt, keys)
+            self.game.update(self.dt, keys, mouse)
             self.game.draw()
 
     def seconds(self, s):
@@ -64,6 +66,16 @@ class Harness:
 
     def post(self, key, kind=pygame.KEYDOWN):
         pygame.event.post(pygame.event.Event(kind, key=key, mod=0, unicode="", scancode=0))
+        self.game.handle_events()
+
+    def mouse(self, kind, canvas_pos, rel=(0, 0)):
+        """Post a real mouse event at a canvas position (window = canvas x SCALE)."""
+        pos = (int(canvas_pos[0] * SCALE), int(canvas_pos[1] * SCALE))
+        if kind == pygame.MOUSEMOTION:
+            event = pygame.event.Event(kind, pos=pos, rel=rel, buttons=(0, 0, 0))
+        else:
+            event = pygame.event.Event(kind, pos=pos, button=1)
+        pygame.event.post(event)
         self.game.handle_events()
 
     def rock_ahead(self, radius, dist=50):
@@ -128,6 +140,48 @@ def test_controls(h):
     h.post(pygame.K_DOWN, pygame.KEYUP)
     h.post(pygame.K_r)
     assert game.weapon.name == "LASER", "R switches weapons"
+
+
+def test_mouse(h):
+    """Mouse: the rocket flies to the pointer and eases in, leans on the way, left click
+    fires, an arrow key hands control back; a click in a menu is ENTER."""
+    game = h.game
+    game.to_title()
+    pygame.event.clear()
+    game.mouse.release()
+    h.mouse(pygame.MOUSEMOTION, (100, 100), rel=(2, 1))
+    assert not game.mouse.active, "a resting / barely moved pointer doesn't take over"
+    h.mouse(pygame.MOUSEBUTTONDOWN, (100, 100))
+    h.mouse(pygame.MOUSEBUTTONUP, (100, 100))
+    assert game.state == State.HANGAR, "click = ENTER on the title"
+    h.mouse(pygame.MOUSEBUTTONDOWN, (100, 100))
+    h.mouse(pygame.MOUSEBUTTONUP, (100, 100))
+    assert game.state == State.PLAYING and game.mouse.active and not game.mouse.firing
+    ship, target = game.ship, (60, 80)
+    h.mouse(pygame.MOUSEMOTION, target, rel=(-60, -60))
+    h.run(15, game.held, clear_rocks=True, mouse=game.mouse)
+    assert ship.tilt_index < 0 and ship.throttle > 0.8, "flying up-left leans '\\' and boosts"
+    h.shot("mouse_flight")
+    h.run(90, game.held, clear_rocks=True, mouse=game.mouse)
+    dist = math.hypot(ship.x - target[0], ship.y - target[1])
+    assert dist < 2 and math.hypot(ship.vx, ship.vy) < 5, f"arrives and stops ({dist:.1f} px)"
+    assert ship.tilt_index == 0, "straightens once it's there"
+    h.mouse(pygame.MOUSEBUTTONDOWN, target)
+    assert game.state == State.PLAYING, "a click while playing only fires"
+    h.run(10, game.held, clear_rocks=True, mouse=game.mouse)
+    gun = game.weapons[0]
+    assert gun.bullets, "left button fires"
+    h.shot("mouse_fire")
+    h.mouse(pygame.MOUSEBUTTONUP, target)
+    shots = gun.shots
+    h.run(10, game.held, clear_rocks=True, mouse=game.mouse)
+    assert gun.shots == shots, "releasing the button stops firing"
+    x0 = ship.x
+    h.post(pygame.K_RIGHT)
+    assert not game.mouse.active, "an arrow key hands control back to the keyboard"
+    h.run(20, game.held, clear_rocks=True, mouse=game.mouse)
+    assert ship.x > x0 + 10, "the keyboard steers again"
+    h.post(pygame.K_RIGHT, pygame.KEYUP)
 
 
 def test_weapons(h):
@@ -233,7 +287,7 @@ def test_pickups(h):
 
 
 def test_campaign(h):
-    """All three levels in a row: field -> warning -> bosses -> level clear ... -> WIN."""
+    """Levels 1-3 in a row: field -> warning -> bosses -> level clear ... -> on to level 4."""
     game = h.game
     run, seconds = h.run, h.seconds
     game.choose_hull(ARROW)
@@ -427,7 +481,8 @@ def test_campaign(h):
     game.ship.hp = 5
     run(seconds(1.0), clear_rocks=True)
     assert game.phase == Phase.WARNING and game.ship.hp == MK3.max_hp
-    assert game.is_final_boss() and game._music_track() is None, "silence during the warning"
+    assert not game.is_final_boss(), "the Leviathan (level 4) is the final boss now"
+    assert game._music_track() is None, "silence during the warning"
     h.shot("final_warning")
     run(seconds(WARNING_TIME + 2.0), clear_rocks=True)
     boss = game.boss
@@ -458,10 +513,109 @@ def test_campaign(h):
     h.shot("mothership_phase3")
     h.kill(boss)
     run(seconds(boss.DEATH_TIME + 1.9))
+    assert game.state == State.LEVEL_CLEAR and game.save.unlocked == 4, game.state
+    run(seconds(1.2))
+    h.shot("level3_clear")
+    score = game.score
+    h.post(pygame.K_RETURN)
+    assert game.level.number == 4 and game.ship.loadout == MK4 and game.score == score
+
+
+def test_level4(h):
+    """Level 4: MK IV; ice rocks shatter into shards; divers lock on and dive; the Mothership
+    again; then the Leviathan: every plate is a target, the head a weak spot, it lunges
+    through the locked spot, blows apart plate by plate -> WIN."""
+    game = h.game
+    run, seconds = h.run, h.seconds
+    game.choose_hull(ARROW)
+    game.start(3, 5000)
+    assert game.ship.loadout == MK4 and game.ship.max_hp == MK4.max_hp
+    game.ship.hp = 10 ** 9
+    spawned = [r for _ in range(200) for r in game.spawner.update(0.1, 1.0)]
+    assert any(isinstance(r, IceRock) for r in spawned), "the field spawns ice rocks"
+    ice = IceRock(game.library.pick(10, 10, ("ice",)), 160, 80, 0, 0, 0)
+    rock = Asteroid(game.library.pick(10, 10, ("slate",)), 160, 80, 0, 0, 0)
+    assert ice.max_hp < rock.max_hp and ice.splits, "ice is brittle"
+    game.asteroids = [ice]
+    game._damage_rock(Hit(ice, 10 ** 6, ice.x, ice.y, 0, -1, 0))
+    assert len(game.asteroids) >= 3 and all(isinstance(r, IceRock) for r in game.asteroids)
+    run(8)
+    h.shot("level4_ice_shatter")
+
+    # Divers: drop in, lock on (aim follows the rocket), then dive through that spot.
+    game.asteroids.clear()
+    game.diver_timer = 0
+    run(2, clear_rocks=True)
+    assert any(isinstance(e, Diver) for e in game.enemies), "diver squads in the field"
+    game.diver_timer = game.formation_timer = 99
+    diver = Diver(game.ship.x + 40, hover_y=60)
+    game.enemies = [diver]
+    run(seconds(1.2), clear_rocks=True)
+    assert diver.state == "lock" and diver.aim == (game.ship.x, game.ship.y)
+    h.shot("level4_diver_lock")
+    game.ship.hp, game.ship.invulnerable_time = 1000, 0
+    run(seconds(2.0), clear_rocks=True)
+    assert diver not in game.enemies and game.ship.hp < 1000, "a rocket that sits still gets hit"
+
+    # Wave 2: the Mothership, weakened; wave 3: the Leviathan.
+    game.ship.hp = 10 ** 9
+    game.distance = game.wave.length
+    run(2, clear_rocks=True)
+    game.distance = game.wave.length
+    run(seconds(WARNING_TIME + 3.0), clear_rocks=True)
+    assert isinstance(game.boss, Mothership) and game.boss.spec.strength == 1.5
+    h.kill(game.boss)
+    run(seconds(Mothership.DEATH_TIME + 1.7), clear_rocks=True)
+    assert game.wave_index == 2
+    game.distance = game.wave.length
+    run(seconds(WARNING_TIME + Leviathan.ENTER_TIME + 0.3), clear_rocks=True)
+    boss = game.boss
+    assert isinstance(boss, Leviathan) and boss.fighting and game.is_final_boss()
+    assert game._music_track() == "leviathan"
+    assert len(boss.parts()) == 12 and all(0 < p.x < 320 for p in boss.parts()[:4])
+    h.shot("leviathan")
+    hp0 = boss.hp
+    game._damage_boss(Hit(boss.head, 100, 0, 0, 0, -1, 0))
+    game._damage_boss(Hit(boss.plates[3], 100, 0, 0, 0, -1, 0))
+    assert abs(hp0 - boss.hp - 100 * (1 + boss.HEAD_WEAK)) < 1e-6, "the head takes extra damage"
+    hp0 = boss.hp
+    for _ in range(90):
+        game.ship.x = boss.head.x
+        game.update(h.dt, FIRE)
+        game.draw()
+    assert boss.hp < hp0, "the gun hits the serpent"
+    # The dive: lock on, then lunge through the locked spot, hurting more than a ram.
+    closest, locked = 10 ** 9, None
+    for i in range(seconds(12)):
+        game.update(h.dt, Keys())
+        game.draw()
+        if boss.dive == 1 and locked is None and boss.attack_time > 0.5:
+            h.shot("leviathan_lock")
+            locked = True
+        if boss.dive == 2:
+            assert boss.contact_damage > 20
+            tx, ty = boss.dive_target
+            closest = min(closest, math.hypot(boss.x - tx, boss.y - ty))
+        if locked and boss.dive == 3:
+            break
+    assert locked and closest < 8, f"the lunge goes through the locked spot ({closest:.0f} px)"
+    game._damage_boss(Hit(boss, boss.max_hp * 0.34, 0, 0, 0, -1, 0))
+    game._damage_boss(Hit(boss, boss.max_hp * 0.34, 0, 0, 0, -1, 0))
+    boss.roar = 0
+    game._damage_boss(Hit(boss, boss.max_hp * 0.34, 0, 0, 0, -1, 0))
+    assert boss.phase == 2
+    run(seconds(6.0), clear_rocks=True)
+    h.shot("leviathan_phase3")
+    h.kill(boss)
+    run(seconds(1.2))
+    h.shot("leviathan_dying")
+    run(seconds(boss.DEATH_TIME))
+    assert boss.popped == len(boss.plates), "every plate blows off"
+    run(seconds(1.9))
     assert game.state == State.WIN, game.state
     run(seconds(1.0))
     h.shot("win")
-    assert game.record_rank and game.save.unlocked == 3
+    assert game.record_rank
 
 
 def test_save(h):
@@ -471,7 +625,7 @@ def test_save(h):
     game.save.unlock(3)
     game.choose_hull(TITAN)
     reloaded = SaveData(h.save_path)
-    assert reloaded.records == game.save.records and reloaded.unlocked == 3
+    assert reloaded.records == game.save.records and reloaded.unlocked == game.save.unlocked >= 3
     assert reloaded.best == game.save.best > 0 and reloaded.ship == "TITAN"
     with open(h.save_path, "w") as f:
         f.write("{not json")
@@ -487,7 +641,7 @@ def test_title_menus(h):
     game.save.unlock(3)
     game.save.add_record(1000, 1)
     game.to_title()
-    assert game.state == State.TITLE and game.selectable_levels == 3
+    assert game.state == State.TITLE and game.selectable_levels == game.save.unlocked >= 3
     h.post(pygame.K_RIGHT)
     h.post(pygame.K_RIGHT)
     assert game.start_level == 2
@@ -649,7 +803,8 @@ def test_busy(h):
     for name, level_index, boss_fight, hull in (
             ("busy", 0, False, ARROW), ("busy_level2", 1, False, WASP),
             ("busy_carrier", 1, True, TITAN), ("busy_level3", 2, False, HULLS[3]),
-            ("busy_mothership", 2, True, ARROW)):
+            ("busy_mothership", 2, True, ARROW), ("busy_level4", 3, False, WASP),
+            ("busy_leviathan", 3, True, HULLS[3])):
         game.choose_hull(hull)
         game.start(level_index)
         game.ship.hp = game.ship.max_hp = 10 ** 9
@@ -678,9 +833,10 @@ def test_busy(h):
 
 
 SECTIONS = (
-    ("title", test_title), ("controls", test_controls), ("weapons", test_weapons),
+    ("title", test_title), ("controls", test_controls), ("mouse", test_mouse),
+    ("weapons", test_weapons),
     ("damage", test_damage), ("balance", test_balance), ("pickups", test_pickups),
-    ("campaign", test_campaign), ("save", test_save), ("menus", test_title_menus),
+    ("campaign", test_campaign), ("level4", test_level4), ("save", test_save), ("menus", test_title_menus),
     ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
     ("busy", test_busy),
 )

@@ -121,6 +121,21 @@ def level3():
                 arp_echo=(0.35, 0.35))
 
 
+def level4():
+    """FROZEN RIFT: glassy B minor, high echoing arpeggios over a steady pulse."""
+    chords = ["Bm", "Bm", "G", "A", "Bm", "Bm", "G", "F#",
+              "Em", "Em", "Bm", "Bm", "G", "A", "F#", "F#"]
+    melody = """B4 . D5 . F#5 . B5 . | A5 . F#5 . D5 . . . | G5 . . . B5 . D6 . | C#6 . . . A5 . E5 .
+                F#5 . B5 . D6 . F#6 . | E6 . D6 . C#6 . B5 . | D6 . . . B5 . G5 . | A#5 . . . F#5 . C#5 .
+                E5 . G5 . B5 . E6 . | D6 . B5 . G5 . . . | F#5 . . . D5 . B4 . | D5 . F#5 . B5 . . .
+                B5 . D6 . G6 . . . | E6 . C#6 . A5 . E6 . | F#6 . . . C#6 . A#5 . | C#6 . A#5 . F#5 . - -"""
+    beat = "k . h . s . h h k . h . s . h ."
+    fill = "k . h . s . h h s . s . s s s s"
+    return song(136, chords, melody, lead=LEAD_SOFT, arp_pattern=(0, 1, 2, 3, 2, 1), arp_octave=5,
+                bass_rhythm="R . R . O . R .", beat=beat, fill=fill, lead_echo=(0.3, 0.35),
+                arp_echo=(0.22, 0.35))
+
+
 def boss():
     """Boss fight: fast, aggressive C minor."""
     chords = ["Cm", "Cm", "Ab", "Bb", "Cm", "Cm", "Ab", "G",
@@ -146,6 +161,20 @@ def final_boss():
     beat = "k k h k s . h k k k h k s . s s"
     fill = "k k h k s . h k s s s s s s s s"
     return song(172, chords, melody, arp_pattern=(0, 1, 2, 3), bass_rhythm="R R O R R O R R",
+                beat=beat, fill=fill)
+
+
+def leviathan():
+    """Leviathan: heavy E phrygian riffing (the F against E), relentless double kicks."""
+    chords = ["Em", "Em", "F", "F", "Em", "Em", "D", "B",
+              "Am", "Am", "F", "F", "Em", "D", "B", "B"]
+    melody = """E5 . E5 . G5 . B5 . | C6 . B5 . G5 . E5 . | F5 . A5 . C6 . F6 . | E6 . C6 . A5 . F5 .
+                E5 . G5 . B5 . E6 . | D6 . B5 . G5 . B5 . | A5 . F#5 . D5 . F#5 . | D#5 . F#5 . B5 . D#6 .
+                A5 . . . C6 . E6 . | D6 . C6 . B5 . A5 . | C6 . . . A5 . F5 . | A5 . C6 . F6 . E6 .
+                E6 . B5 . G5 . E5 . | F#5 . A5 . D6 . F#6 . | D#6 . . . B5 . F#5 . | D#5 . F#5 . A5 . B5 ."""
+    beat = "k k h k s . h k k . k k s . s h"
+    fill = "k k h k s . h k s s s s s s s s"
+    return song(168, chords, melody, arp_pattern=(0, 1, 2, 1), bass_rhythm="R R O R R O R O",
                 beat=beat, fill=fill)
 
 
@@ -177,6 +206,6 @@ def win():
 
 
 SONGS = {"title": title, "level1": level1, "level2": level2, "level3": level3,
-         "boss": boss, "final_boss": final_boss,
+         "level4": level4, "boss": boss, "final_boss": final_boss, "leviathan": leviathan,
          "level_clear": level_clear, "game_over": game_over, "win": win}
 JINGLES = ("level_clear", "game_over", "win")      # play once instead of looping

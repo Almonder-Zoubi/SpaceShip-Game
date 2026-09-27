@@ -10,6 +10,11 @@ TILT_DEGREES = 30                # UP + LEFT/RIGHT leans the rocket like '\' or 
 TILT_STEPS = 3                   # frames per side (10 degrees apart)
 TILT_RATE = 240                  # degrees per second when leaning / straightening
 
+# Mouse steering: the rocket flies towards the pointer (left click fires).
+MOUSE_FOLLOW = 7.0               # wanted speed = distance * this (1/s), capped at max speed
+MOUSE_DEADZONE = 1.5             # px: close enough, stop
+MOUSE_LEAN = 0.45                # fraction of max speed that counts as "pressing" a direction
+
 THROTTLE_RETRO = 0.12            # DOWN held: flames nearly out
 THROTTLE_IDLE = 0.45             # cruising
 THROTTLE_BOOST = 1.0             # UP held: full burn
@@ -76,6 +81,16 @@ DRONE_SPEED = 62                 # px/s downwards
 DRONE_BULLET_SPEED = 95
 DRONE_BULLET_DAMAGE = 8
 DRONE_CONTACT_DAMAGE = 14
+
+# --- Kamikaze divers (level 4) ----------------------------------------------
+DIVER_HP = 18
+DIVER_ENTER_SPEED = 75           # px/s while dropping in
+DIVER_LOCK = 1.1                 # seconds hovering + aiming before the dive
+DIVER_AIM_FREEZE = 0.3           # the aim stops following the rocket this long before the dive
+DIVER_SPEED = 250                # px/s top dive speed
+DIVER_ACCEL = 650                # px/s^2
+DIVER_CONTACT_DAMAGE = 24
+POINTS_DIVER = 200
 
 # --- Bosses ------------------------------------------------------------------
 # A boss is STRENGTH times stronger than the rocket, measured as a damage race:

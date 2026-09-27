@@ -16,6 +16,7 @@ class Difficulty:
     drift: float                 # max sideways speed px/s
     palettes: tuple = ("grey", "brown", "slate")
     formation_interval: float = 0     # seconds between drone formations (0 = none)
+    diver_interval: float = 0         # seconds between kamikaze diver squads (0 = none)
 
 
 @dataclass(frozen=True)

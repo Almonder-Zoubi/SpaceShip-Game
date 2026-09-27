@@ -1,10 +1,11 @@
-"""The three levels. A new level = a new Level entry here."""
+"""The four levels. A new level = a new Level entry here."""
 from ..bosses.carrier import Carrier
 from ..bosses.gunship import GUNSHIP_SPEC, Gunship
+from ..bosses.leviathan import Leviathan
 from ..bosses.mothership import Mothership
 from ..bosses.spec import BossSpec
-from ..config.loadouts import MK1, MK2, MK3
-from ..config.palette import NEBULA, NEBULA_ABYSS, NEBULA_CRIMSON
+from ..config.loadouts import MK1, MK2, MK3, MK4
+from ..config.palette import NEBULA, NEBULA_ABYSS, NEBULA_CRIMSON, NEBULA_FROST
 from ..config.tuning import LEVEL_LENGTH
 from .model import BossEntry, Difficulty, Level, Wave
 
@@ -45,4 +46,20 @@ LEVELS = (
           upgrade_notes=("NEW: BLAST BEAM",
                          "SHOOT ROCKS + DRONES TO CHARGE",
                          "NEW: ULTIMATE MISSILES - KEY T")),
+    # Ice rocks that shatter, drones + kamikaze divers, the Mothership again, the Leviathan.
+    Level(4, "FROZEN RIFT", MK4,
+          Difficulty(spawn_interval=0.5, speed_min=65, speed_max=125, radius_min=4,
+                     radius_max=14, drift=22, palettes=("ice", "slate"),
+                     formation_interval=11, diver_interval=9),
+          tuple(NEBULA_FROST),
+          (Wave(45, name="THE FROZEN RIFT"),
+           Wave(40, (BossEntry(Mothership, BossSpec("MOTHERSHIP", strength=1.5, fight_time=35,
+                                                    player=MK4)),),
+                name="THE MOTHERSHIP RETURNS"),
+           Wave(40, (BossEntry(Leviathan, BossSpec("LEVIATHAN", strength=5.0, fight_time=80,
+                                                   player=MK4), music="leviathan"),),
+                name="SOMETHING STIRS IN THE ICE")),
+          music="level4",
+          upgrade_notes=("ICE ROCKS SHATTER INTO SHARDS",
+                         "BEWARE: KAMIKAZE DIVERS")),
 )

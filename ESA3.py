@@ -9,6 +9,7 @@ Usage:
     python3 ESA3.py                 play
     python3 ESA3.py --boss          play, but skip straight to the level boss (boss testing)
     python3 ESA3.py --level 2       start at level 2 (combine with --boss for the Carrier)
+    python3 ESA3.py --level 4 --boss   straight to the final boss (Leviathan)
     python3 ESA3.py --dev           dev menu: start at any level / wave / boss, god mode,
                                     in-game hotkeys (N skip, 1 charge, 2 power, 3 repair, G god)
     python3 ESA3.py --smoke-test    headless self-test (use SDL_VIDEODRIVER=dummy)

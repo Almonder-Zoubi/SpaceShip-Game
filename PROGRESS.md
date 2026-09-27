@@ -4,11 +4,12 @@ Update this file at the end of every work session: what changed, what's next, op
 
 ## Status
 
-**Branch:** `restructure` (branched from `main` at `4310c46`), committed by the user after the
-playtest; the next work starts on a new branch.
-**Current phase:** all 3 levels playable, code split into one package per area, 4 selectable
-hulls, full soundtrack + SFX — user playtest: "so perfect", sounds "great", ships "so creative".
-Next: see "Next steps" (the user will also bring their own ideas). See [ROADMAP.md](ROADMAP.md).
+**Branch:** `mouse-level4` (branched from `main` at `c2ee37a`), not committed yet — waiting for
+the user's playtest.
+**Current phase:** 4 levels playable + mouse control (new this session, **not playtested yet**).
+Before: levels 1–3, 4 hulls, soundtrack — user: "so perfect", "working wonderfully".
+Next: user playtest of mouse + level 4; then the user's NEMESIS idea (ROADMAP Phase 9, a
+proposed design waiting for the user's go). See [ROADMAP.md](ROADMAP.md).
 
 **Starting a new session?** Read this file's Snapshot + Decisions, then CLAUDE.md (module map,
 "where to look when debugging", conventions). Run the smoke test once before changing anything.
@@ -22,7 +23,9 @@ Next: see "Next steps" (the user will also bring their own ideas). See [ROADMAP.
   screen (ship upgrade to MK II, ENTER) → LEVEL 2 "CRIMSON BELT" (rust rocks + drone formations,
   80 s → Gunship rematch 1.5x → WARNING → CARRIER 4x) → LEVEL 2 CLEAR (MK III) → LEVEL 3
   "DARK NEBULA" in 3 waves (HUD "LEVEL 3-1"): wave 1 rocks + drones 45 s; wave 2 rocks + drones
-  40 s → Carrier 1.5x; wave 3 rocks + drones 40 s → FINAL BOSS MOTHERSHIP 5x → WIN.
+  40 s → Carrier 1.5x; wave 3 rocks + drones 40 s → LEVEL BOSS MOTHERSHIP 5x → LEVEL 3 CLEAR
+  (MK IV) → LEVEL 4 "FROZEN RIFT" (frost nebula, ice + slate rocks, drones + kamikaze DIVERS):
+  wave 1 45 s; wave 2 40 s → Mothership 1.5x; wave 3 40 s → FINAL BOSS LEVIATHAN 5x → WIN.
   Score carries over. 0 HP → GAME OVER → R retries the *current* level with its starting score.
   Levels are data in `levels.py` (`Level` → `Wave`s → `BossEntry`s).
 - **Hulls** (`player/hulls.py`, picked in the hangar, remembered in `save.json`): ARROW 17x25
@@ -33,7 +36,21 @@ Next: see "Next steps" (the user will also bring their own ideas). See [ROADMAP.
   computes the upgrade numbers for the chosen hull.
 - **Ship models** (`Loadout` in `config/loadouts.py`): MK I 100 HP / gun 5 / laser 80; MK II (level 2, blue
   paint) 150 HP / gun 7 / laser 110 dps, cooler laser, faster; MK III (level 3, violet) 200 HP /
-  gun 9 / laser 140 + BLAST + ULTIMATE. Boss balance uses the level's model.
+  gun 9 / laser 140 + BLAST + ULTIMATE; MK IV (level 4, gold on gunmetal, ice-blue canopy)
+  250 HP / gun 11 / laser 170, speed 155, BLAST + ULTIMATE. Boss balance uses the level's model.
+- **Boss 4 Leviathan** (`bosses/leviathan.py`, final boss): a space serpent — rotating head
+  (16 RotSprite frames x 3 phases) + 11 armour plates that follow the head's trail. Every piece
+  is a weapon target (`Boss.parts()`), the head takes x1.5 (announced: "ITS HEAD IS THE WEAK
+  SPOT!"). Swims to random waypoints with a slither. P1: RIPPLE (plates fire aimed shots tail
+  -> head), head fans, one DIVE (1 s lock-on: red crosshair + dotted line, frozen 0.25 s
+  before, then a straight lunge through that spot; contact = 4x bullet damage); P2 x1.2: more
+  dives, BURSTS (every other plate fires a 4-way cross); P3 x1.4, cracked: head spiral, dives
+  shed bullets sideways. Dies plate by plate from the tail. Sprites prebuilt at startup (0.6 s).
+- **Level 4 extras:** `IceRock` (hp x0.6, splits from radius 7 into 3–4 fast shards, glitter +
+  glassy `ice_break` sound). `Diver` (kamikaze, 18 HP, 200 pts): drops in, hovers ~1.1 s while
+  its aim line follows the rocket (frozen for the last 0.3 s), then dives in a straight line;
+  squads of 2–4 every ~9 s (`Difficulty.diver_interval`). New music `level4` (glassy B minor)
+  and `leviathan` (E phrygian, double kicks); SFX `lock_on`, `dive`, `ice_break`.
 - **BLAST (MK III):** meter fills from damage to rocks/drones (+kill bonus, x3 for drones).
   Full + SPACE held → 3 s piercing beam from the nose (450 dps to everything in it, gold for
   gun / blue for laser), normal weapon pauses, meter drains, then recharges. Automatic, no key.
@@ -57,6 +74,11 @@ Next: see "Next steps" (the user will also bring their own ideas). See [ROADMAP.
   world x1.35), DOWN = retro (small blue flame, world x0.8). UP+LEFT/RIGHT = diagonal and the rocket
   leans `\` / `/` (30°), straightening on release. SPACE fires along the nose, R switches gun/laser,
   P pause, C scanlines, Esc menu/quit, Enter/R restart. `--boss` flag skips to the boss.
+  **Mouse:** the rocket flies to the pointer (wanted speed = distance x 7, capped, eases in,
+  1.5 px dead zone) and its velocity counts as the arrows it would press (boost / retro / bank
+  / lean all work); left button = fire; R / T unchanged. Takes over after the pointer moves
+  6 px or on a click; any arrow key or ENTER hands back to the keyboard. System cursor hidden
+  while playing, a small reticle (red while firing) marks the target. Click = ENTER in menus.
 - **Weapons:** machine gun (5 dmg / 0.07 s ≈ 71 DPS, spread, tracers) and laser (80 DPS beam,
   overheats after 2.5 s, usable again below 35% heat). Hits push rocks back (slow their fall).
 - **Asteroids:** radius 4–14, hp = 6 + 0.8·r², split into 2–3 fragments at r ≥ 8, ram damage
@@ -65,7 +87,7 @@ Next: see "Next steps" (the user will also bring their own ideas). See [ROADMAP.
 - **Boss 1 Gunship:** `BossSpec("GUNSHIP", strength=3, fight_time=40)` → ~2857 HP; a motionless
   rocket dies in ~13 s. Patterns: aimed 5-shot fan (charge glow), alternating turret shots,
   enraged below 50% (+30% speed, 14-bullet ring, per-bullet damage scaled to keep 3x). Ramming 20.
-- **Dev mode** (`--dev`): DEV MENU lists every start point (each wave's field and each boss,
+- **Dev mode** (`--dev`): DEV MENU (scrolls, 10 rows) lists every start point (each wave's field and each boss,
   e.g. "LEVEL 3-2 CARRIER 1.5X"), LEFT/RIGHT picks the hull, G god mode. In game: N skip (field end / warning / entry /
   next boss phase through the normal damage path), 1 fill BLAST+ULT, 2 power up, 3 repair,
   G god, Esc back to the menu. R after game over retries the same start point. "DEV" badge in
@@ -89,11 +111,13 @@ Next: see "Next steps" (the user will also bring their own ideas). See [ROADMAP.
 
 - **Controls stay simple.** No drift, no 360° rotation, no spin move (tried, rejected as too hard).
   Only the ±30° diagonal lean is allowed.
-- Both weapons; **R** switches, **SPACE** fires.
+- Both weapons; **R** switches, **SPACE** fires (or the left mouse button).
+- **Mouse control** (user's request): move by tracking the mouse, left click fires, R / T stay.
 - Player has a **health bar** for the whole level; it is **refilled to max before every boss**.
 - Bosses are **3–5x stronger than the rocket** (damage race, see `BossSpec`): level 1 boss 3x,
   level 2 boss 4x, level 3 boss 5x. Earlier bosses re-appear **weakened (~1.5x)** as a warm-up.
 - **3 levels**: L1 = Boss 1; L2 = Boss 1 (weak) → Boss 2; L3 = Boss 1 (weak) → Boss 2 (weak) → Boss 3.
+  Then the user asked for a level 4 ("surprise me"): L4 = Boss 3 (weak) → Boss 4 Leviathan 5x.
 - **Code layout is one package per area** (bosses, minions, obstacles, background, flow ...),
   `Game` split into mixins — keep new code in that shape (user wants easy debugging / extending).
 - **4 hulls + hangar approved as they are** (ARROW, WASP, TITAN, LANCE; stats unchanged after the
@@ -103,6 +127,29 @@ Next: see "Next steps" (the user will also bring their own ideas). See [ROADMAP.
 - Later: leaderboard with saved scores, more asteroid shapes/sizes.
 
 ## Log
+
+### 2026-09-27 — Mouse control, level 4 "FROZEN RIFT", LEVIATHAN; NEMESIS design
+- User: game "working wonderfully". Asked for mouse control (move by tracking the mouse, left
+  click fires, R / T unchanged), then level 4 ("surprise me"), and floated an endless mode vs a
+  boss that learns from the player — to be developed and tracked separately.
+- Mouse: `core.input.Mouse`; `Game.update(dt, keys, mouse=None)`; `Ship.update(target=...)`
+  (`_follow` = wanted velocity, `_stick` = the arrows it corresponds to); events for motion /
+  buttons, click = ENTER in menus, cursor hidden while playing, reticle in `ui/screens.py`.
+- Level 4: `MK4`, `mk4` paint, `NEBULA_FROST`, `ICE_SHARDS`; `IceRock` + `rock_class()` (split
+  rules moved from `combat.py` onto the rock class: `splits`, `fragments()`, `break_sound()`);
+  `minions/diver.py`; `Difficulty.diver_interval`; `bosses/leviathan.py` (`Segment`, trail
+  layout). `Boss` base got `parts()`, `hit_part()`, `contact_damage`, `enter(k)`, `prebuild()`.
+- Title controls rewritten to 5 lines (mouse added; "(LEVEL 3)" showed as "?LEVEL 3?" because
+  the font has no brackets). Dev menu scrolls.
+- Smoke test: new `mouse` and `level4` sections; campaign now ends with level 3 clear -> level 4;
+  busy covers level 4 + Leviathan. 12/12 seeds pass for mouse/level4/campaign.
+- Real macOS window checked (Leviathan fight, mouse steering, dev menu): renders correctly,
+  worst update+draw 9.8 ms. Startup +0.6 s for the Leviathan's rotated heads.
+- Wrote [docs/GUIDE.md](docs/GUIDE.md) on request: where assets come from (all generated in
+  code, audio WAV cache), what is fixed vs random, architecture, workflow, recipes. README
+  updated (mouse, level 4).
+- NEMESIS: written up as ROADMAP Phase 9 (player model + bandit, generations, analysis card,
+  milestones N1–N5). Not started — waiting for the user's go and answers.
 
 ### 2026-09-27 — Restructure into packages, 4 hulls + hangar, synthesized soundtrack + SFX
 - User asked for: every area in its own folder (bosses, minions, background, obstacles, flow ...)
@@ -251,22 +298,23 @@ bring their own ideas too — those come first.
 3. **Level results screen:** time, accuracy, damage taken, kills → rank S/A/B/C and bonus points.
 
 **Bigger features**
+0. **NEMESIS mode** (the user's idea, ROADMAP Phase 9) — **ask**: start with N1 (arena shell).
 4. **Endless mode** (ROADMAP Phase 5): `Difficulty` ramps over time, a random boss (weakened →
    stronger) every few minutes, own leaderboard. The level/wave data model already fits:
    generate `Wave`s on the fly instead of reading `LEVELS`.
 5. **Score depth:** combo multiplier for kills in quick succession (resets on hit), no-hit boss
    bonus, 3-letter arcade name entry for records (Phase 6).
-6. **New obstacles** (`obstacles/`): ice rocks (shatter into many shards), metal rocks (tough,
+6. **New obstacles** (`obstacles/`): ~~ice rocks~~ (done, level 4), metal rocks (tough,
    drop POWER), explosive rocks (chain blast hurts nearby rocks and drones), huge slow rocks,
    comet with a trail. Each = art palette + `Asteroid` subclass.
-7. **New minions** (`minions/`): kamikaze diver, mine layer, shielded interceptor (only
+7. **New minions** (`minions/`): ~~kamikaze diver~~ (done, level 4), mine layer, shielded interceptor (only
    vulnerable from the side), turret on a big rock. Each = sprite + `Enemy` subclass + a
    formation; mix them into levels via `Difficulty`.
 8. **Unlocks / progression:** hulls or paint jobs unlocked by achievements (e.g. TITAN after
    level 1, gold paint for a no-hit boss) — stored in `save.json`, shown locked in the hangar.
 9. **Hull abilities** — **ask** (adds a key): one special per hull on SHIFT, e.g. WASP short
    dash with i-frames, TITAN shield bubble, LANCE overcharged beam, ARROW repair drone.
-10. **Level 4 / new boss:** a new `Level` + a boss file in `bosses/` + a song in `audio/music.py`.
+10. ~~**Level 4 / new boss**~~ — done (FROZEN RIFT + LEVIATHAN). A level 5 works the same way.
 
 **For the coursework / quality**
 11. **Architecture doc with a UML class diagram** (Mermaid in a `docs/ARCHITECTURE.md`):
@@ -279,6 +327,12 @@ bring their own ideas too — those come first.
 
 ## Open questions
 
+- Playtest: does mouse steering feel right? Knobs in `config/tuning.py`: `MOUSE_FOLLOW` (how
+  eagerly it chases the pointer), `MOUSE_LEAN` (how fast a move must be to boost / lean).
+  Should the pointer mark the ship's centre (now) or sit above the nose? Right click = switch?
+- Level 4 balance: Leviathan 5x / 80 s, dive contact 4x bullet damage, divers 24 contact damage.
+- NEMESIS (Phase 9): go ahead with N1? Rounds with the chosen hull at MK IV, or start at MK I
+  and upgrade through perks?
 - Should `sounds/generated/` be committed (7.6 MB, instant first start) instead of rendered on
   first start (~9 s)? Currently git-ignored.
 - Delete the unused `sounds/crash.wav` + `sounds/nes.mp3` and the old clip-art in `images/` /

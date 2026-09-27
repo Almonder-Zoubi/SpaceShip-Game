@@ -15,7 +15,7 @@ from .sfx import LOOPS, SOUNDS
 VOLUME = {"gun": 0.35, "hit_rock": 0.5, "hit_metal": 0.4, "enemy_shot": 0.45,
           "missile_hit": 0.5, "engine": 0.5, "laser": 0.45}
 MIN_GAP = {"gun": 0.06, "hit_rock": 0.05, "hit_metal": 0.06, "enemy_shot": 0.07,
-           "missile_hit": 0.05, "rock_break": 0.04}
+           "missile_hit": 0.05, "rock_break": 0.04, "ice_break": 0.05, "lock_on": 0.25}
 MUSIC_VOLUME = 0.55
 
 

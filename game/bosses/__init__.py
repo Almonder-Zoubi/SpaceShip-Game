@@ -6,5 +6,6 @@ base       -- Boss base class: enter, fight, phases + roar, dying; drone launch 
 art        -- shared hull colours and build_boss_sprite()
 gunship    -- boss 1
 carrier    -- boss 2 (3 phases, launches drones)
-mothership -- boss 3, final boss (3 phases, sweeping beam)
+mothership -- boss 3 (3 phases, sweeping beam)
+leviathan  -- boss 4, final boss: a segmented serpent (Segment parts, head weak spot, dives)
 """
