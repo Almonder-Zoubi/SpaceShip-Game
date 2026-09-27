@@ -88,6 +88,8 @@ class Gunship(Boss):
     same factor so its damage per second (and therefore its strength) stays as specified.
     """
 
+    EPITHET = "IRON FLEET ENFORCER"          # boss name card
+
     SPREAD_INTERVAL, SPREAD_SHOTS, SPREAD_GAP, SPREAD_SPEED = 1.2, 5, 0.22, 105
     TURRET_INTERVAL, TURRET_SPEED = 0.45, 135
     RING_SHOTS, RING_SPEED = 14, 75

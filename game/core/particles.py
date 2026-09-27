@@ -89,9 +89,10 @@ class ScreenShake:
     def __init__(self, max_offset=6, decay=1.6):
         self.trauma = 0.0
         self.max_offset, self.decay = max_offset, decay
+        self.scale = 1.0          # options: "reduce shake" lowers this
 
     def add(self, amount):
-        self.trauma = min(1.0, self.trauma + amount)
+        self.trauma = min(1.0, self.trauma + amount * self.scale)
 
     def update(self, dt):
         self.trauma = max(0.0, self.trauma - self.decay * dt)

@@ -36,6 +36,7 @@ class Wave:
     length: float                # seconds of flight through the field
     bosses: tuple = ()           # BossEntry, fought in order after the field
     name: str = ""               # subtitle of the "WAVE n" announcement
+    radio: tuple = ()            # radio card lines when the wave starts (ui/radio.py)
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,7 @@ class Level:
     waves: tuple                 # Wave, played in order; the last boss is the level boss
     music: str = "level1"        # asteroid-field track (audio/music.py)
     upgrade_notes: tuple = ()    # new features, shown under the stat changes on "level clear"
+    radio: tuple = ()            # radio card lines when the level starts (ui/radio.py)
 
 
 @dataclass(frozen=True)

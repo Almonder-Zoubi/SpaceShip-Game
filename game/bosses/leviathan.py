@@ -156,6 +156,8 @@ class Leviathan(Boss):
     Phase 3 (furious) -- x1.4; cracked; a head spiral, and dives shed bullets sideways
     """
 
+    EPITHET = "THE SERPENT IN THE ICE"          # boss name card
+
     PHASES = 3
     ENTER_TIME = 3.0
     DEATH_TIME = 2.6

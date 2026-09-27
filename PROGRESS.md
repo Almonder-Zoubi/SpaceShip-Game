@@ -180,6 +180,25 @@ Options need a place in the menus: ask the user where (title? pause?) before add
 
 ## Log
 
+### 2026-09-27 — G4: game feel (juice tiers, damage numbers, name cards, radio, options)
+- User: G3 "runs perfectly", "continue developing until you reach G14". Working through
+  G4 -> G14 in order, one commit per milestone; decisions I had to make alone are marked
+  **(ask)** so the user can overrule them.
+- `flow/juice.py` `JuiceMixin`: `juice("small"|"medium"|"large", x, y)` = shake + hit-stop +
+  embers + flash (`tuning.JUICE`); large events (boss phase / kill, ship explodes) add 0.5 s
+  slow-mo at x0.35. `Game.update()` runs the world on `world_dt(dt)`; popups, shake, alerts
+  and the radio use real time. Medium: minion kill, big rock kill, ship hit.
+- Boss damage numbers (`ui/popup.DamageNumber`): damage summed per 0.2 s, pops where it hit
+  (gold from 60 up). Boss name card on WARNING (slides in; `Boss.EPITHET` per class).
+- Radio cards (`ui/radio.py`): COMMANDER VEGA portrait (24x24 rows), types out under the HUD
+  after the level title, ENTER finishes / closes. `Level.radio`, `Wave.radio` = data.
+- Options **(ask: placement)**: in the pause menu (P, UP/DOWN, LEFT/RIGHT): music + sound
+  volume 0–10, screen shake full / reduced (x0.3), flashes full / reduced (x0.25). Saved in
+  `save.json` `options`. `Audio.set_volume()`, `ScreenShake.scale`.
+- Font: `( ) = *` glyphs (brackets showed as "?" before).
+- Smoke test: new `feel` section; waits after a boss kill got `JUICE_PAD` (slow-mo stretches
+  world time).
+
 ### 2026-09-27 — G3: upgrades (5 tracks x 5 tiers), POWER %
 - User: "continue to complete G3". G2 still not playtested (no feedback yet).
 - Numbers: the handoff suggested +6% per tier, but ARMOR x GUNS at +30% each = 1.69 would

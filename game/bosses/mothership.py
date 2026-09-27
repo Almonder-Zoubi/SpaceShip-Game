@@ -112,6 +112,8 @@ class Mothership(Boss):
     Like the Carrier it roars between phases, and the game hands out rewards.
     """
 
+    EPITHET = "QUEEN OF THE IRON FLEET"          # boss name card
+
     PHASES = 3
     RAGE = (1.0, 1.2, 1.4)
     PATTERNS = (

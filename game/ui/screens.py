@@ -92,11 +92,13 @@ class ScreensMixin:
         elif s == State.PLAYING and self.alert:
             title, subtitle, color, _ = self.alert
             self.hud.alert(c, title, subtitle, color, blink_on=int(self.time * 5) % 3 != 0)
+        if self.radio and s in (State.PLAYING, State.PAUSED):
+            self.radio_view.draw(c, self.radio, self.time)
         if s == State.PAUSED:
             shade = pygame.Surface((LOW_W, LOW_H), pygame.SRCALPHA)
             shade.fill((0, 0, 0, 140))
             c.blit(shade, (0, 0))
-            self.hud.banner(c, "PAUSED", "P TO RESUME  -  ESC FOR MENU", blink_on=blink)
+            self._draw_pause(c, blink)
         elif s == State.GAME_OVER:
             self.hud.banner(c, "GAME OVER", f"R: RETRY LEVEL {self.level.number}",
                             title_color=DANGER, blink_on=blink)
@@ -108,6 +110,32 @@ class ScreensMixin:
                                DANGER, shadow=TEXT_SHADOW, center=True)
         elif s in (State.LEVEL_CLEAR, State.WIN) and self.state_time > 0.8:
             self._draw_results(c, blink, win=s == State.WIN)
+
+    def _draw_pause(self, c, blink):
+        """PAUSED title and the options menu."""
+        f = self.font
+        panel = pygame.Rect(60, 52, 200, 120)
+        shade = pygame.Surface(panel.size, pygame.SRCALPHA)
+        shade.fill((*INK, 200))
+        c.blit(shade, panel)
+        pygame.draw.rect(c, TEXT_DIM, panel, 1)
+        f.draw(c, "PAUSED", (LOW_W // 2, panel.y + 8), TEXT, scale=3, shadow=TEXT_SHADOW,
+               center=True)
+        for i, (key, label) in enumerate(self.options.ROWS):
+            y = panel.y + 42 + i * 13
+            selected = i == self.options_cursor
+            if selected:
+                c.fill(EMPTY, (panel.x + 6, y - 3, panel.w - 12, 12))
+                f.draw(c, ">", (panel.x + 9, y), ACCENT, shadow=TEXT_SHADOW)
+            f.draw(c, label, (panel.x + 18, y), ACCENT if selected else TEXT, shadow=TEXT_SHADOW)
+            value = self.options.text(key)
+            if key in ("music", "sound"):
+                self.hud._bar(panel.right - 72, y + 1, 50, 4, c, self.options[key] / 10, GOOD)
+            color = TEXT if self.options[key] else TEXT_DIM
+            f.draw(c, value, (panel.right - 10 - f.size(value)[0], y), color, shadow=TEXT_SHADOW)
+        if blink:
+            f.draw(c, "P RESUME   ESC MENU   ARROWS OPTIONS", (LOW_W // 2, panel.bottom - 12),
+                   TEXT_DIM, shadow=TEXT_SHADOW, center=True)
 
     def _draw_warning(self, c):
         """Classic boss alert: blinking red stripes and WARNING, 'hull repaired' note."""
@@ -124,15 +152,34 @@ class ScreensMixin:
         name = self.boss_entry.spec.name
         last = self.wave_index == len(level.waves) - 1 and self.boss_index == len(bosses) - 1
         if self.is_final_boss():
-            text = f"FINAL BOSS: {name}"
+            text = "FINAL BOSS"
         elif last and sum(len(w.bosses) for w in level.waves) > 1:
-            text = f"LEVEL BOSS: {name}"
+            text = "LEVEL BOSS"
         else:
-            text = f"BOSS APPROACHING: {name}"
-        self.font.draw(c, text, (LOW_W // 2, 124), TEXT, shadow=TEXT_SHADOW, center=True)
+            text = "BOSS APPROACHING"
+        self._draw_name_card(c, text, name, getattr(self.boss_entry.boss_class, "EPITHET", ""))
         if self.phase_time < 2.0:
-            self.font.draw(c, "HULL REPAIRED", (LOW_W // 2, 160), GOOD, shadow=TEXT_SHADOW,
+            self.font.draw(c, "HULL REPAIRED", (LOW_W // 2, 166), GOOD, shadow=TEXT_SHADOW,
                            center=True)
+
+    def _draw_name_card(self, c, label, name, epithet):
+        """Boss name card: slides in from the left during the WARNING."""
+        f = self.font
+        k = min(1.0, self.phase_time / 0.35)
+        w = max(f.size(name, 2)[0], f.size(epithet)[0]) + 30
+        card = pygame.Rect(0, 114, w, 42)
+        card.centerx = int(LOW_W // 2 - (1 - k) ** 2 * LOW_W)
+        shade = pygame.Surface(card.size, pygame.SRCALPHA)
+        shade.fill((*INK, 220))
+        c.blit(shade, card)
+        c.fill(DANGER, (card.x, card.y, 3, card.h))
+        c.fill(DANGER, (card.right - 3, card.y, 3, card.h))
+        f.draw(c, label, (card.centerx, card.y + 4), DANGER, shadow=TEXT_SHADOW, center=True)
+        f.draw(c, name, (card.centerx, card.y + 14), TEXT, scale=2, shadow=TEXT_SHADOW,
+               center=True)
+        if epithet:
+            f.draw(c, epithet, (card.centerx, card.y + 31), TEXT_DIM, shadow=TEXT_SHADOW,
+                   center=True)
 
     def _draw_results(self, c, blink, win):
         """Level results: stats with rating bars, the rank stamp, coins counted into the bank,

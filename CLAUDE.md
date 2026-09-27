@@ -39,7 +39,7 @@ python3 tools/build_audio.py boss gun    # ...or only some of them
 
 Headless smoke test (no window, no audio device) — run after every change. It drives every state
 and mechanic in named sections (title, controls, mouse, weapons, damage, balance, pickups,
-campaign, level4, save, economy, inventory, upgrades, menus, hulls, dev, retry, audio, busy); each section starts from its own state:
+campaign, level4, save, economy, inventory, upgrades, feel, menus, hulls, dev, retry, audio, busy); each section starts from its own state:
 
 ```bash
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test [--shots DIR]
@@ -71,7 +71,7 @@ Every folder's `__init__.py` docstring lists what its modules do.
 | Folder | Modules | Responsibility |
 |---|---|---|
 | `config/` | `display`, `palette`, `tuning`, `loadouts` | Resolution + paths, shared colours, gameplay numbers, ship models `MK1..MK4` (`Loadout`) |
-| `core/` | `pixelart`, `pixelfont`, `particles`, `input`, `storage` | Engine helpers: sprite-from-rows, `CharCanvas`, `mirrored`/`outlined`, RotSprite, dithering, noise, glow; 5x7 font; `ParticleSystem`/`Shockwave`/`ScreenShake`; `Keys` + key groups, `Mouse` (steering target + left-click fire); `SaveData` (`save.json` v2: records, unlocks, ship, coin bank, best rank per level, inventory, upgrade tiers) |
+| `core/` | `pixelart`, `pixelfont`, `particles`, `input`, `storage`, `options` | Engine helpers: sprite-from-rows, `CharCanvas`, `mirrored`/`outlined`, RotSprite, dithering, noise, glow; 5x7 font; `ParticleSystem`/`Shockwave`/`ScreenShake`; `Keys` + key groups, `Mouse` (steering target + left-click fire); `SaveData` (`save.json` v2: records, unlocks, ship, coin bank, best rank per level, inventory, upgrade tiers, options); `Options` (volumes, reduce shake / flashes) |
 | `background/` | `nebula`, `planet`, `starfield`, `background` | One layer per module; `Background` draws them back to front |
 | `player/` | `hulls`, `art`, `ship` | `Hull` shapes (ARROW, WASP, TITAN, LANCE: rows, nozzles, barrels, stat multipliers); MK paint jobs + banked/lean frames; `Ship` (controls, lean, throttle, flames, health) |
 | `weapons/` | `base`, `gun`, `laser`, `specials` | `Hit`, `Weapon`, `raycast()`; `MachineGun`; `Laser`; `Charged` → `Blast`, `Ultimate` (+`Missile`) |
@@ -82,8 +82,8 @@ Every folder's `__init__.py` docstring lists what its modules do.
 | `levels/` | `model`, `data` | `Difficulty`, `Level`, `Wave`, `BossEntry` (incl. music track), `Galaxy`; `GALAXIES` (10 levels each), `LEVELS` (all, play order), `galaxy_of()` |
 | `progression/` | `results`, `economy`, `items`, `inventory`, `upgrades` | Pure logic (no pygame): `LevelStats` + rank S/A/B/C; coin drops and the level-clear `Payout`; item catalog + `GIFTS` + prices; `Inventory` (owns / status / claim / buy, upgrade tiers + `buy_upgrade`, migrates old saves); upgrade `TRACKS`, `apply(loadout, tiers)`, `power_ratio()` |
 | `audio/` | `synth`, `sfx`, `music`, `bank`, `player` | Pure-Python chiptune synth; SFX recipes (`SOUNDS`); songs as chords + melodies (`SONGS`); WAV cache in `sounds/generated/`; `Audio` (`play`, `loop`, `music`) |
-| `ui/` | `hud`, `popup`, `item_art`, `hangar`, `gifts`, `screens` | HUD + banners; floating popups; item pictures (ship previews, weapon + upgrade icons, locked silhouettes); HANGAR 2.0 (`HangarView`: tabs, list, stats, shop, UPGRADES tab, POWER %); gift cards; `ScreensMixin` draws every state |
-| `flow/` | `game`, `states`, `events`, `level_flow`, `world`, `combat`, `progression`, `hangar`, `sound`, `dev` | `Game` = setup, main loop, update order. The rest is one **mixin per responsibility**: key handling (one `_keys_<state>` method per state), level/wave/phase flow + hull choice, world update + hazards, player hits, coins + stats + rank + payout, hangar + gifts + shop, music/loops, dev tools |
+| `ui/` | `hud`, `popup`, `item_art`, `hangar`, `gifts`, `radio`, `screens` | HUD + banners; floating popups + boss `DamageNumber`s; radio cards (COMMANDER VEGA portrait); item pictures (ship previews, weapon + upgrade icons, locked silhouettes); HANGAR 2.0 (`HangarView`: tabs, list, stats, shop, UPGRADES tab, POWER %); gift cards; `ScreensMixin` draws every state (pause = options menu, boss name card on WARNING) |
+| `flow/` | `game`, `states`, `events`, `level_flow`, `world`, `combat`, `progression`, `hangar`, `juice`, `options`, `sound`, `dev` | `Game` = setup, main loop, update order. The rest is one **mixin per responsibility**: key handling (one `_keys_<state>` method per state), level/wave/phase flow + hull choice, world update + hazards, player hits, coins + stats + rank + payout, hangar + gifts + shop, juice (tiers, hit-stop, slow-mo, damage numbers, radio), options, music/loops, dev tools |
 
 Other folders: `tests/smoke.py` (headless smoke test, `run_smoke_test(shots, seed, only)`),
 `tools/build_audio.py` (renders `game/audio` recipes to WAV).
@@ -96,6 +96,7 @@ Where to look when debugging:
 - Gifts, shop, what a player owns → `progression/items.py` (catalog, prices), `flow/hangar.py` (screens' logic).
 - Upgrades → `progression/upgrades.py` (tracks, `apply`, POWER), numbers in `config/tuning.py`; applied in `loadout_for()` after the hull, never to `BossSpec`.
 - Tests start with every item owned (`Harness` calls `inventory.grant_all()`) and 0 upgrade tiers; `test_inventory` covers a new player.
+- Hit-stop / slow-mo / shake per event → `flow/juice.py` (`juice(tier, x, y)`), tiers in `config/tuning.JUICE`. `update()` gives the world `world_dt(dt)`; popups, shake, radio run on real time.
 - Wrong music or a sound missing → `flow/sound.py` (state → track, loops) or the event's own call.
 
 ## Conventions

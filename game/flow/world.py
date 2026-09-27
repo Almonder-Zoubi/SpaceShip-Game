@@ -109,8 +109,8 @@ class WorldMixin:
         self.stats.damage_taken += max(0, hp - self.ship.hp)
         if self.ship.hp < hp and not died:
             self.audio.play("ship_hurt")
-        self.shake.add(0.45)
-        self.hurt_flash = 0.25
+        self.juice("medium")
+        self.hurt_flash = 0.25 if self.options["flashes"] else 0.08
         if died:
             self._ship_destroyed()
 
@@ -125,8 +125,7 @@ class WorldMixin:
         self.smoke.burst(x, y, 30, 120, 1.3, hull, size=(1, 2), drag=0.8)
         self.shockwaves.append(Shockwave(x, y, max_radius=46))
         self.shockwaves.append(Shockwave(x, y, max_radius=24, duration=0.3, color=(255, 255, 255)))
-        self.shake.add(0.9)
-        self.flash = 0.12
+        self.juice("large", x, y)
         self.audio.play("ship_explode")
         self.best = max(self.best, self.score)
         self.record_rank = self.save.add_record(self.score, self.level.number)

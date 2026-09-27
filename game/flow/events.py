@@ -113,10 +113,19 @@ class EventsMixin:
             self.switch_weapon()
         elif key == pygame.K_t:
             self.fire_ultimate()
+        elif key in (pygame.K_RETURN, pygame.K_KP_ENTER) and self.radio:
+            self.radio.skip()
+            if self.radio.done:
+                self.radio = None
 
     def _keys_paused(self, key):
+        """Paused: the options menu (UP/DOWN pick, LEFT/RIGHT change)."""
         if key == pygame.K_p:
             self.state = State.PLAYING
+        elif key in UP_KEYS + DOWN_KEYS:
+            self.options_move(1 if key in DOWN_KEYS else -1)
+        elif key in LEFT_KEYS + RIGHT_KEYS:
+            self.options_change(1 if key in RIGHT_KEYS else -1)
         elif key == pygame.K_ESCAPE:
             self.to_title()
 
@@ -154,6 +163,6 @@ class EventsMixin:
     def fire_ultimate(self):
         if self.ship.loadout.ultimate and self.ship.alive and self.ultimate.activate():
             self.alert = ["ULTIMATE!", "MISSILE STORM", ACCENT, 1.4]
-            self.flash = 0.1
+            self.screen_flash(0.1)
             self.shake.add(0.5)
             self.audio.play("ultimate")

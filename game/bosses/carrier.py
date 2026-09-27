@@ -115,6 +115,8 @@ class Carrier(Boss):
     POWER core and a repair kit, so the rocket grows stronger as the boss gets angrier.
     """
 
+    EPITHET = "THE DRONE HIVE"          # boss name card
+
     PHASES = 3
     RAGE = (1.0, 1.25, 1.5)                    # movement / fire speed per phase
     PATTERNS = (

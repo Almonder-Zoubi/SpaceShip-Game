@@ -72,7 +72,10 @@ class CombatMixin:
         if rock.SPARKLE:
             self.fire.burst(rock.x, rock.y, 6 + r * 2, 70 + r * 6, 0.5, ICE_SHARDS, size=(1, 1),
                             drag=2)
-        self.shake.add(0.04 + r * 0.012)
+        if r >= 10 and scored:
+            self.juice("medium", rock.x, rock.y)
+        else:
+            self.shake.add(0.04 + r * 0.012)
         if rock in self.asteroids:
             self.asteroids.remove(rock)
         self.audio.play(rock.break_sound())
@@ -114,6 +117,8 @@ class CombatMixin:
 
     def _destroy_enemy(self, enemy, scored):
         self.explosion(enemy.x, enemy.y, size=0.6)
+        if scored:
+            self.juice("medium", enemy.x, enemy.y)
         self.audio.play("drone_explode")
         if enemy in self.enemies:
             self.enemies.remove(enemy)
@@ -125,8 +130,10 @@ class CombatMixin:
                 self.pickups.append(RepairKit(enemy.x, enemy.y))
 
     def _damage_boss(self, hit):
-        phase = self.boss.phase
+        phase, hp = self.boss.phase, self.boss.hp
         self.boss.hit_part(hit.target, hit.damage, flash=not hit.continuous)
+        if self.boss.hp < hp:
+            self.tally_boss_damage(hp - self.boss.hp, hit.x, hit.y)
         if self.boss.phase != phase:
             self._boss_phase_changed()
         b = self.boss
@@ -143,8 +150,7 @@ class CombatMixin:
         b = self.boss
         self._clear_bullets()
         self.shockwaves.append(Shockwave(b.x, b.y, max_radius=90, duration=0.7, color=DANGER))
-        self.shake.add(0.6)
-        self.flash = 0.08
+        self.juice("large", b.x, b.y)
         y = b.y + b.h / 2
         self.pickups.append(PowerCore(b.x - 14, y, vx=-35, vy=50))
         kit = FullRepair if b.phase == b.PHASES - 1 else RepairKit
@@ -160,8 +166,8 @@ class CombatMixin:
         for _ in range(6):
             self.explosion(*b.random_hull_point(), size=1.2)
         self.shockwaves.append(Shockwave(b.x, b.y, max_radius=110, duration=0.8))
-        self.flash = 0.15
-        self.shake.add(1.0)
+        self.juice("large", b.x, b.y)
+        self.screen_flash(0.15)
         self.audio.play("boss_explode")
         if self.state == State.PLAYING:
             self.score += POINTS_BOSS

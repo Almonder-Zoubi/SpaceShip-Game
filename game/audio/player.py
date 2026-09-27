@@ -27,6 +27,8 @@ class Audio:
         self.loop_channels = {}
         self.track = None                         # music track currently playing
         self._last_played = {}
+        self.sound_volume = 1.0                   # master volumes from the options (0..1)
+        self.music_volume = 1.0
         if self.enabled:
             pygame.mixer.set_num_channels(24)
             pygame.mixer.set_reserved(len(LOOPS))
@@ -44,8 +46,16 @@ class Audio:
                 sound = pygame.mixer.Sound(bank.sfx_path(name))
             except (pygame.error, FileNotFoundError):
                 continue
-            sound.set_volume(VOLUME.get(name, 0.7))
             self.sounds[name] = sound
+        self.set_volume(self.sound_volume, self.music_volume)
+
+    def set_volume(self, sound, music):
+        """Master volumes 0..1 (options menu)."""
+        self.sound_volume, self.music_volume = sound, music
+        for name, s in self.sounds.items():
+            s.set_volume(VOLUME.get(name, 0.7) * sound)
+        if self.enabled:
+            pygame.mixer.music.set_volume(MUSIC_VOLUME * music)
 
     # --- sound effects -------------------------------------------------------------------
     def play(self, name):
@@ -71,7 +81,7 @@ class Audio:
             return
         if not channel.get_busy():
             channel.play(sound, loops=-1)
-        channel.set_volume(volume)
+        channel.set_volume(volume * self.sound_volume)
 
     def stop_loops(self):
         for channel in self.loop_channels.values():
@@ -95,7 +105,7 @@ class Audio:
             return
         try:
             pygame.mixer.music.load(path)
-            pygame.mixer.music.set_volume(MUSIC_VOLUME)
+            pygame.mixer.music.set_volume(MUSIC_VOLUME * self.music_volume)
             pygame.mixer.music.play(0 if track in JINGLES else -1, fade_ms=300)
         except pygame.error:
             pass

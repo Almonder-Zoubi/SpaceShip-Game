@@ -156,3 +156,20 @@ UPGRADE_BONUS = {                             # per tier, as a share of the par 
     "ENGINE": 0.04,                           # top speed
     "CHARGE": 0.10,                           # BLAST / ULTIMATE charge rate
 }
+
+# --- Juice (game feel) -----------------------------------------------------------
+# Tier -> (shake trauma, hit-stop seconds, extra embers, screen flash seconds).
+JUICE = {
+    "small": (0.05, 0.0, 0, 0.0),        # bullet on rock, coin
+    "medium": (0.3, 0.04, 6, 0.0),       # minion kill, big rock, the ship is hit
+    "large": (0.8, 0.12, 24, 0.1),       # boss phase, boss kill, the ship explodes
+}
+SLOWMO_TIME = 0.5                # a large event also slows the world down this long
+SLOWMO_SCALE = 0.35              # world speed during slow-mo
+REDUCED_SHAKE = 0.3              # options: "reduce shake" multiplies all shake by this
+REDUCED_FLASH = 0.25             # options: "reduce flashes" multiplies screen flashes by this
+DAMAGE_NUMBER_EVERY = 0.2        # seconds: boss damage is summed and shown this often
+
+# --- Radio cards ---------------------------------------------------------------------
+RADIO_CHARS_PER_S = 45           # typing speed
+RADIO_HOLD = 3.0                 # seconds a card stays after the text is complete

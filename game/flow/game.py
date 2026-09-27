@@ -25,6 +25,7 @@ from ..progression.inventory import Inventory
 from ..ui.gifts import GiftScreen
 from ..ui.hangar import HangarScreen
 from ..ui.item_art import ItemArt
+from ..ui.radio import RadioView
 from ..ui.hud import Hud
 from ..ui.screens import ScreensMixin
 from ..weapons.gun import MachineGun
@@ -34,7 +35,9 @@ from .combat import CombatMixin
 from .dev import DevMixin
 from .events import EventsMixin
 from .hangar import HangarMixin
+from .juice import JuiceMixin
 from .level_flow import LevelFlowMixin
+from .options import OptionsMixin
 from .progression import ProgressionMixin
 from .sound import SoundMixin
 from .states import MENU_STATES, State
@@ -42,11 +45,13 @@ from .world import WorldMixin
 
 
 class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixin, HangarMixin,
-           SoundMixin, DevMixin, ScreensMixin):
+           JuiceMixin, OptionsMixin, SoundMixin, DevMixin, ScreensMixin):
     """Owns the window, the world objects and the state machine.
 
     Mixins (one file each in flow/ and ui/) add: key handling, level flow, world update,
-    combat, progression (coins, rank, payout), hangar + gifts, sound, dev tools and drawing. They all work on the attributes created here.
+    combat, progression (coins, rank, payout), hangar + gifts, game feel (juice, damage
+    numbers, radio), options, sound, dev tools and drawing. They all work on the attributes
+    created here.
     """
 
     SHIP_START = (LOW_W / 2, LOW_H - 40)
@@ -92,6 +97,8 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
         if bank.missing():
             self._loading_screen("BUILDING SOUNDS (FIRST START ONLY)...")
         self.audio.load()
+        self.load_options()
+        self.radio_view = RadioView(self.font)
         self._sound_state = {}                    # weapon states last frame (see SoundMixin)
         self.level_index = self.start_level
         ship = self.save.ship if self.inventory.owns(self.save.ship) else ARROW.name
@@ -120,6 +127,8 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
         """Use this save file: bank, ranks and the inventory (dev mode owns everything)."""
         self.save = save
         self.inventory = Inventory(save, LEVEL_KEYS, everything=self.dev)
+        if hasattr(self, "audio"):                # not during __init__ (no audio yet)
+            self.load_options()
 
     def _loading_screen(self, text="BUILDING SPRITES..."):
         self.canvas.fill(SPACE)
@@ -174,6 +183,7 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
         if self.state == State.PAUSED:
             return
 
+        real_dt, dt = dt, self.world_dt(dt)       # hit-stop / slow-mo slow the world down
         firing = False
         if self.state in MENU_STATES:
             self.ship.update(dt, Keys(), self.fire, self.smoke)
@@ -196,10 +206,12 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
             self._check_ship_collisions()
             self._update_phase(dt, world_speed)
         for popup in self.popups:
-            popup.update(dt)
+            popup.update(real_dt)
         self.popups = [p for p in self.popups if not p.done]
+        self._update_damage_numbers(real_dt)
+        self._update_radio(real_dt)
         if self.alert:
-            self.alert[3] -= dt
+            self.alert[3] -= real_dt
             if self.alert[3] <= 0:
                 self.alert = None
 
@@ -208,10 +220,10 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
         for wave in self.shockwaves:
             wave.update(dt)
         self.shockwaves = [w for w in self.shockwaves if not w.done]
-        self.shake.update(dt)
-        self.flash = max(0.0, self.flash - dt)
-        self._update_progress(dt)
-        self.hurt_flash = max(0.0, self.hurt_flash - dt)
+        self.shake.update(real_dt)
+        self.flash = max(0.0, self.flash - real_dt)
+        self._update_progress(real_dt)
+        self.hurt_flash = max(0.0, self.hurt_flash - real_dt)
 
         if self.state == State.DYING and self.state_time > DEATH_DELAY:
             self.set_state(State.GAME_OVER)

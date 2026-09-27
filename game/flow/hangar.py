@@ -142,7 +142,7 @@ class HangarMixin:
         item = self.gift_options[self.gift_cursor]
         self.inventory.claim(self.level_key, item.id)
         self.audio.play("power_up")
-        self.flash = 0.1
+        self.screen_flash(0.1)
         if item.kind == SHIP:
             self.choose_hull(hull_named(item.id))
         self.open_hangar(self.level_index + 1, self.score, focus=item.id,

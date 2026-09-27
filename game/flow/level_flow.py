@@ -25,6 +25,7 @@ class LevelFlowMixin:
         self.ship.equip(loadout, self.hull)
         self.ship.reset(*self.SHIP_START)
         self._reset_progress()
+        self._reset_juice()
         self.background.set_nebula(level.nebula)
         self.asteroids = []
         self.spawner = AsteroidSpawner(self.library, level.difficulty)
@@ -66,7 +67,9 @@ class LevelFlowMixin:
         if wave_index:
             self.wave_index = wave_index
             self.alert = [f"WAVE {wave_index + 1}", self.wave.name, ACCENT, 3.0]
-        if boss_index is not None:
+        if boss_index is None:
+            self.radio_say(self.wave.radio if wave_index else self.level.radio)
+        else:
             self.distance = self.wave.length
             self.boss_index = boss_index
         self.record_rank = None
@@ -144,6 +147,7 @@ class LevelFlowMixin:
         self.distance = 0.0
         self.set_phase(Phase.FIELD)
         self.alert = [f"WAVE {self.wave_index + 1}", self.wave.name, ACCENT, 3.0]
+        self.radio_say(self.wave.radio)
 
     def _begin_warning(self):
         self.ship.hp = self.ship.max_hp              # full health for every boss fight

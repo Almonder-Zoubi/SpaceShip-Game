@@ -38,9 +38,11 @@ from game.progression import upgrades
 from game.progression.economy import level_payout
 from game.progression.items import UPGRADE
 from game.progression.results import RANKS, LevelStats, better_rank
+from game.ui.popup import DamageNumber
 from game.weapons.base import Hit
 
 FIRE = Keys(pygame.K_SPACE)
+JUICE_PAD = 0.8          # hit-stop + slow-mo after a big event stretch the world's time
 
 
 class Harness:
@@ -332,7 +334,7 @@ def test_campaign(h):
     h.shot("boss_enraged")
     game.boss.damage(game.boss.max_hp)
     assert game.boss.state == "dying"
-    for i in range(seconds(game.boss.DEATH_TIME + 0.3)):
+    for i in range(seconds(game.boss.DEATH_TIME + JUICE_PAD + 0.3)):
         game.update(h.dt, Keys())
         game.draw()
         if i == 40:
@@ -374,7 +376,7 @@ def test_campaign(h):
     run(seconds(3.0), clear_rocks=True)
     game.boss.damage(game.boss.max_hp)
     game.ship.hp = 10
-    run(seconds(game.boss.DEATH_TIME + 1.7), clear_rocks=True)
+    run(seconds(game.boss.DEATH_TIME + JUICE_PAD + 1.7), clear_rocks=True)
     assert game.phase == Phase.WARNING and game.boss_index == 1
     run(seconds(WARNING_TIME + 3.0), clear_rocks=True)
     carrier = game.boss
@@ -411,7 +413,7 @@ def test_campaign(h):
     assert carrier.hp < hp0, "powered gun damages the carrier"
     h.shot("carrier_powered_gun")
     carrier.damage(carrier.max_hp)
-    run(seconds(carrier.DEATH_TIME + 0.3))
+    run(seconds(carrier.DEATH_TIME + JUICE_PAD + 0.3))
     assert not game.enemies, "drones die with the carrier"
     run(seconds(1.6))
     assert game.state == State.LEVEL_CLEAR, game.state
@@ -488,7 +490,7 @@ def test_campaign(h):
     game._damage_boss(Hit(game.boss, game.boss.max_hp * 0.34, 0, 0, 0, -1, 0))
     assert abs(game.ultimate.charge - 0.25) < 1e-6, game.ultimate.charge
     h.kill(game.boss)
-    run(seconds(Carrier.DEATH_TIME + 1.7), clear_rocks=True)
+    run(seconds(Carrier.DEATH_TIME + JUICE_PAD + 1.7), clear_rocks=True)
     assert game.wave_index == 2 and game.phase == Phase.FIELD, (game.wave_index, game.phase)
 
     # Wave 3: the final boss.
@@ -527,7 +529,7 @@ def test_campaign(h):
     run(seconds(6.0), clear_rocks=True)
     h.shot("mothership_phase3")
     h.kill(boss)
-    run(seconds(boss.DEATH_TIME + 1.9))
+    run(seconds(boss.DEATH_TIME + JUICE_PAD + 1.9))
     assert game.state == State.LEVEL_CLEAR and game.save.unlocked == 4, game.state
     run(seconds(1.2))
     h.shot("level3_clear")
@@ -580,7 +582,7 @@ def test_level4(h):
     run(seconds(WARNING_TIME + 3.0), clear_rocks=True)
     assert isinstance(game.boss, Mothership) and game.boss.spec.strength == 1.5
     h.kill(game.boss)
-    run(seconds(Mothership.DEATH_TIME + 1.7), clear_rocks=True)
+    run(seconds(Mothership.DEATH_TIME + JUICE_PAD + 1.7), clear_rocks=True)
     assert game.wave_index == 2
     game.distance = game.wave.length
     run(seconds(WARNING_TIME + Leviathan.ENTER_TIME + 0.3), clear_rocks=True)
@@ -624,7 +626,7 @@ def test_level4(h):
     h.kill(boss)
     run(seconds(1.2))
     h.shot("leviathan_dying")
-    run(seconds(boss.DEATH_TIME))
+    run(seconds(boss.DEATH_TIME + JUICE_PAD))
     assert boss.popped == len(boss.plates), "every plate blows off"
     run(seconds(1.9))
     assert game.state == State.WIN, game.state
@@ -711,7 +713,7 @@ def test_economy(h):
     assert game.boss and game.boss.fighting
     game.collect_coins(10)
     h.kill(game.boss)
-    h.run(h.seconds(game.boss.DEATH_TIME + 1.7), clear_rocks=True)
+    h.run(h.seconds(game.boss.DEATH_TIME + JUICE_PAD + 1.7), clear_rocks=True)
     assert game.state == State.LEVEL_CLEAR, game.state
     payout = game.payout
     assert payout.pending >= 10 + 30 // 2 and not payout.replay and payout.first_clear
@@ -728,7 +730,7 @@ def test_economy(h):
     game.ship.hp = 10 ** 9
     h.run(h.seconds(WARNING_TIME + 3.5), clear_rocks=True)
     h.kill(game.boss)
-    h.run(h.seconds(game.boss.DEATH_TIME + 1.7), clear_rocks=True)
+    h.run(h.seconds(game.boss.DEATH_TIME + JUICE_PAD + 1.7), clear_rocks=True)
     assert game.state == State.LEVEL_CLEAR and game.payout.replay
     assert game.save.coins == bank + game.payout.total
     game.save._reset()
@@ -759,7 +761,7 @@ def test_inventory(h):
     game.ship.hp = 10 ** 9
     h.run(h.seconds(WARNING_TIME + 3.5), clear_rocks=True)
     h.kill(game.boss)
-    h.run(h.seconds(game.boss.DEATH_TIME + 1.7 + 1.2), clear_rocks=True)
+    h.run(h.seconds(game.boss.DEATH_TIME + JUICE_PAD + 1.7 + 1.2), clear_rocks=True)
     assert game.state == State.LEVEL_CLEAR
     h.post(pygame.K_RETURN)
     assert game.state == State.REWARD and [i.id for i in game.gift_options] == ["LASER", "WASP"]
@@ -814,7 +816,7 @@ def test_inventory(h):
     game.ship.hp = 10 ** 9
     h.run(h.seconds(WARNING_TIME + 3.5), clear_rocks=True)
     h.kill(game.boss)
-    h.run(h.seconds(game.boss.DEATH_TIME + 1.7 + 1.2), clear_rocks=True)
+    h.run(h.seconds(game.boss.DEATH_TIME + JUICE_PAD + 1.7 + 1.2), clear_rocks=True)
     h.post(pygame.K_RETURN)
     assert game.state == State.REWARD and len(game.gift_options) == 1
     h.run(h.seconds(0.6))
@@ -924,6 +926,71 @@ def test_upgrades(h):
     game.load_profile(SaveData(h.save_path))
     game.inventory.grant_all()
     game.choose_hull(ARROW)
+    game.to_title()
+
+
+def test_feel(h):
+    """G4 game feel: hit-stop freezes the world, slow-mo after large events, boss damage
+    numbers, radio cards (ENTER skips), boss name cards, options in the pause menu."""
+    game = h.game
+    game.choose_hull(ARROW)
+    game.start(0)
+    assert game.radio and game.radio.lines == LEVELS[0].radio, "level 1 opens with a radio card"
+    h.run(h.seconds(3.5))
+    h.shot("radio")
+    h.post(pygame.K_RETURN)
+    assert game.radio and game.radio.typed >= game.radio.chars, "ENTER finishes the typing"
+    h.post(pygame.K_RETURN)
+    assert game.radio is None, "ENTER again closes the card"
+
+    # Juice: a medium event freezes the world for a moment, a large one slows it down.
+    game.juice("medium", game.ship.x, game.ship.y)
+    assert game.hitstop > 0 and game.world_dt(h.dt) == 0.0
+    game.hitstop = 0.0
+    game.juice("large", game.ship.x, game.ship.y)
+    game.hitstop = 0.0
+    assert 0 < game.world_dt(h.dt) < h.dt, "slow-mo after a large event"
+    game.slowmo = 0.0
+
+    # Boss: WARNING shows the name card, hits pop damage numbers.
+    game.start(0, 0, 0, 0)
+    game.ship.hp = 10 ** 9
+    h.run(h.seconds(1.0), clear_rocks=True)
+    h.shot("name_card")
+    h.run(h.seconds(WARNING_TIME + 2.0), clear_rocks=True)
+    assert game.boss.fighting
+    game.popups.clear()
+    for _ in range(40):
+        game.ship.x = game.boss.x
+        game.update(h.dt, FIRE)
+    assert any(isinstance(p, DamageNumber) for p in game.popups), "boss hits show numbers"
+    h.shot("damage_numbers")
+
+    # Options: P pauses; DOWN picks SOUND, LEFT lowers it (saved); shake can be reduced.
+    h.post(pygame.K_p)
+    assert game.state == State.PAUSED
+    h.post(pygame.K_DOWN)
+    sound = game.options["sound"]
+    h.post(pygame.K_LEFT)
+    assert game.options["sound"] == sound - 1 and game.audio.sound_volume == (sound - 1) / 10
+    assert SaveData(h.save_path).options["sound"] == sound - 1, "options are saved"
+    h.post(pygame.K_DOWN)
+    h.post(pygame.K_RIGHT)
+    assert game.options["shake"] == 0 and game.shake.scale < 1
+    h.run(2)
+    h.shot("pause_options")
+    h.post(pygame.K_DOWN)
+    h.post(pygame.K_RIGHT)
+    assert game.options["flashes"] == 0
+    game.flash = 0.0
+    game.screen_flash(0.1)
+    assert game.flash < 0.1, "reduced flashes"
+    for key in ("shake", "flashes"):                    # back to full for the other sections
+        game.options.change(key, 1)
+    game.options.change("sound", 1)
+    game.apply_options()
+    h.post(pygame.K_p)
+    assert game.state == State.PLAYING
     game.to_title()
 
 
@@ -1134,7 +1201,7 @@ SECTIONS = (
     ("damage", test_damage), ("balance", test_balance), ("pickups", test_pickups),
     ("campaign", test_campaign), ("level4", test_level4), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
-    ("upgrades", test_upgrades), ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
+    ("upgrades", test_upgrades), ("feel", test_feel), ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
     ("busy", test_busy),
 )
 
