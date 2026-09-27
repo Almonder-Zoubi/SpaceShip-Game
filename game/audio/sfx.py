@@ -25,6 +25,33 @@ def laser_loop():
     return make_loop([v - mean for v in hum], 0.15)
 
 
+def scatter():
+    """Shotgun blast: a punchy noise burst with a low thump."""
+    return mix(noise(0.14, 6000, 900, 0.55, power=1.2), tone("sine", 160, 60, 0.1, 0.5))
+
+
+def plasma():
+    """Plasma orb: a wobbling, falling 'bwomp'."""
+    return mix(tone("saw", 520, 180, 0.16, 0.3, vibrato=0.5, vibrato_rate=30),
+               lowpass(noise(0.1, 3000, 800, 0.2), 0.5))
+
+
+def arc_loop():
+    """Crackling lightning, loops while the ARC fires."""
+    n = int(0.6 * RATE)
+    crackle = noise(0.6, 9000, None, 1.0, attack=0.0, power=0.0)
+    buzz = oscillate("square", 90, None, n, duty=0.2)
+    zap = [0.45 * a * (1 if (i // 900) % 3 else 0.3) + 0.12 * b
+           for i, (a, b) in enumerate(zip(crackle, buzz))]
+    mean = sum(zap) / len(zap)
+    return make_loop([v - mean for v in zap], 0.1)
+
+
+def rocket():
+    """ROCKET POD launch: a short hiss."""
+    return mix(noise(0.2, 3000, 8000, 0.3, attack=0.02), tone("square", 300, 700, 0.1, 0.12))
+
+
 def overheat():
     return mix(tone("square", 700, 120, 0.35, 0.4, duty=0.5, power=1.0),
                noise(0.35, 3000, 800, 0.25))
@@ -240,6 +267,7 @@ SOUNDS = {
     "power_up": power_up, "select": select, "confirm": confirm, "engine": engine_loop,
     "lock_on": lock_on, "dive": dive, "ice_break": ice_break, "coin": coin, "rank": rank,
     "denied": denied, "boost": boost, "shield": shield, "combo": combo, "fever": fever,
-    "wingman_down": wingman_down, "wingman_up": wingman_up,
+    "wingman_down": wingman_down, "wingman_up": wingman_up, "scatter": scatter,
+    "plasma": plasma, "arc": arc_loop, "rocket": rocket,
 }
-LOOPS = ("laser", "engine")         # played on their own channel, looping
+LOOPS = ("laser", "engine", "arc")         # played on their own channel, looping

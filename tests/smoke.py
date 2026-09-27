@@ -22,7 +22,7 @@ from game.bosses.leviathan import Leviathan
 from game.bosses.mothership import Mothership
 from game.config.display import FPS, SCALE, WIN_H, WIN_W
 from game.config.loadouts import MK1, MK2, MK3, MK4
-from game.config.tuning import (COMBO_COIN_CAP, COMBO_MAX, COMBO_STEP, COMBO_WINDOW,
+from game.config.tuning import (ARC_JUMPS, PLASMA_PIERCE, COMBO_COIN_CAP, COMBO_MAX, COMBO_STEP, COMBO_WINDOW,
                                 DEATH_DELAY, FEVER_AT, MEDIC_DELAY, MEDIC_REVIVE, PIP_SHARE,
                                 POWER_MAX, REPAIR_SMALL, SHIELD_HITS, UPGRADE_COSTS,
                                 UPGRADE_TIERS, WARNING_TIME, WINGMAN_KO_TIME,
@@ -1260,6 +1260,140 @@ def test_wingmen(h):
     game.to_title()
 
 
+class Dummy:
+    """A big round practice target for DPS measurements."""
+
+    def __init__(self, x, y, radius=18):
+        self.x, self.y, self.radius, self.bound = x, y, radius, radius
+
+    def contains(self, px, py):
+        return (px - self.x) ** 2 + (py - self.y) ** 2 < self.radius ** 2
+
+
+def test_arsenal(h):
+    """G7: SCATTER / PLASMA / ARC do about the gun's DPS (so BossSpec holds), plasma pierces
+    but a boss stops it, the arc chains but never along a boss; secondaries fire on their own
+    at rocks + minions and never hurt a boss; the hangar fills 2 primary slots + 1 secondary."""
+    game = h.game
+    game.choose_hull(ARROW)
+    game.start(3)
+    game.radio = None
+    ship, fire = game.ship, game.fire
+    weapons = {w.name: w for w in game.weapons}
+
+    def dps(weapon, seconds=2.0):
+        weapon.reset()
+        dummy = Dummy(ship.x, ship.y - 50)
+        total = 0.0
+        for _ in range(h.seconds(seconds)):
+            total += sum(hit.damage for hit in weapon.update(h.dt, True, ship, [dummy], fire))
+        weapon.reset()
+        return total / seconds
+    gun = dps(weapons["GUN"])
+    for name in ("SCATTER", "PLASMA", "ARC"):
+        ratio = dps(weapons[name]) / gun
+        assert 0.6 < ratio < 1.35, (name, ratio)
+
+    # PLASMA pierces 3 rocks in a row; ARC jumps along a line of rocks.
+    def rocks_ahead(n, gap):
+        return [Dummy(ship.x, ship.y - 40 - i * gap, 5) for i in range(n)]
+    plasma = weapons["PLASMA"]
+    row = rocks_ahead(4, 22)
+    hit = set()
+    for _ in range(h.seconds(1.2)):
+        hit |= {id(x.target) for x in plasma.update(h.dt, _ == 0, ship, row, fire)}
+    assert len(hit) == PLASMA_PIERCE, len(hit)
+    plasma.reset()
+    arc = weapons["ARC"]
+    row = rocks_ahead(5, 30)
+    hits = arc.update(h.dt, True, ship, row, fire)
+    assert len(hits) == 1 + ARC_JUMPS and hits[1].damage < hits[0].damage
+    arc.reset()
+
+    # Against the Leviathan's body: one orb = one hit, the arc doesn't chain along plates.
+    game.start(3, 0, 2, 0)
+    game.ship.hp = 10 ** 9
+    h.run(h.seconds(WARNING_TIME + 0.5), clear_rocks=True)
+    while not game.boss.fighting:
+        h.run(10, clear_rocks=True)
+    parts = game.boss.parts()
+    hits = arc.update(h.dt, True, game.ship, parts, fire)
+    assert len({id(x.target) for x in hits}) <= 1
+    arc.reset()
+
+    # Secondaries: fire by themselves at rocks, never hurt a boss.
+    game.save.secondary = "ROCKET POD"
+    game.enemy_bullets.clear()
+    pod = game.secondary
+    assert pod is game.secondaries["ROCKET POD"]
+    hp = game.boss.hp
+    pod.timer = 0
+    h.run(h.seconds(1.0), clear_rocks=True)
+    assert game.boss.hp == hp, "rockets never target the boss"
+    game.start(0)
+    game.radio = None
+    game.ship.hp = 10 ** 6
+    rock = h.rock_ahead(10, dist=80)
+    rock.vx = rock.vy = 0
+    game.asteroids = [rock]
+    rock_hp = rock.hp
+    pod.timer = 0
+    for _ in range(h.seconds(2.0)):
+        rock.vx = rock.vy = 0
+        game.update(h.dt, Keys())
+    assert pod.shots and (rock.hp < rock_hp or rock not in game.asteroids), "rockets hit"
+    game.draw()
+    h.shot("rocket_pod")
+    game.save.secondary = "SIDE CANNONS"
+    cannons = game.secondary
+    game.enemies = drone_formation()[:1]
+    drone = game.enemies[0]
+    for _ in range(h.seconds(0.5)):
+        drone.x, drone.y = game.ship.x + 60, game.ship.y
+        drone.vx = drone.vy = 0
+        game.update(h.dt, Keys())
+    assert cannons.shots, "side cannons fire at a drone beside the ship"
+    game.draw()
+    h.shot("side_cannons")
+    game.save.secondary = None
+
+    # Hangar: SCATTER into slot 2, R switches GUN <-> SCATTER; secondary on / off.
+    game.save.primaries = None
+    game.open_hangar(0)
+    h.post(pygame.K_RIGHT)                               # WEAPONS
+    while game.hangar_item.id != "SCATTER":
+        h.post(pygame.K_DOWN)
+    h.run(3)
+    h.shot("hangar_weapons_scroll")
+    h.post(pygame.K_RETURN)
+    assert game.primaries == ["GUN", "SCATTER"], game.primaries
+    assert SaveData(h.save_path).primaries == ["GUN", "SCATTER"]
+    while game.hangar_item.id != "SIDE CANNONS":
+        h.post(pygame.K_DOWN)
+    h.post(pygame.K_RETURN)
+    assert game.save.secondary == "SIDE CANNONS"
+    h.post(pygame.K_RETURN)
+    assert game.save.secondary is None
+    h.post(pygame.K_SPACE)
+    assert game.weapon.name == "GUN"
+    game.switch_weapon()
+    assert game.weapon.name == "SCATTER"
+    h.run(30, FIRE, clear_rocks=True)
+    h.shot("scatter")
+    game.save.primaries = ["PLASMA", "ARC"]
+    game.start(0)
+    game.radio = None
+    assert game.weapon.name == "PLASMA"
+    h.run(30, FIRE, clear_rocks=True)
+    h.shot("plasma")
+    game.switch_weapon()
+    game.asteroids = [h.rock_ahead(10, dist=60)]
+    h.run(20, FIRE)
+    h.shot("arc")
+    game.save.primaries = None
+    game.to_title()
+
+
 def test_title_menus(h):
     """Title: level select with LEFT/RIGHT, scores alternate in; ENTER -> hangar -> launch."""
     game = h.game
@@ -1468,7 +1602,8 @@ SECTIONS = (
     ("campaign", test_campaign), ("level4", test_level4), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
     ("upgrades", test_upgrades), ("feel", test_feel),
-    ("boosts", test_boosts), ("wingmen", test_wingmen), ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
+    ("boosts", test_boosts), ("wingmen", test_wingmen),
+    ("arsenal", test_arsenal), ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
     ("busy", test_busy),
 )
 

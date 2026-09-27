@@ -7,12 +7,14 @@ import pygame
 from ..config.display import LOW_W
 from ..config.palette import (ACCENT, COIN, DANGER, EMPTY, GOOD, INK, TEXT, TEXT_DIM,
                               TEXT_SHADOW)
-from ..config.tuning import (BLAST_DPS, BLAST_TIME, GUN_INTERVAL, ULT_INTERVAL, ULT_TIME,
+from ..config.tuning import (ARC_JUMP, ARC_JUMPS, ARC_SHARE, BLAST_DPS, BLAST_TIME,
+                             GUN_INTERVAL, PLASMA_INTERVAL, PLASMA_PIERCE, SCATTER_INTERVAL,
+                             SCATTER_PELLETS, SECONDARY_SHARE, ULT_INTERVAL, ULT_TIME,
                              UPGRADE_TIERS, WINGMAN_XP)
 from ..player.hulls import HULLS, hull_named
 from ..progression import upgrades
 from ..progression.inventory import LOCKED, OWNED, SHOP
-from ..progression.items import SHIP, UPGRADE, WEAPON, WINGMAN
+from ..progression.items import PRIMARY, SECONDARY, SHIP, UPGRADE, WEAPON, WINGMAN
 from ..wingmen.base import level_for
 from ..wingmen.types import WINGMEN
 from .item_art import ItemArt
@@ -20,6 +22,7 @@ from .item_art import ItemArt
 TAB_NAMES = {SHIP: "SHIPS", WEAPON: "WEAPONS", WINGMAN: "WINGMEN", UPGRADE: "UPGRADES"}
 PREVIEW = pygame.Rect(8, 40, 112, 106)
 LIST_X, LIST_Y, ROW_H = 130, 42, 13
+VISIBLE_ROWS = 6                 # longer lists scroll with the cursor
 
 
 @dataclass
@@ -37,6 +40,18 @@ class HangarView:
     unlock_hint: str = ""        # how the selected locked item is unlocked
     wingman: str = None          # equipped wingman
     wingmen_xp: dict = None      # wingman -> XP
+    primaries: tuple = ()        # equipped primary weapons (slot 1, slot 2)
+    secondary: str = None        # equipped secondary weapon
+
+    @property
+    def rows(self):
+        """List rows on screen."""
+        return min(len(self.items), VISIBLE_ROWS)
+
+    @property
+    def first_row(self):
+        """Index of the first item shown (the list scrolls to keep the cursor visible)."""
+        return max(0, min(self.cursor - VISIBLE_ROWS + 2, len(self.items) - VISIBLE_ROWS))
 
     @property
     def power(self):
@@ -84,7 +99,7 @@ class HangarScreen:
         elif item.kind == WINGMAN:
             self._wingman_stats(surf, item.id, view)
         else:
-            self._weapon_stats(surf, item.id, view.model(), len(view.items))
+            self._weapon_stats(surf, item.id, view.model(), view.rows)
         self._blurb(surf, item.blurb)
         if not view.message and status == LOCKED:
             f.draw(surf, f"LOCKED: {view.unlock_hint}", (LOW_W // 2, 186), TEXT_DIM,
@@ -192,6 +207,12 @@ class HangarScreen:
                 level = level_for((view.wingmen_xp or {}).get(item.id, 0))
                 return (f"FLIES LV{level}", GOOD) if item.id == view.wingman else (
                     f"LV{level}", TEXT)
+            if item.slot == PRIMARY:
+                if item.id in view.primaries:
+                    return f"SLOT {list(view.primaries).index(item.id) + 1}", GOOD
+                return "OWNED", TEXT
+            if item.slot == SECONDARY:
+                return ("SECONDARY", GOOD) if item.id == view.secondary else ("OWNED", TEXT)
             return "ON BOARD", GOOD
         if status == SHOP:
             return f"{item.price} CR", COIN[2]
@@ -199,8 +220,15 @@ class HangarScreen:
 
     def _list(self, surf, view):
         f = self.font
-        for i, (item, status) in enumerate(view.items):
-            y = LIST_Y + i * ROW_H
+        first = view.first_row
+        shown = view.items[first:first + VISIBLE_ROWS]
+        if first > 0:
+            f.draw(surf, "^", (LOW_W - 10, LIST_Y - 9), TEXT_DIM)
+        if first + VISIBLE_ROWS < len(view.items):
+            f.draw(surf, "V", (LOW_W - 10, LIST_Y + VISIBLE_ROWS * ROW_H - 4), TEXT_DIM)
+        for row, (item, status) in enumerate(shown):
+            i = first + row
+            y = LIST_Y + row * ROW_H
             selected = i == view.cursor
             if selected:
                 surf.fill(EMPTY, (LIST_X - 4, y - 3, LOW_W - LIST_X - 4, ROW_H - 1))
@@ -241,7 +269,7 @@ class HangarScreen:
         cls = WINGMEN[name]
         xp = (view.wingmen_xp or {}).get(name, 0)
         level = level_for(xp)
-        y0 = LIST_Y + len(view.items) * ROW_H + 8
+        y0 = LIST_Y + view.rows * ROW_H + 8
         for i, line in enumerate(cls.role):
             f.draw(surf, line, (LIST_X, y0 + i * 10), TEXT_DIM, shadow=TEXT_SHADOW)
         if level < len(WINGMAN_XP):
@@ -262,6 +290,16 @@ class HangarScreen:
             "SPECIALS": (f"BLAST {BLAST_DPS} DPS FOR {BLAST_TIME:g} S",
                          f"ULTIMATE {round(ULT_TIME / ULT_INTERVAL)} MISSILES"),
             "OVERDRIVE": ("FALLS LIKE A REPAIR KIT", "FIRE RATE X2, WHITE FLAMES"),
+            "SCATTER": (f"{SCATTER_PELLETS} PELLETS X {1 / SCATTER_INTERVAL:.1f}/S",
+                        f"{base.gun_dps:.0f} DPS UP CLOSE"),
+            "PLASMA": (f"ORB {base.gun_dps * PLASMA_INTERVAL:.0f} DMG X {1 / PLASMA_INTERVAL:.0f}/S",
+                       f"PIERCES {PLASMA_PIERCE} TARGETS"),
+            "ARC": (f"{base.gun_dps * ARC_SHARE:.0f} DPS, JUMPS {ARC_JUMPS}X",
+                    f"EACH JUMP {ARC_JUMP * 100:.0f}%"),
+            "ROCKET POD": (f"{base.gun_dps * SECONDARY_SHARE:.0f} DPS, AUTOMATIC",
+                           "ROCKS + MINIONS ONLY"),
+            "SIDE CANNONS": (f"{base.gun_dps * SECONDARY_SHARE:.0f} DPS PER SIDE",
+                             "ROCKS + MINIONS ONLY"),
         }[item_id]
         y0 = LIST_Y + rows * ROW_H + 10
         for i, line in enumerate(lines):

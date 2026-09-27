@@ -33,6 +33,11 @@ class CombatMixin:
             active = firing and weapon is self.weapon and not self.blast.active
             hits += weapon.update(dt, active, self.ship, targets, self.fire)
         hits += self._update_wingmen(dt, firing)
+        secondary = self.secondary
+        for weapon in self.secondaries.values():   # automatic; rocks + minions only
+            live = weapon is secondary and self.state == State.PLAYING
+            hits += weapon.update(dt, live, self.ship, self.asteroids + self.enemies
+                                  if live else [], self.fire)
         missile_hits = self.ultimate.update(dt, False, self.ship, targets, self.fire)
         if missile_hits:
             self.audio.play("missile_hit")

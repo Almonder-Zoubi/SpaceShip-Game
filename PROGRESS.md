@@ -180,6 +180,26 @@ Options need a place in the menus: ask the user where (title? pause?) before add
 
 ## Log
 
+### 2026-09-27 — G7: weapon slots, SCATTER / PLASMA / ARC, ROCKET POD / SIDE CANNONS
+- 2 primary slots (R switches, `save.primaries`, default GUN + LASER) + 1 automatic
+  secondary slot (`save.secondary`). `Game.weapons` keeps every primary in a fixed order;
+  `Game.primaries` / `Game.secondary` are what the player equipped (and owns).
+- New primaries, all balanced off `Loadout.gun_dps` (so hull, upgrades and `BossSpec`
+  apply unchanged; smoke test checks each is 0.6–1.35x the gun's DPS on a target):
+  SCATTER (5 pellets / 0.28 s, short range, +2 pellets per POWER), PLASMA (orb / 0.25 s,
+  pierces 3 targets; a boss soaks it up), ARC (continuous lightning to the nearest target
+  ahead, jumps 2x at 60%, +1 jump per POWER; never chains along one boss).
+- Secondaries (automatic, no key) at 20% of gun DPS, **rocks and minions only** — bosses
+  shrug them off so the capped edge stays intact **(ask)**: ROCKET POD (2 homing rockets
+  every 1.8 s), SIDE CANNONS (fire sideways when something flies beside the ship).
+- Hangar WEAPONS tab: list scrolls (6 rows), tags SLOT 1 / SLOT 2 / SECONDARY / OWNED /
+  ON BOARD; ENTER on an owned primary puts it in a free slot (or slot 2), on an equipped one
+  takes it out (one always stays); ENTER on a secondary toggles it. Gifts / purchases go into
+  a free slot automatically. HUD shows "+ ROCKET POD" over the weapon.
+- `weapons/bolts.py` (moved from wingmen), `is_boss_part()`; SFX scatter, plasma, arc
+  (loop), rocket; font "^".
+- Smoke test: new `arsenal` section.
+
 ### 2026-09-27 — G6: wingmen
 - New package `game/wingmen/`: `Wingman` base (eases into a slot beside the ship, follows
   the lean; a bullet or rock knocks it out for 5 s: it spins + smokes, then reboots; never

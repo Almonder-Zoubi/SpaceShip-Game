@@ -31,16 +31,23 @@ class SoundMixin:
         audio.music(self._music_track())
         flying = self.state == State.PLAYING and self.ship.alive
         audio.loop("engine", 0.25 + 0.75 * self.ship.throttle if flying else 0)
-        laser = self.weapons[1]
+        weapons = {w.name: w for w in self.weapons}
+        laser, arc = weapons["LASER"], weapons["ARC"]
         audio.loop("laser", 1.0 if flying and laser.active else 0)
+        audio.loop("arc", 1.0 if flying and arc.active else 0)
 
         # Rising edges of weapon states since the last frame.
-        gun = self.weapons[0]
         was = self._sound_state
-        now = {"shots": gun.shots, "overheated": laser.overheated, "blast": self.blast.active}
+        now = {"overheated": laser.overheated, "blast": self.blast.active}
+        shooters = (("GUN", weapons["GUN"], "gun"), ("SCATTER", weapons["SCATTER"], "scatter"),
+                    ("PLASMA", weapons["PLASMA"], "plasma"),
+                    ("POD", self.secondaries["ROCKET POD"], "rocket"))
+        for key, weapon, _ in shooters:
+            now[key] = weapon.shots
         if flying:
-            if now["shots"] > was.get("shots", now["shots"]):
-                audio.play("gun")
+            for key, weapon, sound in shooters:
+                if now[key] > was.get(key, now[key]):
+                    audio.play(sound)
             if now["overheated"] and not was.get("overheated"):
                 audio.play("overheat")
             if now["blast"] and not was.get("blast"):

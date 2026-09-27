@@ -12,9 +12,9 @@ from .music import JINGLES, SONGS
 from .sfx import LOOPS, SOUNDS
 
 # Per-sound volume and the shortest gap between two plays (for sounds that fire in bursts).
-VOLUME = {"gun": 0.35, "hit_rock": 0.5, "hit_metal": 0.4, "enemy_shot": 0.45,
+VOLUME = {"scatter": 0.4, "plasma": 0.35, "arc": 0.3, "rocket": 0.3, "gun": 0.35, "hit_rock": 0.5, "hit_metal": 0.4, "enemy_shot": 0.45,
           "missile_hit": 0.5, "engine": 0.5, "laser": 0.45, "coin": 0.35}
-MIN_GAP = {"gun": 0.06, "hit_rock": 0.05, "hit_metal": 0.06, "enemy_shot": 0.07,
+MIN_GAP = {"rocket": 0.1, "scatter": 0.08, "plasma": 0.08, "gun": 0.06, "hit_rock": 0.05, "hit_metal": 0.06, "enemy_shot": 0.07,
            "missile_hit": 0.05, "rock_break": 0.04, "ice_break": 0.05, "lock_on": 0.25,
            "coin": 0.05}
 MUSIC_VOLUME = 0.55

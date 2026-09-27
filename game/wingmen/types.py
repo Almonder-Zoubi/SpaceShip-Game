@@ -11,7 +11,8 @@ from ..config.tuning import (GUARDIAN_COOLDOWN, GUARDIAN_ORBIT, GUARDIAN_SPIN, H
                              MEDIC_RATE, PIP_INTERVAL, PIP_SHARE, TWIN_SHARE)
 from ..weapons.homing import RocketSwarm
 from .art import GUARDIAN_ROWS, HUNTER_ROWS, MAGPIE_ROWS, MEDIC_ROWS, PIP_ROWS
-from .base import Bolts, Wingman
+from ..weapons.bolts import Bolts
+from .base import Wingman
 
 
 class Pip(Wingman):

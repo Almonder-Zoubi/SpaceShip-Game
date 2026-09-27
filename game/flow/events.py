@@ -154,12 +154,13 @@ class EventsMixin:
 
     # --- actions -----------------------------------------------------------------------
     def switch_weapon(self):
-        """R: the next weapon the player owns (nothing happens with only the gun)."""
-        owned = [i for i, w in enumerate(self.weapons) if self.inventory.owns(w.name)]
-        if len(owned) < 2:
+        """R: the other equipped primary (nothing happens with only one)."""
+        names = [w.name for w in self.weapons]
+        slots = [names.index(name) for name in self.primaries]
+        if len(slots) < 2:
             return
-        later = [i for i in owned if i > self.weapon_index]
-        self.weapon_index = later[0] if later else owned[0]
+        self.weapon_index = slots[(slots.index(self.weapon_index) + 1) % len(slots)
+                                  if self.weapon_index in slots else 0]
         self.audio.play("switch")
 
     def fire_ultimate(self):

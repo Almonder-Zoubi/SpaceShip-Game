@@ -218,3 +218,24 @@ MAGPIE_RADIUS = (60, 75, 90, 105, 120)   # px: coins and pickups this close fly 
 MAGPIE_BONUS = 0.1                       # level 5: chance that a coin counts twice
 TWIN_TIME = 10.0                         # TWIN boost: a copy of the ship flies along ...
 TWIN_SHARE = 0.25                        # ... firing at this share of the gun's DPS
+
+# --- More primaries (2 slots, R switches) and secondaries (1 slot, automatic) -----------
+# Every primary does about the machine gun's DPS (Loadout.gun_dps), so BossSpec holds.
+SCATTER_INTERVAL = 0.28          # 5 pellets per shot, strong up close
+SCATTER_PELLETS = 5              # + 2 per POWER level (same damage per pellet)
+SCATTER_SPREAD = 0.36            # radians, total fan width
+SCATTER_SPEED = 280
+SCATTER_RANGE = 0.42             # seconds a pellet lives (~120 px)
+PLASMA_INTERVAL = 0.25           # slow, big orbs that pierce
+PLASMA_SPEED = 170
+PLASMA_PIERCE = 3                # targets per orb (a boss stops it)
+PLASMA_POWER_BONUS = 0.2         # +20% damage per POWER level
+ARC_SHARE = 0.77                 # first target gets this x gun DPS (55 of 71 at MK I) ...
+ARC_JUMP = 0.6                   # ... every jump this much of the previous one
+ARC_JUMPS = 2                    # jumps after the first target (+1 per POWER level)
+ARC_RANGE = 130                  # px from the nose to the first target
+ARC_CONE = 0.6                   # radians either side of the nose
+ARC_CHAIN = 64                   # px between two targets of a chain
+SECONDARY_SHARE = 0.2            # secondaries: this x gun DPS, only on rocks and minions
+ROCKET_POD_INTERVAL = 1.8        # 2 homing rockets
+SIDE_CANNON_INTERVAL = 0.22      # both sides, only when something is beside the ship

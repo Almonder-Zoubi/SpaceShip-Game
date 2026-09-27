@@ -17,7 +17,7 @@ class Hud:
 
     def draw(self, surf, ship, score, best, progress, weapon, time, boss=None, level="1",
              blast=None, ultimate=None, galaxy=1, coins=None, switchable=True, boosts=None,
-             combo=None):
+             combo=None, secondary=None):
         """coins: (bank, pending, flash) — pending coins are only banked when the level is won.
         boosts: ({name: seconds left}, shield hits, fever seconds); combo: (count, mult,
         0..1 time left)."""
@@ -40,6 +40,9 @@ class Hud:
         text = f"HI {best:06d}"
         f.draw(surf, text, (LOW_W - 6 - f.size(text)[0], 15), TEXT_DIM, shadow=TEXT_SHADOW)
         self._weapon(surf, weapon, blink, switchable)
+        if secondary:
+            f.draw(surf, f"+ {secondary}", (6, LOW_H - 32 + (0 if switchable else 10)),
+                   TEXT_DIM, shadow=TEXT_SHADOW)
         if boosts:
             self._boosts(surf, *boosts, time)
         if combo and combo[0] >= COMBO_STEP:

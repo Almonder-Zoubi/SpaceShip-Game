@@ -48,10 +48,11 @@ class LevelFlowMixin:
         self.diver_timer = level.difficulty.diver_interval
         self.boss_kit_timer = BOSS_KIT_INTERVAL
         self.alert = [f"LEVEL {level.number}", level.name, ACCENT, 3.0]   # title, sub, colour, time
-        self.weapon_index = 0
-        for weapon in self.weapons:
+        for weapon in self.weapons + list(self.secondaries.values()):
             weapon.reset()
             weapon.equip(loadout)
+        names = [w.name for w in self.weapons]
+        self.weapon_index = names.index(self.primaries[0])
         self.blast.reset()
         self.ultimate.reset()
         self.fire.clear()
@@ -85,6 +86,19 @@ class LevelFlowMixin:
         if not self.inventory.owns("SPECIALS"):
             loadout = replace(loadout, blast=False, ultimate=False)
         return loadout
+
+    @property
+    def primaries(self):
+        """The equipped primary weapons (1-2 names) the player owns; R switches between them."""
+        chosen = self.save.primaries or ["GUN", "LASER"]
+        owned = [name for name in chosen if self.inventory.owns(name)]
+        return owned or ["GUN"]
+
+    @property
+    def secondary(self):
+        """The equipped secondary weapon (or None)."""
+        name = self.save.secondary
+        return self.secondaries[name] if name in self.secondaries and self.inventory.owns(name) else None
 
     def choose_hull(self, hull):
         """Pick a hull (remembered in the save file) and build its sprites for every level now,

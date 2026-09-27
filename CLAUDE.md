@@ -39,7 +39,7 @@ python3 tools/build_audio.py boss gun    # ...or only some of them
 
 Headless smoke test (no window, no audio device) — run after every change. It drives every state
 and mechanic in named sections (title, controls, mouse, weapons, damage, balance, pickups,
-campaign, level4, save, economy, inventory, upgrades, feel, boosts, wingmen, menus, hulls, dev, retry, audio, busy); each section starts from its own state:
+campaign, level4, save, economy, inventory, upgrades, feel, boosts, wingmen, arsenal, menus, hulls, dev, retry, audio, busy); each section starts from its own state:
 
 ```bash
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test [--shots DIR]
@@ -74,7 +74,7 @@ Every folder's `__init__.py` docstring lists what its modules do.
 | `core/` | `pixelart`, `pixelfont`, `particles`, `input`, `storage`, `options` | Engine helpers: sprite-from-rows, `CharCanvas`, `mirrored`/`outlined`, RotSprite, dithering, noise, glow; 5x7 font; `ParticleSystem`/`Shockwave`/`ScreenShake`; `Keys` + key groups, `Mouse` (steering target + left-click fire); `SaveData` (`save.json` v2: records, unlocks, ship, coin bank, best rank per level, inventory, upgrade tiers, options); `Options` (volumes, reduce shake / flashes) |
 | `background/` | `nebula`, `planet`, `starfield`, `background` | One layer per module; `Background` draws them back to front |
 | `player/` | `hulls`, `art`, `ship` | `Hull` shapes (ARROW, WASP, TITAN, LANCE: rows, nozzles, barrels, stat multipliers); MK paint jobs + banked/lean frames; `Ship` (controls, lean, throttle, flames, health) |
-| `weapons/` | `base`, `gun`, `laser`, `specials`, `homing` | `Hit` (+`source`), `Weapon` (+`rate`), `raycast()`; `MachineGun`; `Laser`; `Charged` → `Blast`, `Ultimate` (+`Missile`); `RocketSwarm` (homing rockets) |
+| `weapons/` | `base`, `gun`, `laser`, `scatter`, `plasma`, `arc`, `specials`, `homing`, `bolts`, `secondary` | `Hit` (+`source`), `Weapon` (+`rate`), `raycast()`, `is_boss_part()`; primaries `MachineGun`, `Laser`, `Scatter`, `Plasma`, `Arc`; `Charged` → `Blast`, `Ultimate` (+`Missile`); `RocketSwarm`, `Bolts`; secondaries `RocketPod`, `SideCannons` |
 | `obstacles/` | `art`, `asteroid`, `spawner` | Procedural `AsteroidArt`/`AsteroidLibrary`; `Asteroid` (hp, push, pixel-exact hits, how it splits) + `IceRock` (brittle, shatters), `rock_class(palette)`; `AsteroidSpawner` (driven by a `Difficulty`) |
 | `minions/` | `bullets`, `base`, `drone`, `diver` | `EnemyBullet`, `shoot()`, `bullet()`; `Enemy` base; `Drone` sprite + class + `drone_formation()`; `Diver` (kamikaze: lock on, dive) + `diver_squad()` |
 | `bosses/` | `spec`, `base`, `art`, `gunship`, `carrier`, `mothership`, `leviathan` | `BossSpec` balance maths; `Boss` base (phases, roar, drones, `parts()`/`hit_part()` for multi-part bosses, `prebuild()`); shared hull colours; **one file per boss = its sprite, muzzles/vents and class** |
@@ -98,6 +98,7 @@ Where to look when debugging:
 - Upgrades → `progression/upgrades.py` (tracks, `apply`, POWER), numbers in `config/tuning.py`; applied in `loadout_for()` after the hull, never to `BossSpec`.
 - Tests start with every item owned (`Harness` calls `inventory.grant_all()`) and 0 upgrade tiers; `test_inventory` covers a new player.
 - Hit-stop / slow-mo / shake per event → `flow/juice.py` (`juice(tier, x, y)`), tiers in `config/tuning.JUICE`. `update()` gives the world `world_dt(dt)`; popups, shake, radio run on real time.
+- Weapons: `Game.weapons` = every primary in a fixed order (`weapons[0]` = gun); the player's 2 slots are `Game.primaries` (`save.primaries`), R cycles them; `Game.secondary` is the automatic slot. New primaries balance off `Loadout.gun_dps`; secondaries only get rocks + minions as targets.
 - Wingmen → `wingmen/types.py` (behaviour), `flow/wingmen.py` (game side); numbers in `config/tuning.py`. Their damage counts in the capped player edge (smoke test: maxed upgrades + LV5 PIP >= 3.5x on a 5x boss).
 - Boosts, combo, FEVER, shield → `flow/boosts.py`; the enemy side runs on `enemy_dt(dt)` (SLOW-MO), weapons read `Weapon.rate` (OVERDRIVE).
 - Wrong music or a sound missing → `flow/sound.py` (state → track, loops) or the event's own call.

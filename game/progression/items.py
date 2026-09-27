@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 SHIP, WEAPON, WINGMAN = "SHIP", "WEAPON", "WINGMAN"   # item kinds = inventory tabs
 UPGRADE = "UPGRADE"                      # the upgrades tab lists tracks, not items
+PRIMARY, SECONDARY = "PRIMARY", "SECONDARY"   # weapon slots
 TABS = (SHIP, WEAPON, WINGMAN, UPGRADE)  # (the skins tab comes later)
 
 
@@ -18,6 +19,7 @@ class Item:
     blurb: tuple                         # 1-2 short lines for the hangar and the gift cards
     price: int                           # shop price (after it was offered as a gift)
     sold_after: str = None               # never a gift: in the shop once this level is cleared
+    slot: str = None                     # weapons: PRIMARY (R switches 2) or SECONDARY (auto)
 
 
 ITEMS = {item.id: item for item in (
@@ -25,8 +27,19 @@ ITEMS = {item.id: item for item in (
     Item("WASP", "WASP", SHIP, ("SMALL, FAST, AGILE.", "FRAGILE, HITS HARDER."), 250),
     Item("TITAN", "TITAN", SHIP, ("HEAVY ARMOUR.", "WIDE AND SLOW."), 350),
     Item("LANCE", "LANCE", SHIP, ("LONG AND THIN.", "LASER SPECIALIST."), 350),
-    Item("GUN", "MACHINE GUN", WEAPON, ("STREAM OF TRACERS.", "NEVER OVERHEATS."), 0),
-    Item("LASER", "LASER", WEAPON, ("PIERCING BEAM.", "OVERHEATS WHEN HELD."), 200),
+    Item("GUN", "MACHINE GUN", WEAPON, ("STREAM OF TRACERS.", "NEVER OVERHEATS."), 0,
+         slot=PRIMARY),
+    Item("LASER", "LASER", WEAPON, ("PIERCING BEAM.", "OVERHEATS WHEN HELD."), 200,
+         slot=PRIMARY),
+    Item("SCATTER", "SCATTER", WEAPON, ("5-PELLET SHOTGUN.", "BRUTAL UP CLOSE."), 300,
+         slot=PRIMARY),
+    Item("PLASMA", "PLASMA", WEAPON, ("SLOW BIG ORBS THAT", "PIERCE 3 TARGETS."), 350,
+         slot=PRIMARY),
+    Item("ARC", "ARC", WEAPON, ("LIGHTNING THAT JUMPS", "TO 3 TARGETS."), 400, slot=PRIMARY),
+    Item("ROCKET POD", "ROCKET POD", WEAPON, ("SECONDARY: 2 HOMING", "ROCKETS EVERY 1.8 S."),
+         300, slot=SECONDARY),
+    Item("SIDE CANNONS", "SIDE CANNONS", WEAPON, ("SECONDARY: FIRES AT", "WHAT FLIES BESIDE YOU."),
+         300, slot=SECONDARY),
     Item("SPECIALS", "BLAST + ULTIMATE", WEAPON, ("HITS CHARGE A BLAST", "AND A MISSILE STORM."), 0),
     Item("OVERDRIVE", "OVERDRIVE BOOST", WEAPON, ("BOOST PICKUP: FIRE", "RATE X2 FOR 6 S."), 250),
     Item("PIP", "PIP", WINGMAN, ("WINGMAN: A GUNNER", "THAT FIRES WITH YOU."), 300),

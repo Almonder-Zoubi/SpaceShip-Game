@@ -33,6 +33,8 @@ class SaveData:
         self.options = {}        # core.options values (volumes, reduce shake / flashes)
         self.wingman = None      # equipped wingman (item id) or None
         self.wingmen_xp = {}     # wingman -> total XP
+        self.primaries = None    # the 2 primary weapons R switches between (None = default)
+        self.secondary = None    # the automatic secondary weapon (or None)
         self.load()
 
     @property
@@ -63,6 +65,10 @@ class SaveData:
             self.wingman = None if wingman is None else str(wingman)
             self.wingmen_xp = {str(k): max(0, int(v))
                                for k, v in dict(data.get("wingmen_xp", {})).items()}
+            primaries = data.get("primaries")
+            self.primaries = None if primaries is None else _strings(primaries)[:2]
+            secondary = data.get("secondary")
+            self.secondary = None if secondary is None else str(secondary)
         except (OSError, ValueError, TypeError, KeyError, AttributeError):
             self._reset()                               # unreadable: start fresh
 
@@ -72,6 +78,7 @@ class SaveData:
         self.owned, self.shop, self.gifts = None, [], []
         self.upgrades, self.options = {}, {}
         self.wingman, self.wingmen_xp = None, {}
+        self.primaries, self.secondary = None, None
 
     def save(self):
         if not self.path:
@@ -84,7 +91,8 @@ class SaveData:
                            "cleared": self.cleared, "owned": self.owned, "shop": self.shop,
                            "gifts": self.gifts, "upgrades": self.upgrades,
                            "options": self.options, "wingman": self.wingman,
-                           "wingmen_xp": self.wingmen_xp}, f, indent=2)
+                           "wingmen_xp": self.wingmen_xp, "primaries": self.primaries,
+                           "secondary": self.secondary}, f, indent=2)
             os.replace(tmp, self.path)
         except OSError:
             pass                                        # read-only folder: play on without saving

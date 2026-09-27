@@ -34,7 +34,7 @@ class ScreensMixin:
             self.draw_wingmen(c)
             if self.shield and self.state == State.PLAYING:
                 self._draw_shield(c)
-        for weapon in self.weapons:
+        for weapon in self.weapons + list(self.secondaries.values()):
             weapon.draw(c)
         self.blast.draw(c)
         self.ultimate.draw(c)
@@ -95,7 +95,8 @@ class ScreensMixin:
                       self.distance / self.wave.length, self.weapon, self.time, boss=self.boss,
                       level=self._level_label(), blast=self.blast if loadout.blast else None,
                       ultimate=self.ultimate if loadout.ultimate else None,
-                      galaxy=self.galaxy.number, switchable=self.inventory.owns("LASER"),
+                      galaxy=self.galaxy.number, switchable=len(self.primaries) > 1,
+                      secondary=self.secondary.name if self.secondary else None,
                       boosts=(self.boosts, self.shield, self.fever),
                       combo=(self.combo, self.combo_mult, self.combo_ratio(self.combo_time)),
                       coins=None if self.payout else   # results screen counts them

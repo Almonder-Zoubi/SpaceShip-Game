@@ -5,7 +5,8 @@ from ..config.tuning import WINGMAN_TRAIN_COST, WINGMAN_TRAIN_XP, WINGMAN_XP
 from ..levels.data import LEVEL_KEYS, LEVELS
 from ..player.hulls import hull_named
 from ..progression.inventory import OWNED, SHOP
-from ..progression.items import ITEMS, SHIP, TABS, UPGRADE, WINGMAN, items_of
+from ..progression.items import (ITEMS, PRIMARY, SECONDARY, SHIP, TABS, UPGRADE, WINGMAN,
+                                 items_of)
 from ..progression.upgrades import TRACKS
 from ..ui.hangar import HangarView
 from .states import State
@@ -55,7 +56,8 @@ class HangarMixin:
                           self.hull.name, self.save.coins, LEVELS[self.next_launch[0]],
                           self.inventory.tiers, self.hangar_message,
                           self.inventory.unlock_hint(item.id) if item else "",
-                          self.save.wingman, dict(self.save.wingmen_xp))
+                          self.save.wingman, dict(self.save.wingmen_xp), tuple(self.primaries),
+                          self.secondary.name if self.secondary else None)
 
     def hangar_move(self, step):
         n = len(TRACKS) if self.hangar_tab == UPGRADE else len(items_of(self.hangar_tab))
@@ -90,6 +92,8 @@ class HangarMixin:
                 self.audio.play("confirm")
             elif item.kind == WINGMAN:
                 self._hangar_train(item)
+            elif item.slot:
+                self._hangar_slot(item)
             else:
                 self.hangar_launch()
         elif status == SHOP:
@@ -103,6 +107,8 @@ class HangarMixin:
                     self.choose_hull(hull_named(item.id))
                 elif item.kind == WINGMAN:
                     self.save.choose_wingman(item.id)
+                elif item.slot:
+                    self.equip_new_weapon(item)
                 self.hangar_message = (f"{item.name} BOUGHT!", GOOD)
                 self.audio.play("power_up")
             else:
@@ -112,6 +118,37 @@ class HangarMixin:
         else:
             self.hangar_message = (self.inventory.unlock_hint(item.id), TEXT)
             self.audio.play("denied")
+
+    def _hangar_slot(self, item):
+        """ENTER on an owned weapon: a primary goes into a free slot (or replaces slot 2),
+        an equipped one comes out (one always stays); a secondary toggles."""
+        if item.slot == SECONDARY:
+            equip = self.save.secondary != item.id
+            self.save.secondary = item.id if equip else None
+            text = f"{item.name} FITTED" if equip else f"{item.name} REMOVED"
+        else:
+            slots = list(self.primaries)
+            if item.id in slots:
+                if len(slots) == 1:
+                    self.hangar_launch()
+                    return
+                slots.remove(item.id)
+                text = f"{item.name} REMOVED"
+            else:
+                slots = (slots + [item.id])[-2:] if len(slots) < 2 else [slots[0], item.id]
+                text = f"{item.name} IN SLOT {slots.index(item.id) + 1}"
+            self.save.primaries = slots
+        self.save.save()
+        self.hangar_message = (text, GOOD)
+        self.audio.play("confirm")
+
+    def equip_new_weapon(self, item):
+        """A new weapon (gift or shop) goes into a free slot."""
+        if item.slot == PRIMARY and item.id not in self.primaries and len(self.primaries) < 2:
+            self.save.primaries = list(self.primaries) + [item.id]
+        elif item.slot == SECONDARY and not self.secondary:
+            self.save.secondary = item.id
+        self.save.save()
 
     def _hangar_train(self, item):
         """ENTER on the equipped wingman: TRAIN (XP for coins), with the same confirm step."""
@@ -195,6 +232,8 @@ class HangarMixin:
             self.choose_hull(hull_named(item.id))
         elif item.kind == WINGMAN and not self.save.wingman:
             self.save.choose_wingman(item.id)
+        elif item.slot:
+            self.equip_new_weapon(item)
         if self.gift_then[0] == "title":
             self.to_title()
         else:

@@ -68,3 +68,8 @@ def raycast(ox, oy, dx, dy, max_dist, targets):
                 break
             s += 1.0
     return best, hit
+
+
+def is_boss_part(target):
+    """A boss, or a piece of one (the Leviathan's segments know their boss)."""
+    return hasattr(target, "PHASES") or hasattr(target, "boss")

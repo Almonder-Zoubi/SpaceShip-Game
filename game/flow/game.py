@@ -29,7 +29,11 @@ from ..ui.radio import RadioView
 from ..ui.hud import Hud
 from ..ui.screens import ScreensMixin
 from ..weapons.gun import MachineGun
+from ..weapons.arc import Arc
 from ..weapons.laser import Laser
+from ..weapons.plasma import Plasma
+from ..weapons.scatter import Scatter
+from ..weapons.secondary import RocketPod, SideCannons
 from ..weapons.specials import Blast, Ultimate
 from .boosts import BoostsMixin
 from .combat import CombatMixin
@@ -107,7 +111,9 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
         ship = self.save.ship if self.inventory.owns(self.save.ship) else ARROW.name
         self.choose_hull(hull_named(ship))           # builds that hull's sprites
         pygame.display.set_icon(window_icon(self.ship.frames[0]))
-        self.weapons = [MachineGun(), Laser()]
+        # Every primary the game knows (fixed order); the player's 2 slots pick from these.
+        self.weapons = [MachineGun(), Laser(), Scatter(), Plasma(), Arc()]
+        self.secondaries = {w.name: w for w in (RocketPod(), SideCannons())}
         self.blast = Blast()                      # MK III specials, charged by hitting things
         self.ultimate = Ultimate()
 
