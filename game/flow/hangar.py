@@ -5,8 +5,8 @@ from ..config.tuning import WINGMAN_TRAIN_COST, WINGMAN_TRAIN_XP, WINGMAN_XP
 from ..levels.data import LEVEL_KEYS, LEVELS
 from ..player.hulls import hull_named
 from ..progression.inventory import OWNED, SHOP
-from ..progression.items import (ITEMS, PRIMARY, SECONDARY, SHIP, TABS, UPGRADE, WINGMAN,
-                                 items_of)
+from ..progression.items import (DEFAULT_SKINS, ITEMS, PAINT, PRIMARY, SECONDARY, SHIP, SKIN,
+                                 TABS, UPGRADE, WINGMAN, items_of)
 from ..progression.upgrades import TRACKS
 from ..ui.hangar import HangarView
 from .states import State
@@ -57,7 +57,9 @@ class HangarMixin:
                           self.inventory.tiers, self.hangar_message,
                           self.inventory.unlock_hint(item.id) if item else "",
                           self.save.wingman, dict(self.save.wingmen_xp), tuple(self.primaries),
-                          self.secondary.name if self.secondary else None)
+                          self.secondary.name if self.secondary else None,
+                          {slot: self.skin(slot).id for slot in DEFAULT_SKINS},
+                          len(self.save.achievements))
 
     def hangar_move(self, step):
         n = len(TRACKS) if self.hangar_tab == UPGRADE else len(items_of(self.hangar_tab))
@@ -92,6 +94,14 @@ class HangarMixin:
                 self.audio.play("confirm")
             elif item.kind == WINGMAN:
                 self._hangar_train(item)
+            elif item.kind == SKIN and self.skin(item.slot).id != item.id:
+                self.wear(item.id)
+                if item.slot == PAINT:
+                    self.choose_hull(self.hull)          # rebuild the ship in the new paint
+                self.hangar_message = (f"{item.name} ON", GOOD)
+                self.audio.play("confirm")
+            elif item.kind == SKIN:
+                self.hangar_launch()
             elif item.slot:
                 self._hangar_slot(item)
             else:
@@ -107,6 +117,10 @@ class HangarMixin:
                     self.choose_hull(hull_named(item.id))
                 elif item.kind == WINGMAN:
                     self.save.choose_wingman(item.id)
+                elif item.kind == SKIN:
+                    self.wear(item.id)
+                    if item.slot == PAINT:
+                        self.choose_hull(self.hull)
                 elif item.slot:
                     self.equip_new_weapon(item)
                 self.hangar_message = (f"{item.name} BOUGHT!", GOOD)

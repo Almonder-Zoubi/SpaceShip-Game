@@ -42,7 +42,9 @@ from game.player.hulls import ARROW, HULLS, TITAN, WASP
 from game.progression import upgrades
 from game.progression.economy import level_payout
 from game.progression.inventory import LOCKED, SHOP
-from game.progression.items import UPGRADE, WINGMAN
+from game.progression.items import SKIN, STARTER, UPGRADE, WINGMAN
+from game.config.palette import BEAMS, TRACERS, TRAILS
+from game.player.art import SHIP_PALETTES
 from game.wingmen.types import Guardian, Pip, Twin
 from game.minions.bullets import EnemyBullet
 from game.progression.results import RANKS, LevelStats, better_rank
@@ -757,7 +759,7 @@ def test_inventory(h):
     fresh.save()
     game.load_profile(SaveData(h.save_path))
     inv = game.inventory
-    assert game.save.owned == ["ARROW", "GUN"] and inv.status("LASER") == "LOCKED"
+    assert game.save.owned == list(STARTER) and inv.status("LASER") == "LOCKED"
     game.choose_hull(ARROW)
     game.start(2)                                        # no BLAST / ULT / laser yet
     assert not game.ship.loadout.blast and not game.ship.loadout.ultimate
@@ -879,7 +881,8 @@ def test_upgrades(h):
     game.save.coins = 300
     game.choose_hull(ARROW)
     game.open_hangar(2)
-    h.post(pygame.K_LEFT)                                # SHIPS wraps round to UPGRADES
+    h.post(pygame.K_LEFT)                                # SHIPS wraps round to SKINS ...
+    h.post(pygame.K_LEFT)                                # ... then UPGRADES
     assert game.hangar_tab == UPGRADE and game.hangar_track.id == "ARMOR"
     assert game.hangar_view().power == 1.0
     h.post(pygame.K_RETURN)
@@ -1394,6 +1397,85 @@ def test_arsenal(h):
     game.to_title()
 
 
+def test_skins(h):
+    """G8: skins (paint, trail, tracers, beam, death style) are bought / earned / worn and
+    change only looks; achievements unlock their skins once."""
+    game = h.game
+    inv = game.inventory
+    game.save.achievements = []
+    game.save.skins = {}
+    for item_id in ("RETRO", "GOLD TRIM", "RAINBOW", "HEARTS", "NEON", "TOXIC", "SUPERNOVA"):
+        game.save.owned.remove(item_id)
+    game.save.cleared["1-1"] = "B"
+    assert inv.status("RETRO") == SHOP and inv.status("GOLD TRIM") == LOCKED
+    assert "NO-HIT" in inv.unlock_hint("GOLD TRIM")
+
+    # Hangar SKINS tab: buy RETRO paint and wear it; the ship is repainted, stats unchanged.
+    game.choose_hull(ARROW)
+    game.save.coins = 1000
+    game.open_hangar(0)
+    h.post(pygame.K_LEFT)                                # wraps round to SKINS
+    assert game.hangar_tab == SKIN
+    h.run(3)
+    h.shot("hangar_skins")
+    while game.hangar_item.id != "RETRO":
+        h.post(pygame.K_DOWN)
+    h.post(pygame.K_RETURN)
+    h.post(pygame.K_RETURN)
+    assert inv.owns("RETRO") and game.skin("PAINT").id == "RETRO"
+    before = game.loadout_for(LEVELS[0])
+    assert before.colors == "retro" and game.ship.colors == SHIP_PALETTES["retro"]
+    h.run(3)
+    h.shot("hangar_retro")
+    for item_id in ("PLASMA BLUE", "CYAN TRACERS", "EMERALD BEAM", "PIXEL SHATTER"):
+        game.wear(item_id)
+    h.post(pygame.K_SPACE)
+    game.radio = None
+    weapons = {w.name: w for w in game.weapons}
+    assert game.ship.trail == TRAILS["PLASMA BLUE"] and weapons["GUN"].colors == TRACERS["CYAN"]
+    assert weapons["LASER"].colors == BEAMS["EMERALD"]
+    assert game.ship.max_hp == MK1.max_hp, "skins never change stats"
+    h.run(30, Keys(pygame.K_SPACE, pygame.K_UP), clear_rocks=True)
+    h.shot("skins_in_flight")
+    particles = len(game.smoke.particles)
+    h.die()
+    assert len(game.smoke.particles) > particles, "pixel shatter"
+
+    # Achievements: a boss beaten without a hit -> GOLD TRIM; FEVER -> RAINBOW; a whole
+    # field without firing -> HEARTS; once only.
+    game.start(0, 0, 0, 0)
+    game.ship.hp = 10 ** 9
+    game.god = True
+    h.run(h.seconds(WARNING_TIME + 3.0), clear_rocks=True)
+    h.kill(game.boss)
+    h.run(h.seconds(game.boss.DEATH_TIME + JUICE_PAD), clear_rocks=True)
+    game.god = False
+    assert "NO_HIT" in game.save.achievements and inv.owns("GOLD TRIM")
+    game.start(0)
+    for _ in range(FEVER_AT):
+        game.add_kill(1, 100, 100)
+    assert inv.owns("RAINBOW")
+    game.start(0)
+    game.distance = game.wave.length - 0.01
+    h.run(2, clear_rocks=True)
+    assert inv.owns("HEARTS"), "PACIFIST"
+    count = len(game.save.achievements)
+    game.achieve("FEVER")
+    assert len(game.save.achievements) == count, "earned once"
+    assert set(SaveData(h.save_path).achievements) == set(game.save.achievements)
+
+    # Supernova death.
+    game.inventory.unlock("SUPERNOVA")
+    game.wear("SUPERNOVA")
+    game.start(0)
+    h.die()
+    h.shot("supernova")
+    game.save.skins = {}
+    game.inventory.grant_all()
+    game.choose_hull(ARROW)
+    game.to_title()
+
+
 def test_title_menus(h):
     """Title: level select with LEFT/RIGHT, scores alternate in; ENTER -> hangar -> launch."""
     game = h.game
@@ -1603,7 +1685,7 @@ SECTIONS = (
     ("economy", test_economy), ("inventory", test_inventory),
     ("upgrades", test_upgrades), ("feel", test_feel),
     ("boosts", test_boosts), ("wingmen", test_wingmen),
-    ("arsenal", test_arsenal), ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
+    ("arsenal", test_arsenal), ("skins", test_skins), ("hulls", test_hulls), ("dev", test_dev), ("retry", test_retry), ("audio", test_audio),
     ("busy", test_busy),
 )
 

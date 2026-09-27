@@ -141,6 +141,7 @@ class BoostsMixin:
         if self.combo == FEVER_AT and self.fever <= 0:
             self.fever = FEVER_TIME
             self.alert = ["FEVER!", "FIRE RATE X2", RAINBOW[2], 1.6]
+            self.achieve("FEVER")
             self.audio.play("fever")
             self.screen_flash(0.08)
         return points * self.combo_mult

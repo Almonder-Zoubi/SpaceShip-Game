@@ -241,6 +241,13 @@ def wingman_up():
     return seq(*(tone("square", freq(n), None, 0.05, 0.22, duty=0.25) for n in ("C6", "E6", "A6")))
 
 
+def achievement():
+    """Achievement unlocked: a bright fanfare."""
+    notes = ("G5", "C6", "E6", "G6")
+    return mix(seq(*(tone("square", freq(n), None, 0.07, 0.25, duty=0.25) for n in notes)),
+               at(0.28, mix(*(tone("triangle", freq(n), None, 0.4, 0.18) for n in ("C6", "E6", "G6")))))
+
+
 def select():
     return tone("square", 880, None, 0.04, 0.3, duty=0.25)
 
@@ -269,5 +276,6 @@ SOUNDS = {
     "denied": denied, "boost": boost, "shield": shield, "combo": combo, "fever": fever,
     "wingman_down": wingman_down, "wingman_up": wingman_up, "scatter": scatter,
     "plasma": plasma, "arc": arc_loop, "rocket": rocket,
+    "achievement": achievement,
 }
 LOOPS = ("laser", "engine", "arc")         # played on their own channel, looping

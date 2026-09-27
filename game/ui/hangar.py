@@ -14,12 +14,14 @@ from ..config.tuning import (ARC_JUMP, ARC_JUMPS, ARC_SHARE, BLAST_DPS, BLAST_TI
 from ..player.hulls import HULLS, hull_named
 from ..progression import upgrades
 from ..progression.inventory import LOCKED, OWNED, SHOP
-from ..progression.items import PRIMARY, SECONDARY, SHIP, UPGRADE, WEAPON, WINGMAN
+from ..progression.achievements import ACHIEVEMENTS
+from ..progression.items import PRIMARY, SECONDARY, SHIP, SKIN, UPGRADE, WEAPON, WINGMAN
 from ..wingmen.base import level_for
 from ..wingmen.types import WINGMEN
 from .item_art import ItemArt
 
-TAB_NAMES = {SHIP: "SHIPS", WEAPON: "WEAPONS", WINGMAN: "WINGMEN", UPGRADE: "UPGRADES"}
+TAB_NAMES = {SHIP: "SHIPS", WEAPON: "WEAPONS", WINGMAN: "WINGMEN", UPGRADE: "UPGRADES",
+             SKIN: "SKINS"}
 PREVIEW = pygame.Rect(8, 40, 112, 106)
 LIST_X, LIST_Y, ROW_H = 130, 42, 13
 VISIBLE_ROWS = 6                 # longer lists scroll with the cursor
@@ -42,6 +44,8 @@ class HangarView:
     wingmen_xp: dict = None      # wingman -> XP
     primaries: tuple = ()        # equipped primary weapons (slot 1, slot 2)
     secondary: str = None        # equipped secondary weapon
+    skins: dict = None           # skin slot -> equipped skin item id
+    achievements: int = 0        # achievements earned
 
     @property
     def rows(self):
@@ -88,8 +92,12 @@ class HangarScreen:
         paint = view.level.loadout.colors
         surf.fill(EMPTY, PREVIEW)
         pygame.draw.rect(surf, ACCENT if status == OWNED else TEXT_DIM, PREVIEW, 1)
-        self.art.draw(surf, item.id, paint, PREVIEW.center, time, locked=status == LOCKED,
-                      lively=True)
+        if item.kind == SKIN:
+            self.art.draw_skin(surf, item, view.equipped, paint, PREVIEW.center, time,
+                               locked=status == LOCKED)
+        else:
+            self.art.draw(surf, item.id, paint, PREVIEW.center, time, locked=status == LOCKED,
+                          lively=True)
         tag, color = self._status(item, status, view)
         f.draw(surf, tag, (PREVIEW.centerx, PREVIEW.bottom + 4), color, shadow=TEXT_SHADOW,
                center=True)
@@ -98,6 +106,8 @@ class HangarScreen:
             self._ship_stats(surf, hull_named(item.id), view)
         elif item.kind == WINGMAN:
             self._wingman_stats(surf, item.id, view)
+        elif item.kind == SKIN:
+            self._skin_stats(surf, item, view)
         else:
             self._weapon_stats(surf, item.id, view.model(), view.rows)
         self._blurb(surf, item.blurb)
@@ -186,7 +196,7 @@ class HangarScreen:
 
     def _tabs(self, surf, view):
         f = self.font
-        step = 80
+        step = min(80, (LOW_W - 64) // max(1, len(view.tabs) - 1))
         x0 = LOW_W // 2 - step * (len(view.tabs) - 1) // 2
         for i, tab in enumerate(view.tabs):
             x = x0 + i * step
@@ -207,6 +217,9 @@ class HangarScreen:
                 level = level_for((view.wingmen_xp or {}).get(item.id, 0))
                 return (f"FLIES LV{level}", GOOD) if item.id == view.wingman else (
                     f"LV{level}", TEXT)
+            if item.kind == SKIN:
+                equipped = (view.skins or {}).get(item.slot) == item.id
+                return ("WEARING", GOOD) if equipped else ("OWNED", TEXT)
             if item.slot == PRIMARY:
                 if item.id in view.primaries:
                     return f"SLOT {list(view.primaries).index(item.id) + 1}", GOOD
@@ -262,6 +275,14 @@ class HangarScreen:
         for i, (label, value, top, text) in enumerate(rows):
             self._bar_row(surf, y0 + i * 10, label, value / top, text,
                           TEXT_DIM if label == "SIZE" else GOOD)   # size: smaller is better
+
+    def _skin_stats(self, surf, item, view):
+        f = self.font
+        y0 = LIST_Y + view.rows * ROW_H + 8
+        f.draw(surf, f"SKIN: {item.slot}  (LOOKS ONLY)", (LIST_X, y0), TEXT_DIM,
+               shadow=TEXT_SHADOW)
+        f.draw(surf, f"ACHIEVEMENTS {view.achievements}/{len(ACHIEVEMENTS)}", (LIST_X, y0 + 11),
+               ACCENT, shadow=TEXT_SHADOW)
 
     def _wingman_stats(self, surf, name, view):
         """Role, level + XP bar, the level 5 perk."""

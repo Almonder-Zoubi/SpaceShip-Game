@@ -28,6 +28,7 @@ class LevelFlowMixin:
         self._reset_juice()
         self._reset_boosts()
         self._reset_wingmen()
+        self._reset_achievements()
         self.background.set_nebula(level.nebula)
         self.asteroids = []
         self.spawner = AsteroidSpawner(self.library, level.difficulty)
@@ -53,6 +54,7 @@ class LevelFlowMixin:
             weapon.equip(loadout)
         names = [w.name for w in self.weapons]
         self.weapon_index = names.index(self.primaries[0])
+        self.apply_skins()
         self.blast.reset()
         self.ultimate.reset()
         self.fire.clear()
@@ -83,6 +85,7 @@ class LevelFlowMixin:
         BLAST + ULTIMATE only once the player owns them (the level 2 gift). Bosses keep
         using the par model (level.loadout)."""
         loadout = upgrades.apply(self.hull.apply(level.loadout), self.inventory.tiers)
+        loadout = replace(loadout, colors=self.paint_for(loadout))       # paint skin
         if not self.inventory.owns("SPECIALS"):
             loadout = replace(loadout, blast=False, ultimate=False)
         return loadout
@@ -126,12 +129,14 @@ class LevelFlowMixin:
             self.distance += dt * world_speed
             self._spawn_field_extras(dt)
             if self.distance >= self.wave.length:
+                self.track_field_done()
                 if self.wave.bosses:
                     self._begin_warning()
                 else:
                     self._next_wave()
         elif self.phase == Phase.WARNING and self.phase_time >= WARNING_TIME:
             self.boss = self.boss_entry.create()
+            self.boss_hurt = False
             self.boss_thirds = 0
             self.boss_kit_timer = BOSS_KIT_INTERVAL
             self.set_phase(Phase.BOSS)
@@ -155,6 +160,7 @@ class LevelFlowMixin:
                 self._bank_level()
                 self.record_rank = self.save.add_record(self.score, self.level.number)
                 self.set_state(State.WIN)
+                self.achieve("CHAMPION")
 
     def _next_wave(self):
         self.wave_index += 1

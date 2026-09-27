@@ -180,6 +180,25 @@ Options need a place in the menus: ask the user where (title? pause?) before add
 
 ## Log
 
+### 2026-09-27 — G8: skins + achievements
+- Skins are inventory items (`kind=SKIN`, `slot` PAINT / TRAIL / TRACER / BEAM / DEATH,
+  `look` = the palette key), so gifts, shop and locks work as for everything else. Never
+  stats. Defaults (MK PAINT, CLASSIC TRAIL, GOLD TRACERS, BLUE BEAM, CLASSIC BOOM) are
+  starter items; `Inventory` adds missing starter items to old saves.
+- Paint jobs SOLAR (level 7 gift option later), RETRO + STEALTH (shop 400), NEON, GOLD TRIM;
+  trails PLASMA BLUE (shop), TOXIC, RAINBOW, HEARTS; tracers CYAN / WHITE / EMERALD, beams
+  EMERALD / VIOLET (shop 150); death styles PIXEL SHATTER (shop 200), SUPERNOVA. Shop skins
+  appear after level 1 / 2 (`sold_after`). A paint skin replaces the level's MK paint
+  (`loadout_for()`).
+- Achievements (`progression/achievements.py`, `flow/skins.py`): UNTOUCHABLE (a boss
+  without a hit) -> GOLD TRIM, FEVER PITCH -> RAINBOW, TOP OF THE CLASS (rank S) -> NEON,
+  DRONE HUNTER (100 minions, lifetime) -> TOXIC, PACIFIST (a whole field without firing,
+  shown as "???") -> HEARTS, CHAMPION (win) -> SUPERNOVA. Popup + fanfare; saved.
+- Hangar SKINS tab (5 tabs now, spacing adapts): live previews per slot (ship in the paint,
+  trail flames, tracer streaks, beam, death burst), WEARING / OWNED / price / LOCKED with the
+  achievement hint, ACHIEVEMENTS n/6.
+- Smoke test: new `skins` section.
+
 ### 2026-09-27 — G7: weapon slots, SCATTER / PLASMA / ARC, ROCKET POD / SIDE CANNONS
 - 2 primary slots (R switches, `save.primaries`, default GUN + LASER) + 1 automatic
   secondary slot (`save.secondary`). `Game.weapons` keeps every primary in a fixed order;

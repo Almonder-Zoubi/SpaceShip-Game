@@ -74,6 +74,8 @@ class ProgressionMixin:
         self.pickups = [p for p in self.pickups if not isinstance(p, Coin)]
         self._bank_wingman_xp()
         self.level_rank = self.stats.rank()
+        if self.level_rank == "S":
+            self.achieve("RANK_S")
         first = not self.save.is_cleared(self.level_key)
         self.payout = level_payout(self.pending_coins, self.level.number, self.level_rank, first)
         self.bank_before = self.save.coins

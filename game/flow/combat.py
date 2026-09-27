@@ -24,6 +24,7 @@ class CombatMixin:
         boss_parts = self.boss.parts() if self.boss and self.boss.targetable else []
         targets += boss_parts
         firing = firing and self.ship.alive
+        self.track_fire(firing)
         hits = []
         if self.ship.loadout.blast:
             self.blast.colors = LASER if self.weapon.name == "LASER" else FLAME[:4]
@@ -136,6 +137,7 @@ class CombatMixin:
             self.stats.destroyed += 1
             self._drop_minion_coins(enemy)
             self._minion_boost(enemy)
+            self.track_minion()
             if random.random() < DRONE_KIT_CHANCE:
                 self.pickups.append(RepairKit(enemy.x, enemy.y))
 
@@ -181,6 +183,8 @@ class CombatMixin:
         self.audio.play("boss_explode")
         if self.state == State.PLAYING:
             self.wingman_kill(boss=True)
+            if not self.boss_hurt:
+                self.achieve("NO_HIT")
             self.score += POINTS_BOSS
             self._record_boss_time(b)
             self._drop_boss_coins(b)

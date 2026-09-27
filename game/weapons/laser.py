@@ -14,6 +14,7 @@ class Laser(Weapon):
     """Continuous beam from the nose: instant, precise, but it overheats."""
 
     name = "LASER"
+    colors = LASER              # beam skin
 
     def __init__(self):
         self.reset()
@@ -51,7 +52,8 @@ class Laser(Weapon):
         for _ in range(2):   # sparks spray back from the impact point
             a = math.atan2(-dy, -dx) + random.uniform(-1.1, 1.1)
             s = random.uniform(30, 110)
-            fire.emit(ex, ey, math.cos(a) * s, math.sin(a) * s, random.uniform(0.08, 0.2), LASER)
+            fire.emit(ex, ey, math.cos(a) * s, math.sin(a) * s, random.uniform(0.08, 0.2),
+                      self.colors)
         dps = self.loadout.laser_dps * (1 + LASER_POWER_BONUS * self.power) * self.rate
         return [Hit(target, dps * dt, ex, ey, dx, dy, LASER_PUSH * dt, continuous=True)]
 
@@ -66,15 +68,15 @@ class Laser(Weapon):
         add = pygame.BLEND_ADD
         for i in range(length):
             x, y = sx + dx * i, sy + dy * i
-            surf.fill(LASER[0], (int(x), int(y), 1, 1), special_flags=add)
+            surf.fill(self.colors[0], (int(x), int(y), 1, 1), special_flags=add)
             for side in (-1, 1):
-                surf.fill(LASER[2], (int(x + px * side), int(y + py * side), 1, 1), special_flags=add)
+                surf.fill(self.colors[2], (int(x + px * side), int(y + py * side), 1, 1), special_flags=add)
                 if self.power:                                 # powered beam is wider
-                    surf.fill(LASER[1 + (self.power == 1)],
+                    surf.fill(self.colors[1 + (self.power == 1)],
                               (int(x + px * side * 2), int(y + py * side * 2), 1, 1),
                               special_flags=add)
                 if wobble and i % 3 == 0:
-                    surf.fill(LASER[3], (int(x + px * side * 2), int(y + py * side * 2), 1, 1),
+                    surf.fill(self.colors[3], (int(x + px * side * 2), int(y + py * side * 2), 1, 1),
                               special_flags=add)
-        pygame.draw.circle(surf, LASER[1], (int(sx), int(sy)), 1)               # muzzle
-        pygame.draw.circle(surf, LASER[1], (int(ex), int(ey)), 2 + wobble, 1)   # impact ring
+        pygame.draw.circle(surf, self.colors[1], (int(sx), int(sy)), 1)               # muzzle
+        pygame.draw.circle(surf, self.colors[1], (int(ex), int(ey)), 2 + wobble, 1)   # impact ring

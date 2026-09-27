@@ -35,6 +35,9 @@ class SaveData:
         self.wingmen_xp = {}     # wingman -> total XP
         self.primaries = None    # the 2 primary weapons R switches between (None = default)
         self.secondary = None    # the automatic secondary weapon (or None)
+        self.skins = {}          # skin slot (PAINT, TRAIL ...) -> equipped skin item
+        self.achievements = []   # ids of earned achievements
+        self.minion_kills = 0    # lifetime counter (an achievement)
         self.load()
 
     @property
@@ -69,6 +72,9 @@ class SaveData:
             self.primaries = None if primaries is None else _strings(primaries)[:2]
             secondary = data.get("secondary")
             self.secondary = None if secondary is None else str(secondary)
+            self.skins = {str(k): str(v) for k, v in dict(data.get("skins", {})).items()}
+            self.achievements = _strings(data.get("achievements", []))
+            self.minion_kills = max(0, int(data.get("minion_kills", 0)))
         except (OSError, ValueError, TypeError, KeyError, AttributeError):
             self._reset()                               # unreadable: start fresh
 
@@ -79,6 +85,7 @@ class SaveData:
         self.upgrades, self.options = {}, {}
         self.wingman, self.wingmen_xp = None, {}
         self.primaries, self.secondary = None, None
+        self.skins, self.achievements, self.minion_kills = {}, [], 0
 
     def save(self):
         if not self.path:
@@ -92,7 +99,9 @@ class SaveData:
                            "gifts": self.gifts, "upgrades": self.upgrades,
                            "options": self.options, "wingman": self.wingman,
                            "wingmen_xp": self.wingmen_xp, "primaries": self.primaries,
-                           "secondary": self.secondary}, f, indent=2)
+                           "secondary": self.secondary, "skins": self.skins,
+                           "achievements": self.achievements,
+                           "minion_kills": self.minion_kills}, f, indent=2)
             os.replace(tmp, self.path)
         except OSError:
             pass                                        # read-only folder: play on without saving

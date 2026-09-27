@@ -113,6 +113,8 @@ class WorldMixin:
         died = self.ship.take_hit(damage, from_x, from_y, **kwargs)
         self.stats.damage_taken += max(0, hp - self.ship.hp)
         self.last_hurt = self.time
+        if self.phase == Phase.BOSS and self.ship.hp < hp:
+            self.boss_hurt = True
         if died and self.try_revive():               # MEDIC level 5
             died = False
         if self.ship.hp < hp and not died:
@@ -134,6 +136,7 @@ class WorldMixin:
         self.shockwaves.append(Shockwave(x, y, max_radius=46))
         self.shockwaves.append(Shockwave(x, y, max_radius=24, duration=0.3, color=(255, 255, 255)))
         self.juice("large", x, y)
+        self.death_style(x, y)
         self.audio.play("ship_explode")
         self._bank_wingman_xp()
         self.best = max(self.best, self.score)

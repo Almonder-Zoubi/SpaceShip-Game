@@ -72,6 +72,7 @@ class Ship:
         self._flicker = 0.0
         self.overdrive = False                   # OVERDRIVE / FEVER: white-hot flames
         self.fever = False
+        self.trail = getattr(self, "trail", FLAME)   # engine trail skin (kept across resets)
 
     # --- geometry --------------------------------------------------------------
     @property
@@ -219,7 +220,7 @@ class Ship:
     def _flame_colors(self):
         if self.overdrive:
             return FLAME_WHITE
-        return FLAME_LEAN if self.throttle < 0.25 else FLAME
+        return FLAME_LEAN if self.throttle < 0.25 else self.trail
 
     def _flame_length(self):
         return (2 + self.throttle * 9 + self._flicker * (1 + 3 * self.throttle)) * self.hull.flame

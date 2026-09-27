@@ -4,11 +4,11 @@ import math
 
 import pygame
 
-from ..config.palette import FLAME, INK
+from ..config.palette import BEAMS, FLAME, INK, RAINBOW, TRACERS, TRAILS
 from ..core.pixelart import sprite_from_rows
 from ..player.art import SHIP_PALETTES, build_ship_frames
 from ..player.hulls import hull_named
-from ..progression.items import ITEMS, SHIP, WINGMAN
+from ..progression.items import BEAM, ITEMS, PAINT, SHIP, TRACER, TRAIL, WINGMAN
 from ..wingmen.art import wingman_sprite
 from ..wingmen.types import WINGMEN
 
@@ -274,6 +274,62 @@ class ItemArt:
             self._cache[key] = pygame.transform.scale(frame, (w * ICON_SCALE, h * ICON_SCALE))
         return self._cache[key]
 
+    def draw_skin(self, surf, item, hull_name, paint, center, time, locked=False):
+        """Preview of a skin: the ship in that paint / with that trail, tracer or beam
+        streaks, or a burst for a death style."""
+        cx, cy = center
+        if locked:
+            surf.blit(self._silhouette(hull_name), self._silhouette(hull_name).get_rect(
+                center=center))
+            return
+        if item.slot in (PAINT, TRAIL):
+            look = item.look if item.slot == PAINT and item.look else paint
+            key = (hull_name, look)
+            if key not in self._cache:
+                frame = build_ship_frames(hull_named(hull_name).rows, SHIP_PALETTES[look])[0]
+                w, h = frame.get_size()
+                self._cache[key] = pygame.transform.scale(frame, (w * PREVIEW_SCALE,
+                                                                  h * PREVIEW_SCALE))
+            image = self._cache[key]
+            w, h = image.get_size()
+            x, y = cx - w // 2, cy - h // 2 + int(math.sin(time * 3) * 2)
+            colors = TRAILS[item.look] if item.slot == TRAIL else FLAME
+            self._flames(surf, hull_named(hull_name), x + w / 2, y + h, time, colors,
+                         long=item.slot == TRAIL)
+            surf.blit(image, (x, y))
+        elif item.slot == TRACER:
+            colors = TRACERS[item.look]
+            for i, dx in enumerate((-16, 0, 16)):
+                y0 = cy + 30 - int((time * 90 + i * 25) % 70)
+                surf.fill(colors[0], (cx + dx - 1, y0, 2, 3))
+                for j in range(1, 8):
+                    surf.fill(colors[min(len(colors) - 1, j // 3 + 1)], (cx + dx, y0 + 2 + j, 1, 1))
+        elif item.slot == BEAM:
+            colors = BEAMS[item.look]
+            for dx, c in ((-3, 3), (-2, 2), (-1, 1), (0, 0), (1, 1), (2, 2), (3, 3)):
+                if c < len(colors):
+                    surf.fill(colors[c], (cx + dx, cy - 40, 1, 80))
+        else:
+            k = (time % 1.2) / 1.2
+            colors = {"SHATTER": [(200, 204, 220)] * 3, "SUPERNOVA": RAINBOW}.get(item.look,
+                                                                                    FLAME)
+            for i in range(16):
+                a = i * math.tau / 16
+                r = 6 + 34 * k
+                surf.fill(colors[i % len(colors)],
+                          (int(cx + math.cos(a) * r), int(cy + math.sin(a) * r), 2, 2))
+            pygame.draw.circle(surf, colors[0], center, int(4 + 40 * k), 1)
+
+    def _silhouette(self, hull_name):
+        key = ("silhouette", hull_name)
+        if key not in self._cache:
+            frame = build_ship_frames(hull_named(hull_name).rows, SHIP_PALETTES["mk1"])[0]
+            w, h = frame.get_size()
+            image = pygame.transform.scale(frame, (w * PREVIEW_SCALE, h * PREVIEW_SCALE))
+            self._cache[key] = pygame.mask.from_surface(image).to_surface(
+                setcolor=(*INK, 255), unsetcolor=(0, 0, 0, 0))
+        return self._cache[key]
+
     def draw(self, surf, item_id, paint, center, time, locked=False, lively=False):
         """lively: bob and (for ships) engine flames — for the selected item."""
         image = self.image(item_id, paint, locked)
@@ -285,11 +341,12 @@ class ItemArt:
         surf.blit(image, (x, y))
 
     @staticmethod
-    def _flames(surf, hull, cx, bottom, time):
+    def _flames(surf, hull, cx, bottom, time, colors=FLAME, long=False):
         """Flickering engine flames under a ship preview."""
         length = int((5 + 3 * abs(math.sin(time * 23))) * hull.flame) * PREVIEW_SCALE // 2
+        length = length * 2 if long else length
         for off in hull.nozzles:
             x = int(cx + off * PREVIEW_SCALE)
             for i in range(length):
-                color = FLAME[min(len(FLAME) - 1, i * len(FLAME) // max(1, length))]
+                color = colors[min(len(colors) - 1, i * len(colors) // max(1, length))]
                 surf.fill(color, (x - 1, int(bottom) + i, 2, 1), special_flags=pygame.BLEND_ADD)

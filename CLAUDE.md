@@ -39,7 +39,7 @@ python3 tools/build_audio.py boss gun    # ...or only some of them
 
 Headless smoke test (no window, no audio device) — run after every change. It drives every state
 and mechanic in named sections (title, controls, mouse, weapons, damage, balance, pickups,
-campaign, level4, save, economy, inventory, upgrades, feel, boosts, wingmen, arsenal, menus, hulls, dev, retry, audio, busy); each section starts from its own state:
+campaign, level4, save, economy, inventory, upgrades, feel, boosts, wingmen, arsenal, skins, menus, hulls, dev, retry, audio, busy); each section starts from its own state:
 
 ```bash
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test [--shots DIR]
@@ -81,10 +81,10 @@ Every folder's `__init__.py` docstring lists what its modules do.
 | `pickups/` | `art`, `base`, `types`, `boosts` | Sprites; `Pickup` base; `RepairKit`, `FullRepair`, `PowerCore`, `Coin` / `BigCoin` (spinning); `Boost` pickups `Overdrive`, `Shield`, `Magnet`, `SlowDown` (`BOOSTS`) |
 | `wingmen/` | `art`, `base`, `types` | 9x11 sprites; `Wingman` base (formation, knock-out + reboot, XP `level_for()`), `Bolts`; `Pip`, `Guardian`, `Medic`, `Hunter`, `Magpie` (`WINGMEN`) + `Twin` (TWIN boost) |
 | `levels/` | `model`, `data` | `Difficulty`, `Level`, `Wave`, `BossEntry` (incl. music track), `Galaxy`; `GALAXIES` (10 levels each), `LEVELS` (all, play order), `galaxy_of()` |
-| `progression/` | `results`, `economy`, `items`, `inventory`, `upgrades` | Pure logic (no pygame): `LevelStats` + rank S/A/B/C; coin drops and the level-clear `Payout`; item catalog + `GIFTS` + prices; `Inventory` (owns / status / claim / buy, upgrade tiers + `buy_upgrade`, migrates old saves); upgrade `TRACKS`, `apply(loadout, tiers)`, `power_ratio()` |
+| `progression/` | `results`, `economy`, `items`, `inventory`, `upgrades`, `achievements` | Pure logic (no pygame): `LevelStats` + rank S/A/B/C; coin drops and the level-clear `Payout`; item catalog + `GIFTS` + prices; `Inventory` (owns / status / claim / buy, upgrade tiers + `buy_upgrade`, migrates old saves); upgrade `TRACKS`, `apply(loadout, tiers)`, `power_ratio()`; `ACHIEVEMENTS` (each unlocks a skin) |
 | `audio/` | `synth`, `sfx`, `music`, `bank`, `player` | Pure-Python chiptune synth; SFX recipes (`SOUNDS`); songs as chords + melodies (`SONGS`); WAV cache in `sounds/generated/`; `Audio` (`play`, `loop`, `music`) |
 | `ui/` | `hud`, `popup`, `item_art`, `hangar`, `gifts`, `radio`, `screens` | HUD + banners; floating popups + boss `DamageNumber`s; radio cards (COMMANDER VEGA portrait); item pictures (ship previews, weapon + upgrade icons, locked silhouettes); HANGAR 2.0 (`HangarView`: tabs, list, stats, shop, UPGRADES tab, POWER %); gift cards; `ScreensMixin` draws every state (pause = options menu, boss name card on WARNING) |
-| `flow/` | `game`, `states`, `events`, `level_flow`, `world`, `combat`, `progression`, `hangar`, `juice`, `boosts`, `wingmen`, `options`, `sound`, `dev` | `Game` = setup, main loop, update order. The rest is one **mixin per responsibility**: key handling (one `_keys_<state>` method per state), level/wave/phase flow + hull choice, world update + hazards, player hits, coins + stats + rank + payout, hangar + gifts + shop, juice (tiers, hit-stop, slow-mo, damage numbers, radio), boosts + combo / FEVER, wingmen (hits, knock-outs, XP banked at level end), options, music/loops, dev tools |
+| `flow/` | `game`, `states`, `events`, `level_flow`, `world`, `combat`, `progression`, `hangar`, `juice`, `boosts`, `wingmen`, `skins`, `options`, `sound`, `dev` | `Game` = setup, main loop, update order. The rest is one **mixin per responsibility**: key handling (one `_keys_<state>` method per state), level/wave/phase flow + hull choice, world update + hazards, player hits, coins + stats + rank + payout, hangar + gifts + shop, juice (tiers, hit-stop, slow-mo, damage numbers, radio), boosts + combo / FEVER, wingmen (hits, knock-outs, XP banked at level end), skins + achievements, options, music/loops, dev tools |
 
 Other folders: `tests/smoke.py` (headless smoke test, `run_smoke_test(shots, seed, only)`),
 `tools/build_audio.py` (renders `game/audio` recipes to WAV).
@@ -99,6 +99,7 @@ Where to look when debugging:
 - Tests start with every item owned (`Harness` calls `inventory.grant_all()`) and 0 upgrade tiers; `test_inventory` covers a new player.
 - Hit-stop / slow-mo / shake per event → `flow/juice.py` (`juice(tier, x, y)`), tiers in `config/tuning.JUICE`. `update()` gives the world `world_dt(dt)`; popups, shake, radio run on real time.
 - Weapons: `Game.weapons` = every primary in a fixed order (`weapons[0]` = gun); the player's 2 slots are `Game.primaries` (`save.primaries`), R cycles them; `Game.secondary` is the automatic slot. New primaries balance off `Loadout.gun_dps`; secondaries only get rocks + minions as targets.
+- Skins are items (`kind=SKIN`, `slot` PAINT/TRAIL/TRACER/BEAM/DEATH, `look` = palette key in `player/art.SHIP_PALETTES` or `config/palette.TRAILS/TRACERS/BEAMS`); `flow/skins.py` wears them and checks achievements.
 - Wingmen → `wingmen/types.py` (behaviour), `flow/wingmen.py` (game side); numbers in `config/tuning.py`. Their damage counts in the capped player edge (smoke test: maxed upgrades + LV5 PIP >= 3.5x on a 5x boss).
 - Boosts, combo, FEVER, shield → `flow/boosts.py`; the enemy side runs on `enemy_dt(dt)` (SLOW-MO), weapons read `Weapon.rate` (OVERDRIVE).
 - Wrong music or a sound missing → `flow/sound.py` (state → track, loops) or the event's own call.

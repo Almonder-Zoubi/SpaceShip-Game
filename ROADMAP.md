@@ -188,7 +188,7 @@ perks, analysis), `ui/analysis.py`, states `ARENA_INTRO` / `ARENA_PERK`, `SaveDa
 - [ ] N5 Playtest tuning, reset-brain option, polish (own music + NEMESIS sprite that
       visibly changes per generation)
 
-## Phase 10 — Galaxies & meta progression (G1–G7 done)
+## Phase 10 — Galaxies & meta progression (G1–G8 done)
 
 The user's goals: levels grouped into **galaxies of 10** (galaxy 1 = levels 1–10, 1–4 done);
 creative bosses + minions; richer backgrounds, hit and fire effects; new guns, lasers,
@@ -223,7 +223,7 @@ edge, ~+30%), `hp * firepower == 1` for hulls, all art + audio in code.
       knocked out for 5 s (never destroyed), XP levels 1–5 + TRAIN in the hangar, TWIN boost
 - [x] G7 Weapons: primary slots (2, R switches) + secondary slot; SCATTER, PLASMA, ARC,
       ROCKET POD, SIDE CANNONS (gifts of levels 5–9)
-- [ ] G8 Skins: paint jobs, engine trails, tracer / beam colours, death styles, achievements
+- [x] G8 Skins: paint jobs, engine trails, tracer / beam colours, death styles, achievements
 
 **Then test everything:**
 - [ ] G9 Full playtest levels 1–4 with all systems (fresh save + migrated save): gift table,

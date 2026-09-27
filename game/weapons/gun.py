@@ -23,6 +23,7 @@ class MachineGun(Weapon):
     Barrel positions come from the ship's hull (ship-local, x right, y down)."""
 
     name = "GUN"
+    colors = TRACER             # tracer skin
 
     def __init__(self):
         self.bullets = []
@@ -90,12 +91,13 @@ class MachineGun(Weapon):
 
     def draw(self, surf):
         add = pygame.BLEND_ADD
-        head = POWER[1] if self.power else TRACER[0]
+        colors = self.colors
+        head = POWER[1] if self.power else colors[0]
         for b in self.bullets:
             speed = math.hypot(b.vx, b.vy) or 1
             dx, dy = b.vx / speed, b.vy / speed
             surf.fill(head, (int(b.x) - 1, int(b.y) - 1, 2, 2), special_flags=add)        # hot head
             for i in range(1, 5):                                                          # fading tail
-                color = TRACER[min(len(TRACER) - 1, i // 2 + 1)]
+                color = colors[min(len(colors) - 1, i // 2 + 1)]
                 surf.fill(color, (int(b.x - dx * i * 1.2), int(b.y - dy * i * 1.2), 1, 1),
                           special_flags=add)

@@ -18,6 +18,8 @@ class Inventory:
         self.level_keys = level_keys
         if save.owned is None:
             self._migrate()
+        for item_id in STARTER:          # starter items added by an update (default skins)
+            self._add(item_id)
         if everything:                   # dev mode: all items (the save is memory-only)
             self.grant_all()
 
@@ -50,6 +52,8 @@ class Inventory:
 
     @staticmethod
     def unlock_hint(item_id):
+        if ITEMS[item_id].hint:
+            return ITEMS[item_id].hint
         key = gift_level(item_id) or ITEMS[item_id].sold_after
         if not key:
             return "COMING LATER"
@@ -110,6 +114,14 @@ class Inventory:
             return False
         self.save.coins -= price
         self.save.upgrades[track_id] = self.tier(track_id) + 1
+        self.save.save()
+        return True
+
+    def unlock(self, item_id):
+        """An achievement reward: owned from now on (saved). Returns True if it was new."""
+        if self.owns(item_id):
+            return False
+        self._add(item_id)
         self.save.save()
         return True
 
