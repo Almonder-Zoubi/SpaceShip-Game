@@ -12,6 +12,16 @@ BAYER4 = (
 )
 
 
+def opaque_surface(size):
+    """Surface with no alpha channel at all.
+
+    A plain pygame.Surface copies the display format, which on macOS includes an
+    alpha channel. Blitting SRCALPHA sprites onto such a surface writes alpha 0 in
+    their transparent areas, and the window then shows black boxes around sprites.
+    """
+    return pygame.Surface(size, 0, 32, (0xFF0000, 0x00FF00, 0x0000FF, 0))
+
+
 def sprite_from_rows(rows, colors):
     """Build a Surface from equal-length strings; '.' is transparent."""
     width = len(rows[0])
@@ -73,7 +83,7 @@ class ValueNoise:
 def make_glow(radius, color, strength=1.0):
     """Radial glow for additive blending (black = no contribution)."""
     size = radius * 2 + 1
-    surf = pygame.Surface((size, size))
+    surf = opaque_surface((size, size))
     surf.fill((0, 0, 0))
     for y in range(size):
         for x in range(size):
@@ -105,3 +115,52 @@ def shaded_sphere(radius, palette, rng, bands=0.0):
                 b += bands * math.sin(ny * 9 + noise.sample(x, y) * 3 + phase)
             surf.set_at((x, y), palette[dither(b * 0.95, x, y, levels)])
     return surf
+
+
+class CharCanvas:
+    """A grid of palette characters to draw pixel art with shapes ('.' = empty).
+
+    Used for large sprites (bosses) where typing every row by hand gets impractical.
+    """
+
+    def __init__(self, width, height):
+        self.w, self.h = width, height
+        self.grid = [["."] * width for _ in range(height)]
+
+    def set(self, x, y, ch):
+        if 0 <= x < self.w and 0 <= y < self.h:
+            self.grid[y][x] = ch
+
+    def rect(self, x0, y0, x1, y1, ch):
+        """Filled rectangle, corners inclusive."""
+        for y in range(y0, y1 + 1):
+            for x in range(x0, x1 + 1):
+                self.set(x, y, ch)
+
+    def line(self, x0, y0, x1, y1, ch):
+        steps = max(abs(x1 - x0), abs(y1 - y0), 1)
+        for i in range(steps + 1):
+            self.set(round(x0 + (x1 - x0) * i / steps), round(y0 + (y1 - y0) * i / steps), ch)
+
+    def poly(self, points, ch):
+        """Filled polygon (scanline, pixel centres)."""
+        ys = [p[1] for p in points]
+        for y in range(math.floor(min(ys)), math.ceil(max(ys)) + 1):
+            cy = y + 0.5
+            xs = []
+            for (ax, ay), (bx, by) in zip(points, points[1:] + points[:1]):
+                if (ay <= cy < by) or (by <= cy < ay):
+                    xs.append(ax + (cy - ay) * (bx - ax) / (by - ay))
+            xs.sort()
+            for xa, xb in zip(xs[::2], xs[1::2]):
+                for x in range(math.ceil(xa - 0.5), math.floor(xb - 0.5) + 1):
+                    self.set(x, y, ch)
+
+    def circle(self, cx, cy, r, ch):
+        for y in range(cy - r, cy + r + 1):
+            for x in range(cx - r, cx + r + 1):
+                if (x - cx) ** 2 + (y - cy) ** 2 <= r * r + r * 0.8:
+                    self.set(x, y, ch)
+
+    def rows(self):
+        return ["".join(r) for r in self.grid]

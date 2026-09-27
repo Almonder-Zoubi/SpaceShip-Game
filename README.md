@@ -10,15 +10,21 @@ pixel art on a 320x240 canvas scaled x3, with particle-based engine flames and e
 
 | Key | Action |
 |---|---|
-| Arrows / WASD | Steer (the ship has inertia and banks when turning) |
-| Up | **Boost** — full burn, long flames, the world speeds up |
-| Down | **Retro** — flames die down, the world slows |
+| Arrows / WASD | Move (UP + LEFT/RIGHT = diagonal) |
+| Up | Boost — full burn, long flames, the world speeds up |
+| Down | Retro — flames die down, the world slows |
+| Up + Left / Right | Diagonal — the rocket leans like `\` or `/` and fires that way |
+| Space | Fire where the nose points |
+| R | Switch weapon: machine gun / laser (laser overheats) |
 | P | Pause |
 | C | Toggle CRT scanlines |
-| Enter / R | Start / restart |
+| Enter | Start / restart |
 | Esc | Back to menu / quit |
 
-Dodge **30** asteroids to win. One hit and your rocket explodes.
+Fly to the end of the asteroid field (progress bar at the top). Asteroids drain your health
+bar — bigger rocks hurt more and take longer to destroy; shooting them slows their fall, and big
+rocks split into fragments. At the end: **WARNING** — your hull is repaired and the **Gunship**
+boss attacks. Destroy it to win. (`python3 ESA3.py --boss` skips straight to the boss.)
 
 ## Setup
 

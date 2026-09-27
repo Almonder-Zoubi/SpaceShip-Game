@@ -3,7 +3,7 @@ import random
 
 import pygame
 
-from .pixelart import ValueNoise, dither, shaded_sphere
+from .pixelart import ValueNoise, dither, opaque_surface, shaded_sphere
 from .settings import LOW_H, LOW_W, NEBULA, PLANET_PALETTES, SPACE, STAR_COLORS
 
 
@@ -14,7 +14,7 @@ class Nebula:
 
     def __init__(self, rng):
         w, h = LOW_W // 2, LOW_H // 2
-        low = pygame.Surface((w, h))
+        low = opaque_surface((w, h))
         low.fill(SPACE)
         # Noise periods divide the (4:3) tile exactly so it wraps without a seam.
         big = ValueNoise(rng, cell=w / 4, period_x=4, period_y=3)

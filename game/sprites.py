@@ -3,7 +3,7 @@ import math
 
 import pygame
 
-from .pixelart import ValueNoise, dither, normalise, sprite_from_rows
+from .pixelart import CharCanvas, ValueNoise, dither, normalise, sprite_from_rows
 from .settings import LIGHT_DIR, ROCK_PALETTES, SHIP_COLORS
 
 # --- Ship --------------------------------------------------------------------
@@ -68,6 +68,54 @@ def build_ship_frames():
     }
 
 
+def _scale2x(rows):
+    """One pass of the Scale2x (EPX) pixel-art upscaler on character rows."""
+    h, w = len(rows), len(rows[0])
+    out = [[""] * (w * 2) for _ in range(h * 2)]
+    for y in range(h):
+        for x in range(w):
+            p = rows[y][x]
+            a = rows[y - 1][x] if y > 0 else p
+            b = rows[y][x + 1] if x < w - 1 else p
+            c = rows[y][x - 1] if x > 0 else p
+            d = rows[y + 1][x] if y < h - 1 else p
+            out[2 * y][2 * x] = a if c == a and c != d and a != b else p
+            out[2 * y][2 * x + 1] = b if a == b and a != c and b != d else p
+            out[2 * y + 1][2 * x] = c if d == c and d != b and c != a else p
+            out[2 * y + 1][2 * x + 1] = d if b == d and b != a and d != c else p
+    return ["".join(r) for r in out]
+
+
+def rotate_pixel_art(rows, colors, degrees):
+    """RotSprite-style rotation (clockwise): Scale2x three times, rotate, sample back down.
+
+    Rotating the 8x version and picking the centre of each 8x8 block keeps lines
+    clean, instead of the ragged holes you get rotating pixel art directly.
+    """
+    big_rows = rows
+    for _ in range(3):
+        big_rows = _scale2x(big_rows)
+    rot = pygame.transform.rotate(sprite_from_rows(big_rows, colors), -degrees)
+    rw, rh = rot.get_size()
+    ow, oh = math.ceil(rw / 8), math.ceil(rh / 8)
+    out = pygame.Surface((ow, oh), pygame.SRCALPHA)
+    for oy in range(oh):
+        sy = int(rh / 2 + (oy - oh / 2 + 0.5) * 8)
+        for ox in range(ow):
+            sx = int(rw / 2 + (ox - ow / 2 + 0.5) * 8)
+            if 0 <= sx < rw and 0 <= sy < rh:
+                px = rot.get_at((sx, sy))
+                if px.a > 127:
+                    out.set_at((ox, oy), px)
+    return out
+
+
+def build_ship_tilts(max_degrees, steps):
+    """Leaning frames for diagonal flight: index 0 = most left ('\\'), last = most right ('/')."""
+    angles = [max_degrees * i / steps for i in range(-steps, steps + 1)]
+    return [rotate_pixel_art(SHIP_ROWS, SHIP_COLORS, a) for a in angles]
+
+
 # --- Asteroids ---------------------------------------------------------------
 class AsteroidArt:
     """One procedurally generated rock, pre-rendered in several rotation steps.
@@ -81,6 +129,7 @@ class AsteroidArt:
 
     def __init__(self, radius, palette_name, rng):
         self.radius = radius
+        self.palette_name = palette_name
         self.palette = ROCK_PALETTES[palette_name]
         self.harmonics = [
             (k, rng.uniform(0.02, amp), rng.uniform(0, math.tau))
@@ -164,7 +213,7 @@ class AsteroidLibrary:
     def pick(self, radius_min, radius_max, palettes):
         matches = [v for v in self.variants
                    if radius_min <= v.radius <= radius_max
-                   and any(ROCK_PALETTES[p] is v.palette for p in palettes)]
+                   and v.palette_name in palettes]
         if not matches:
             art = AsteroidArt(self.rng.randint(radius_min, radius_max),
                               self.rng.choice(palettes), self.rng)
@@ -173,10 +222,113 @@ class AsteroidLibrary:
         return self.rng.choice(matches)
 
 
-def ship_icon(frames):
-    """32x32 window icon made from the level ship frame."""
+def ship_icon(ship):
+    """32x32 window icon made from a ship frame."""
     icon = pygame.Surface((32, 32), pygame.SRCALPHA)
-    ship = frames[0]
     icon.blit(ship, ((32 - ship.get_width()) // 2, (32 - ship.get_height()) // 2))
     return icon
 
+
+
+# --- Bosses ------------------------------------------------------------------
+def mirrored(half_rows):
+    """Left half -> symmetric sprite (the half's last column touches the centre line)."""
+    return [row + row[::-1] for row in half_rows]
+
+
+def outlined(rows, ink="K"):
+    """Add a 1px outline around the silhouette (grows the sprite by 1px on every side)."""
+    w, h = len(rows[0]) + 2, len(rows) + 2
+    grid = [["."] * w for _ in range(h)]
+    for y, row in enumerate(rows):
+        for x, ch in enumerate(row):
+            grid[y + 1][x + 1] = ch
+    for y in range(h):
+        for x in range(w):
+            if grid[y][x] != ".":
+                continue
+            if any(0 <= y + dy < h and 0 <= x + dx < w and grid[y + dy][x + dx] not in (".", ink)
+                   for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                grid[y][x] = ink
+    return ["".join(r) for r in grid]
+
+
+# Boss 1 "GUNSHIP": heavy armoured gunship flying nose-down towards the player.
+# Drawn as the left half on a CharCanvas, then mirrored and outlined (70x48 px).
+GUNSHIP_HALF_W, GUNSHIP_HALF_H = 34, 46
+# Muzzles in final-sprite pixels (after mirror + outline): main cannon, left & right turrets.
+GUNSHIP_MUZZLES = {"main": (34, 47), "left": (8, 39), "right": (61, 39)}
+# Engine vents (for exhaust particles) in final-sprite pixels.
+GUNSHIP_VENTS = ((22, 1), (47, 1))
+
+
+def _gunship_half():
+    c = CharCanvas(GUNSHIP_HALF_W, GUNSHIP_HALF_H)
+    # Swept wing with a lit leading edge, shadowed trailing edge, red stripe and panel seams.
+    c.poly([(25, 12), (1, 23), (1, 28), (25, 31)], "M")
+    c.line(25, 12, 1, 23, "W")
+    c.line(25, 13, 1, 24, "L")
+    c.line(25, 31, 1, 28, "H")
+    c.line(25, 17, 3, 25, "E")
+    c.line(25, 18, 3, 26, "e")
+    for x in (11, 18):
+        c.line(x, 13 + (25 - x) // 2 + 3, x, 28, "H")
+    c.set(1, 23, "E")                                   # wing-tip light
+    # Engine nacelle with intake and glowing vents on top.
+    c.rect(17, 0, 25, 14, "M")
+    c.line(17, 0, 17, 14, "H")
+    c.line(18, 1, 18, 13, "L")
+    c.rect(19, 0, 24, 0, "V")
+    c.rect(19, 1, 24, 1, "y")
+    c.rect(19, 4, 23, 9, "H")
+    c.rect(20, 5, 22, 8, "G")
+    # Fuselage: rounded top, lit centre, armour seams, rivets, red emblem.
+    c.rect(26, 3, 33, 36, "L")
+    c.rect(29, 2, 33, 2, "L")
+    c.line(26, 3, 26, 36, "H")
+    c.line(27, 3, 27, 36, "M")
+    c.rect(30, 2, 33, 4, "W")
+    for y in (11, 19):
+        c.line(27, y, 33, y, "H")
+    for y in (7, 15, 23):
+        c.set(29, y, "W")
+    c.rect(32, 13, 33, 16, "E")
+    c.set(31, 14, "E")
+    c.set(31, 15, "e")
+    # Glowing cockpit near the nose.
+    c.rect(29, 25, 33, 32, "G")
+    c.rect(30, 26, 33, 31, "Y")
+    c.line(30, 26, 30, 31, "y")
+    c.rect(32, 27, 33, 27, "W")
+    # Nose taper and main cannon.
+    c.poly([(26, 36), (34, 36), (34, 44), (30, 44)], "M")
+    c.line(27, 37, 30, 43, "H")
+    c.rect(32, 37, 33, 45, "G")
+    c.rect(33, 38, 33, 44, "g")
+    # Wing turret with barrel.
+    c.circle(7, 27, 4, "H")
+    c.circle(7, 27, 3, "M")
+    c.circle(7, 26, 1, "E")
+    c.rect(6, 30, 8, 37, "G")
+    c.line(7, 31, 7, 37, "g")
+    return c.rows()
+
+
+GUNSHIP_COLORS = {
+    "K": (18, 14, 30),
+    "H": (52, 56, 78),
+    "M": (88, 94, 118),
+    "L": (136, 142, 164),
+    "W": (196, 202, 218),
+    "E": (206, 44, 62),
+    "e": (122, 22, 46),
+    "Y": (255, 214, 96),
+    "y": (220, 120, 36),
+    "G": (40, 40, 56),
+    "g": (104, 104, 126),
+    "V": (255, 110, 50),
+}
+
+
+def build_gunship():
+    return sprite_from_rows(outlined(mirrored(_gunship_half())), GUNSHIP_COLORS)

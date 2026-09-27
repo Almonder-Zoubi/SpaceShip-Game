@@ -19,10 +19,14 @@ FPS = 60
 MAX_DT = 1 / 30                  # clamp long frames so physics never explodes
 
 # --- Ship --------------------------------------------------------------------
+# Arrows move the ship directly; two arrows (e.g. UP + RIGHT) move diagonally.
 SHIP_ACCEL = 800                 # px/s^2 while a direction key is held
 SHIP_MAX_SPEED = 130             # px/s
-SHIP_FRICTION = 5.5              # velocity damping per second
+SHIP_FRICTION = 5.5              # velocity damping per second on released axes
 SHIP_MARGIN = 4                  # keep this many px from screen edges
+TILT_DEGREES = 30                # UP + LEFT/RIGHT leans the rocket like '\' or '/'
+TILT_STEPS = 3                   # frames per side (10 degrees apart)
+TILT_RATE = 240                  # degrees per second when leaning / straightening
 
 THROTTLE_RETRO = 0.12            # DOWN held: flames nearly out
 THROTTLE_IDLE = 0.45             # cruising
@@ -30,12 +34,52 @@ THROTTLE_BOOST = 1.0             # UP held: full burn
 THROTTLE_RESPONSE = 7.0          # how fast throttle follows its target (1/s)
 
 # World scroll speed multiplier at retro / boost throttle
-WORLD_SPEED_RETRO = 0.8
-WORLD_SPEED_BOOST = 1.35
+WORLD_SPEED_SLOW = 0.8
+WORLD_SPEED_FAST = 1.35
 
-# --- Rules -------------------------------------------------------------------
-WIN_SCORE = 30                   # asteroids dodged to win the single level
+# --- Health ------------------------------------------------------------------
+SHIP_MAX_HP = 100
+ROCK_DAMAGE_BASE = 8             # damage from a rock = base + per_radius * radius
+ROCK_DAMAGE_PER_RADIUS = 2       # (radius 4 -> 16, radius 14 -> 36)
+HIT_INVULNERABLE = 1.0           # seconds of blinking after a hit
+HIT_KNOCKBACK = 110              # px/s pushed away from the rock
+BULLET_KNOCKBACK = 40            # px/s pushed by an enemy bullet
+
+# --- Weapons (R switches, SPACE fires where the nose points) -----------------
+GUN_INTERVAL = 0.07              # seconds between bullets
+GUN_SPEED = 340                  # px/s
+GUN_DAMAGE = 5                   # per bullet (~70 dps if every bullet hits)
+GUN_SPREAD = 0.05                # radians of random spread
+LASER_DPS = 80                   # damage per second while the beam touches
+LASER_RANGE = 360
+LASER_HEAT_RATE = 0.4            # heat per second while firing (full in 2.5 s)
+LASER_COOL_RATE = 0.35           # heat lost per second when not firing
+LASER_RESUME = 0.35              # after overheating, usable again below this heat
+
+# --- Asteroids ---------------------------------------------------------------
+ROCK_HP_BASE = 6                 # hp = base + per_area * radius^2
+ROCK_HP_PER_AREA = 0.8           # (radius 4 -> 19, radius 8 -> 57, radius 14 -> 163)
+ROCK_SPLIT_RADIUS = 8            # rocks at least this big break into fragments
+# Getting shot slows a rock down: push in px/s for a radius-4 rock, scaled by 4/radius.
+GUN_PUSH = 5                     # per bullet
+LASER_PUSH = 70                  # per second of beam
+ROCK_MIN_FALL = 12               # rocks never get pushed slower than this (px/s)
+
+# --- Score & rules -----------------------------------------------------------
+POINTS_PER_RADIUS = 10           # destroying a rock
+POINTS_DODGE = 5                 # a rock leaving the screen
+POINTS_BOSS = 5000
+LEVEL_LENGTH = 75                # seconds of flight (at normal speed) to finish
 DEATH_DELAY = 1.4                # seconds of explosion before "game over"
+WARNING_TIME = 3.0               # "WARNING" before the boss enters
+
+# --- Boss balance ------------------------------------------------------------
+# A boss is STRENGTH times stronger than the rocket, measured as a damage race:
+#   (boss HP / player DPS) / (player HP / boss DPS) = strength
+# where player DPS = the machine gun with every bullet hitting, and boss DPS = the damage
+# a rocket that never moves would take. fight_time = seconds to kill the boss at that DPS.
+PLAYER_DPS = GUN_DAMAGE / GUN_INTERVAL
+BOSS_CONTACT_DAMAGE = 20         # ramming the boss hurts
 
 
 @dataclass(frozen=True)
@@ -51,7 +95,7 @@ class Difficulty:
 
 
 DEFAULT_DIFFICULTY = Difficulty(
-    spawn_interval=0.75,
+    spawn_interval=0.6,
     speed_min=55, speed_max=100,
     radius_min=4, radius_max=14,
     drift=12,
@@ -67,6 +111,7 @@ TEXT_SHADOW = (24, 16, 40)
 ACCENT = (255, 204, 64)
 DANGER = (240, 64, 72)
 GOOD = (96, 228, 128)
+HURT = (255, 40, 40)
 
 SHIP_COLORS = {
     "K": INK,
@@ -100,6 +145,9 @@ FLAME_LEAN = [(220, 240, 255), (130, 190, 255), (70, 110, 230), (40, 50, 140)]
 SMOKE = [(96, 92, 108), (72, 68, 86), (50, 46, 64), (34, 30, 48)]
 RCS = [(236, 244, 255), (160, 176, 206), (92, 100, 130)]
 SPARK = [(255, 255, 255), (255, 236, 140), (255, 160, 60)]
+TRACER = [(255, 255, 230), (255, 226, 120), (240, 150, 40)]
+LASER = [(255, 255, 255), (170, 244, 255), (70, 180, 255), (30, 80, 200)]
+ENEMY_SHOT = [(255, 255, 255), (255, 200, 90), (255, 96, 32), (200, 40, 16)]
 
 NEBULA = [(16, 10, 32), (26, 14, 48), (40, 20, 68)]
 STAR_COLORS = [(255, 255, 255), (200, 220, 255), (255, 236, 200), (170, 170, 210)]
