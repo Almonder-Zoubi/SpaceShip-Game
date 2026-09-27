@@ -207,6 +207,8 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
         world_speed = self._world_speed()
         edt = self.enemy_dt(dt)                   # SLOW-MO boost: the enemy side at half speed
         self.background.update(dt, world_speed)
+        if self.hazard and self.state in (State.PLAYING, State.DYING):
+            self.hazard.update(edt, self)
         self._update_asteroids(edt, world_speed)
         self._update_boss(edt)
         self._update_enemies(edt)

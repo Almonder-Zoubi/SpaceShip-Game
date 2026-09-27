@@ -11,6 +11,8 @@ class Enemy:
     hit_flash = 0.06
     points = 0
     contact_damage = 0
+    drops_coins = True
+    stat = True                  # counts in the level's "destroyed" rating
 
     def __init__(self, image, x, y, hp):
         self.image = image
@@ -47,6 +49,13 @@ class Enemy:
         sx, sy = ship.topleft
         ex, ey = self.topleft
         return ship.mask.overlap(self.mask, (ex - sx, ey - sy)) is not None
+
+    def armour(self, hit):
+        """Damage multiplier for a weapon Hit (e.g. a shield that faces one way)."""
+        return 1.0
+
+    def on_death(self, world, scored):
+        """Hook: it was destroyed (scored = by the player)."""
 
     def damage(self, amount, flash=True):
         self.hp -= amount

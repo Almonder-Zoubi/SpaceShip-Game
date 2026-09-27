@@ -180,6 +180,28 @@ Options need a place in the menus: ask the user where (title? pause?) before add
 
 ## Log
 
+### 2026-09-27 — G10: level 5 SOLAR FORGE (+ level plumbing for 5–9)
+- Plumbing: `Difficulty.extras` (minion spawners as data), `rock_hp` / `enemy_hp` (later ship
+  models hit 2–4x harder than MK I, so fields stay meaningful), `Level.event` (background
+  event layer, `background/events.py`), `Level.hazard` (new package `game/hazards/`: a
+  level-wide mechanic with update + back / mid / front draw layers). `Enemy.armour(hit)`,
+  `on_death()`, `drops_coins`, `stat`. `CombatMixin.area_blast()` (explosions that hurt rocks
+  and minions, never the ship; their kills count, so they chain into combos).
+- MK V..MK IX loadouts + paints (levels 5–9), nebulas and rock palettes for 5–9.
+- Level 5: `MagmaRock` (glows, explodes: chain reactions), `MineLayer` (crosses the upper
+  screen, drops a mine every 1.2 s) + `Mine` (arms after 1 s; shot = blast that clears
+  rocks and minions), SunCorona event layer (dim sun at the right edge, corona arcs, heat
+  shimmer). Waves: field 45 s; field 40 s -> Leviathan 1.5x; field 40 s -> HELIOS 5x.
+  Radio lines, upgrade notes; music `level5` (G minor forge) and `helios` (E minor, 170 bpm);
+  SFX magma_burst, flare. Gift after level 5: SCATTER | OVERDRIVE.
+- HELIOS (`bosses/helios.py`): core + 4 pods on a spinning ring. P1 pods fire aimed bursts,
+  SOLAR FLARE (ring glows 1 s, then a wall of fire with 1–2 gaps sweeps down). P2 pods
+  detach, circle the rocket with their own armour (6% of the boss HP each; killing one drops
+  coins and ends its attacks; hits on pods don't count for the core). P3 core open (x1.3),
+  flares from both sides, magma rain. Balance: `AIMED_RATE` from bursts + one flare.
+- Level 4 is no longer the last level: its clear goes to the results -> gift -> hangar.
+- Smoke test: new `level5` section; level4 / wingmen sections work with more levels.
+
 ### 2026-09-27 — G9 (automated part): bot playtest of levels 1–4 with every system
 - No human playtest possible from the cloud session, so `tools/playtest.py`: a headless
   autopilot (fires, lines up under targets, sidesteps what will cross its row, presses T)

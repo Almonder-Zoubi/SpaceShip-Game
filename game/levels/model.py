@@ -17,6 +17,9 @@ class Difficulty:
     palettes: tuple = ("grey", "brown", "slate")
     formation_interval: float = 0     # seconds between drone formations (0 = none)
     diver_interval: float = 0         # seconds between kamikaze diver squads (0 = none)
+    extras: tuple = ()                # (spawn(game) -> [Enemy], seconds between) per minion type
+    rock_hp: float = 1.0              # rock toughness (later ship models hit much harder)
+    enemy_hp: float = 1.0             # minion toughness
 
 
 @dataclass(frozen=True)
@@ -50,6 +53,8 @@ class Level:
     music: str = "level1"        # asteroid-field track (audio/music.py)
     upgrade_notes: tuple = ()    # new features, shown under the stat changes on "level clear"
     radio: tuple = ()            # radio card lines when the level starts (ui/radio.py)
+    event: type = None           # background event layer (background/events.py)
+    hazard: type = None          # level-wide mechanic (hazards/)
 
 
 @dataclass(frozen=True)

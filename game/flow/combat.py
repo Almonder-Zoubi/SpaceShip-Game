@@ -3,7 +3,7 @@ import math
 import random
 
 from ..config.palette import ACCENT, DANGER, FLAME, ICE_SHARDS, LASER, POWER, SMOKE, SPARK
-from ..config.tuning import (BLAST_CHARGE_PER_DAMAGE, BLAST_CHARGE_PER_KILL, BOSS_ROAR_TIME,
+from ..config.tuning import (MAGMA_BLAST, MAGMA_BLAST_DAMAGE, BLAST_CHARGE_PER_DAMAGE, BLAST_CHARGE_PER_KILL, BOSS_ROAR_TIME,
                              DRONE_KIT_CHANCE, POINTS_BOSS, POINTS_PER_RADIUS, ROCK_KIT_CHANCE,
                              ULT_CHARGE_PER_BOSS_THIRD, ULT_CHARGE_PER_DAMAGE, ULT_CHARGE_PER_KILL)
 from ..core.particles import Shockwave
@@ -11,6 +11,7 @@ from ..minions.base import Enemy
 from ..obstacles.asteroid import Asteroid
 from ..pickups.types import FullRepair, PowerCore, RepairKit
 from ..ui.popup import Popup
+from ..weapons.base import Hit
 from .states import Phase, State
 
 
@@ -96,6 +97,26 @@ class CombatMixin:
                 self.pickups.append(RepairKit(rock.x, rock.y))
         if rock.splits:
             self._split(rock)
+        if rock.EXPLODES:
+            self.area_blast(rock.x, rock.y, MAGMA_BLAST + r, MAGMA_BLAST_DAMAGE)
+
+    def area_blast(self, x, y, reach, damage, colors=FLAME):
+        """An explosion that hurts rocks and minions around it (never the ship). Its kills
+        count, so blasts chain into combos."""
+        self.shockwaves.append(Shockwave(x, y, max_radius=int(reach), duration=0.35,
+                                         color=colors[2]))
+        self.fire.burst(x, y, int(reach), reach * 3, 0.45, colors, size=(1, 2), drag=2.5)
+        self.shake.add(0.12)
+        for target in list(self.asteroids) + list(self.enemies):
+            if (target.x - x) ** 2 + (target.y - y) ** 2 > (reach + target.bound * 0.5) ** 2:
+                continue
+            d = math.hypot(target.x - x, target.y - y) or 1.0
+            hit = Hit(target, damage, target.x, target.y, (target.x - x) / d, (target.y - y) / d,
+                      60, charges=False)
+            if isinstance(target, Enemy):
+                self._damage_enemy(hit)
+            else:
+                self._damage_rock(hit)
 
     def _split(self, rock):
         """Fragments of the same kind (ice shatters into ice)."""
@@ -110,13 +131,13 @@ class CombatMixin:
             self.asteroids.append(type(rock)(
                 art, rock.x + dx * r * 0.5, rock.y + dy * r * 0.5,
                 rock.vx + dx * speed, rock.vy * 0.8 + dy * speed,
-                spin=random.choice((-1, 1)) * random.uniform(1.5, 3.5)))
+                spin=random.choice((-1, 1)) * random.uniform(1.5, 3.5), hp_scale=rock.hp_scale))
 
     def _damage_enemy(self, hit):
         enemy = hit.target
         if enemy not in self.enemies:
             return
-        enemy.damage(hit.damage, flash=not hit.continuous)
+        enemy.damage(hit.damage * enemy.armour(hit), flash=not hit.continuous)
         if not hit.continuous:
             self.fire.burst(hit.x, hit.y, 2, 40, 0.12, SPARK, size=(1, 1))
         if hit.charges:
@@ -125,6 +146,8 @@ class CombatMixin:
             self._destroy_enemy(enemy, scored=True, source=hit.source)
 
     def _destroy_enemy(self, enemy, scored, source=None):
+        if enemy not in self.enemies:
+            return                                   # already gone (a chain of blasts)
         self.explosion(enemy.x, enemy.y, size=0.6)
         if scored:
             self.juice("medium", enemy.x, enemy.y)
@@ -134,12 +157,14 @@ class CombatMixin:
         if scored and self.state == State.PLAYING:
             self.score += self.add_kill(enemy.points, enemy.x, enemy.y)
             self.wingman_kill(source)
-            self.stats.destroyed += 1
+            self.stats.destroyed += enemy.stat
             self._drop_minion_coins(enemy)
             self._minion_boost(enemy)
-            self.track_minion()
+            if enemy.stat:
+                self.track_minion()
             if random.random() < DRONE_KIT_CHANCE:
                 self.pickups.append(RepairKit(enemy.x, enemy.y))
+        enemy.on_death(self, scored)
 
     def _damage_boss(self, hit):
         phase, hp = self.boss.phase, self.boss.hp

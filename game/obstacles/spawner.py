@@ -30,4 +30,5 @@ class AsteroidSpawner:
             vx=random.uniform(-d.drift, d.drift),
             vy=speed,
             spin=random.choice((-1, 1)) * random.uniform(0.4, 2.2),
+            hp_scale=d.rock_hp,
         )]

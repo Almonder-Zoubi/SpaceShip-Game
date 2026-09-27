@@ -17,6 +17,10 @@ class ScreensMixin:
         c = self.canvas
         c.fill(SPACE)
         self.background.draw(c)
+        hazard = self.hazard if self.state not in (State.TITLE, State.HANGAR, State.REWARD,
+                                                   State.DEV_MENU) else None
+        if hazard:
+            hazard.draw_back(c)
         self.smoke.draw(c)
         for rock in self.asteroids:
             rock.draw(c)
@@ -26,6 +30,8 @@ class ScreensMixin:
             enemy.draw(c)
         for pickup in self.pickups:
             pickup.draw(c)
+        if hazard:
+            hazard.draw_mid(c)
         if self.state == State.PLAYING and self.ship.alive and self.mouse.aim:
             self._draw_reticle(c, *self.mouse.aim)
         if self.ship.alive and self.state not in (State.DEV_MENU, State.HANGAR, State.REWARD):
@@ -44,6 +50,8 @@ class ScreensMixin:
             bullet.draw(c, blink)
         for wave in self.shockwaves:
             wave.draw(c)
+        if hazard:
+            hazard.draw_front(c)
         if self.hurt_flash > 0:
             v = int(110 * self.hurt_flash / 0.25)
             c.fill((v, 0, 0), special_flags=pygame.BLEND_ADD)

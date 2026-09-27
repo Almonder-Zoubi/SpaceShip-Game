@@ -178,6 +178,34 @@ def leviathan():
                 beat=beat, fill=fill)
 
 
+def level5():
+    """SOLAR FORGE: pounding G minor with an anvil-like snare, hammering bass."""
+    chords = ["Gm", "Gm", "Eb", "F", "Gm", "Gm", "Eb", "D",
+              "Cm", "Cm", "Gm", "Gm", "Eb", "F", "D", "D"]
+    melody = """G4 . Bb4 . D5 . G5 . | F5 . D5 . Bb4 . . . | Eb5 . G5 . Bb5 . G5 . | A5 . F5 . C5 . . .
+                G5 . . . D5 . G5 . | Bb5 . A5 . G5 . D5 . | Eb5 . . . G5 . Bb5 . | A5 . . . F#5 . D5 .
+                C5 . Eb5 . G5 . C6 . | Bb5 . G5 . Eb5 . . . | D5 . . . G5 . Bb5 . | A5 . G5 . D5 . . .
+                Eb5 . F5 . G5 . Bb5 . | C6 . . . A5 . F5 . | F#5 . . . A5 . D6 . | C6 . A5 . F#5 . D5 ."""
+    beat = "k . h k s . h . k k h . s . h s"
+    fill = "k . h k s . h . s s k s s k s s"
+    return song(146, chords, melody, arp_pattern=(0, 2, 1, 2), bass_rhythm="R R R O R R R O",
+                beat=beat, fill=fill)
+
+
+def helios():
+    """HELIOS: blazing E minor boss theme, a rising three-note hook, driving eighths."""
+    chords = ["Em", "C", "D", "B", "Em", "C", "Am", "B",
+              "C", "D", "Em", "Em", "C", "D", "B7", "B7"]
+    melody = """E5 . G5 . B5 . E6 . | E6 . D6 . C6 . G5 . | F#5 . A5 . D6 . F#6 . | D#6 . . . B5 . F#5 .
+                E5 . G5 . B5 . E6 . | G6 . F#6 . E6 . C6 . | A5 . C6 . E6 . A6 . | F#6 . . . D#6 . B5 .
+                C6 . E6 . G6 . . . | D6 . F#6 . A6 . . . | B6 . . . G6 . E6 . | B5 . E6 . G6 . B6 .
+                C7 . B6 . G6 . E6 . | D7 . C7 . A6 . F#6 . | D#6 . F#6 . A6 . B6 . | D#7 . . . B6 . F#6 ."""
+    beat = "k k h k s . h k k . h k s . s h"
+    fill = "k k h k s . h k s s s s s s s s"
+    return song(170, chords, melody, arp_pattern=(0, 1, 2, 3), bass_rhythm="R O R O R O R O",
+                beat=beat, fill=fill)
+
+
 # --- jingles (play once) ----------------------------------------------------------------------------
 def level_clear():
     lead = "C5 E5 G5 C6 . . G5 C6 . . . . . . . . - - - -"
@@ -207,5 +235,6 @@ def win():
 
 SONGS = {"title": title, "level1": level1, "level2": level2, "level3": level3,
          "level4": level4, "boss": boss, "final_boss": final_boss, "leviathan": leviathan,
+         "level5": level5, "helios": helios,
          "level_clear": level_clear, "game_over": game_over, "win": win}
 JINGLES = ("level_clear", "game_over", "win")      # play once instead of looping

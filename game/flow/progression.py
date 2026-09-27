@@ -51,7 +51,8 @@ class ProgressionMixin:
         self.drop_coins(rock.x, rock.y, rock_coins(rock.radius) * self.coin_mult)
 
     def _drop_minion_coins(self, enemy):
-        self.drop_coins(enemy.x, enemy.y, minion_coins() * self.coin_mult)
+        if enemy.drops_coins:
+            self.drop_coins(enemy.x, enemy.y, minion_coins() * self.coin_mult)
 
     def _drop_boss_coins(self, boss, phase_change=False):
         """Big coins that home in on the ship: a boss's reward can't be missed."""

@@ -30,6 +30,9 @@ class LevelFlowMixin:
         self._reset_wingmen()
         self._reset_achievements()
         self.background.set_nebula(level.nebula)
+        self.background.set_event(level.event)
+        self.hazard = level.hazard() if level.hazard else None
+        self.extra_timers = [interval for _, interval in level.difficulty.extras]
         self.asteroids = []
         self.spawner = AsteroidSpawner(self.library, level.difficulty)
         self.score = self.level_start_score = score
@@ -195,13 +198,27 @@ class LevelFlowMixin:
             self.formation_timer -= dt
             if self.formation_timer <= 0:
                 self.formation_timer = interval * random.uniform(0.8, 1.2)
-                self.enemies += drone_formation()
+                self.spawn_enemies(drone_formation())
         interval = self.level.difficulty.diver_interval
         if interval and self.distance < self.wave.length - 4:
             self.diver_timer -= dt
             if self.diver_timer <= 0:
                 self.diver_timer = interval * random.uniform(0.8, 1.2)
-                self.enemies += diver_squad(random.choice((2, 3, 3, 4)))
+                self.spawn_enemies(diver_squad(random.choice((2, 3, 3, 4))))
+        for i, (spawn, interval) in enumerate(self.level.difficulty.extras):
+            if self.distance >= self.wave.length - 4:
+                break
+            self.extra_timers[i] -= dt
+            if self.extra_timers[i] <= 0:
+                self.extra_timers[i] = interval * random.uniform(0.8, 1.2)
+                self.spawn_enemies(spawn(self))
+
+    def spawn_enemies(self, enemies):
+        """New minions, as tough as the level makes them."""
+        k = self.level.difficulty.enemy_hp
+        for enemy in enemies:
+            enemy.max_hp = enemy.hp = enemy.hp * k
+        self.enemies += enemies
 
     def _level_label(self):
         waves = len(self.level.waves)

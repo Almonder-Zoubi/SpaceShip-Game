@@ -248,6 +248,18 @@ def achievement():
                at(0.28, mix(*(tone("triangle", freq(n), None, 0.4, 0.18) for n in ("C6", "E6", "G6")))))
 
 
+def magma_burst():
+    """A magma rock explodes: deep boom + sizzle."""
+    return mix(lowpass(noise(0.55, 3500, 300, 0.8, power=1.1), 0.5),
+               tone("sine", 110, 40, 0.4, 0.8), at(0.03, noise(0.3, 9000, 5000, 0.2)))
+
+
+def flare():
+    """A solar flare wall launches: rushing roar rising in pitch."""
+    return mix(lowpass(noise(1.0, 1200, 5000, 0.6, attack=0.1, power=0.8), 0.4),
+               tone("saw", 90, 200, 0.9, 0.2, attack=0.1))
+
+
 def select():
     return tone("square", 880, None, 0.04, 0.3, duty=0.25)
 
@@ -276,6 +288,6 @@ SOUNDS = {
     "denied": denied, "boost": boost, "shield": shield, "combo": combo, "fever": fever,
     "wingman_down": wingman_down, "wingman_up": wingman_up, "scatter": scatter,
     "plasma": plasma, "arc": arc_loop, "rocket": rocket,
-    "achievement": achievement,
+    "achievement": achievement, "magma_burst": magma_burst, "flare": flare,
 }
 LOOPS = ("laser", "engine", "arc")         # played on their own channel, looping

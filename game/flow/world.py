@@ -46,12 +46,13 @@ class WorldMixin:
             enemy.update(dt, self)
             if enemy.offscreen:
                 self.enemies.remove(enemy)
-                if self.state == State.PLAYING:
+                if self.state == State.PLAYING and enemy.stat:
                     self.stats.escaped += 1
             elif (self.state == State.PLAYING and ship.alive and not ship.invulnerable
                   and enemy.collides_with(ship)):
                 self._destroy_enemy(enemy, scored=False)
-                self.hurt_ship(enemy.contact_damage, enemy.x, enemy.y)
+                if enemy.contact_damage:
+                    self.hurt_ship(enemy.contact_damage, enemy.x, enemy.y)
 
     def _update_enemy_bullets(self, dt):
         ship = self.ship

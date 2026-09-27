@@ -232,7 +232,7 @@ edge, ~+30%), `hp * firepower == 1` for hulls, all art + audio in code.
       is still open**
 
 **Then new levels:**
-- [ ] G10 Level 5 SOLAR FORGE: magma rocks (chain blasts), mine layer, HELIOS, sun event layer
+- [x] G10 Level 5 SOLAR FORGE: magma rocks (chain blasts), mine layer, HELIOS, sun event layer
 - [ ] G11 Level 6 GHOST NEBULA: fog banks, phantom, WRAITH (teleports, decoys)
 - [ ] G12 Level 7 CRYSTAL VEIL: crystal rocks refract lasers, prism turret, KALEIDOS
 - [ ] G13 Level 8 IRON GRAVEYARD: wrecks (coins), salvager, SCRAPJAW (throws its armour)

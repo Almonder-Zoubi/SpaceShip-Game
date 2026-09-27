@@ -35,7 +35,10 @@ from game.flow.states import Phase, State
 from game.levels.data import LEVELS
 from game.minions.diver import Diver
 from game.minions.drone import drone_formation
-from game.obstacles.asteroid import Asteroid, IceRock
+from game.bosses.helios import Flare, Helios
+from game.config.tuning import MINE_ARM
+from game.minions.minelayer import Mine, MineLayer
+from game.obstacles.asteroid import Asteroid, IceRock, MagmaRock
 from game.pickups.boosts import Boost, Overdrive, Shield
 from game.pickups.types import BigCoin, Coin, FullRepair, PowerCore, RepairKit
 from game.player.hulls import ARROW, HULLS, TITAN, WASP
@@ -597,7 +600,8 @@ def test_level4(h):
     game.distance = game.wave.length
     run(seconds(WARNING_TIME + Leviathan.ENTER_TIME + 0.3), clear_rocks=True)
     boss = game.boss
-    assert isinstance(boss, Leviathan) and boss.fighting and game.is_final_boss()
+    assert isinstance(boss, Leviathan) and boss.fighting
+    assert game.is_final_boss() == (len(LEVELS) == 4)
     assert game._music_track() == "leviathan"
     assert len(boss.parts()) == 12 and all(0 < p.x < 320 for p in boss.parts()[:4])
     h.shot("leviathan")
@@ -639,10 +643,109 @@ def test_level4(h):
     run(seconds(boss.DEATH_TIME + JUICE_PAD))
     assert boss.popped == len(boss.plates), "every plate blows off"
     run(seconds(1.9))
+    if len(LEVELS) > 4:                                 # levels 5+ exist: on to level 5
+        assert game.state == State.LEVEL_CLEAR, game.state
+        return
     assert game.state == State.WIN, game.state
     run(seconds(1.0))
     h.shot("win")
     assert game.record_rank
+
+
+def test_level5(h):
+    """Level 5 SOLAR FORGE: magma rocks chain-explode, mine layers drop mines that arm and
+    blow up rocks when shot (never the ship), HELIOS: pods on the ring pass damage to the
+    core, detach in phase 2 with their own armour, flares hit outside the gaps only,
+    phase 3 opens the core and rains magma."""
+    game = h.game
+    game.choose_hull(ARROW)
+    game.start(4)
+    game.radio = None
+    game.ship.hp = 10 ** 6
+    assert game.level.name == "SOLAR FORGE" and game.ship.loadout.name == "MK V"
+    assert game._music_track() == "level5" and game.background.event
+    h.run(h.seconds(1.5))
+    h.shot("level5")
+
+    # Magma chain: a blast destroys the rock next to it.
+    lib, hp = game.library, game.level.difficulty.rock_hp
+    a = MagmaRock(lib.pick(6, 6, ("magma",)), 100, 80, 0, 0, 0, hp_scale=hp)
+    b = MagmaRock(lib.pick(6, 6, ("magma",)), 120, 80, 0, 0, 0, hp_scale=hp)
+    c = Asteroid(lib.pick(5, 5, ("brown",)), 138, 84, 0, 0, 0)
+    game.asteroids = [a, b, c]
+    game._damage_rock(Hit(a, a.max_hp, a.x, a.y, 0, -1, 0))
+    assert not game.asteroids, "the blast chained through the row"
+
+    # Mine layer -> a mine; armed after a second; shot: it clears rocks, the ship is safe.
+    layer = MineLayer(-1)
+    layer.x, layer.drop_timer = 100, 0
+    game.enemies = [layer]
+    game.asteroids.clear()
+    h.run(3)
+    mines = [e for e in game.enemies if isinstance(e, Mine)]
+    assert mines and not mines[0].armed
+    h.run(h.seconds(MINE_ARM + 0.1))
+    assert mines[0].armed and mines[0].contact_damage > 0
+    mine = mines[0]
+    rock = Asteroid(lib.pick(5, 5, ("brown",)), mine.x + 12, mine.y, 0, 0, 0)
+    game.asteroids = [rock]
+    game.ship.x, game.ship.y = mine.x, mine.y + 20
+    hp_ship = game.ship.hp
+    game._damage_enemy(Hit(mine, 5, mine.x, mine.y, 0, -1, 0))
+    assert rock not in game.asteroids and game.ship.hp == hp_ship, "mine blast"
+    game.enemies.clear()
+    game.ship.x, game.ship.y = game.SHIP_START
+
+    # HELIOS.
+    game.start(4, 0, 2, 0)
+    game.radio = None
+    game.ship.hp = 10 ** 6
+    h.run(h.seconds(WARNING_TIME + Helios.ENTER_TIME + 0.3), clear_rocks=True)
+    boss = game.boss
+    assert isinstance(boss, Helios) and boss.fighting and game._music_track() == "helios"
+    assert len(boss.parts()) == 5
+    hp0 = boss.hp
+    game._damage_boss(Hit(boss.pods[0], 50, 0, 0, 0, -1, 0))
+    assert abs(hp0 - boss.hp - 50) < 1e-6, "an attached pod passes the hit to the core"
+    h.run(h.seconds(4.0), FIRE, clear_rocks=True)
+    h.shot("helios")
+    # A flare: outside the gap it hurts, inside it doesn't.
+    ship = game.ship
+    flare = Flare("h", ship.y, 0, [(ship.x - 20, ship.x + 20)])
+    assert not flare.touches(ship)
+    flare.gaps = [(0, 10)]
+    assert flare.touches(ship)
+    boss.pattern_index, boss.attack_time = 1, 0.0          # the flare pattern
+    h.run(h.seconds(1.3), clear_rocks=True)
+    assert boss.flares, "a flare launched after the warning"
+    h.shot("helios_flare")
+    # Phase 2: pods detach and have their own armour.
+    game._damage_boss(Hit(boss, boss.max_hp * 0.34, 0, 0, 0, -1, 0))
+    assert boss.phase == 1 and all(p.detached for p in boss.pods)
+    boss.roar = 0
+    hp0, pod = boss.hp, boss.pods[1]
+    game._damage_boss(Hit(pod, pod.hp + 1, 0, 0, 0, -1, 0))
+    assert boss.hp == hp0, "a detached pod's damage doesn't hurt the core"
+    h.run(3, clear_rocks=True)
+    assert pod.dead and pod not in boss.parts()
+    h.run(h.seconds(3.0), clear_rocks=True)
+    h.shot("helios_pods")
+    # Phase 3: the core takes more; magma rain.
+    game._damage_boss(Hit(boss, boss.max_hp * 0.34, 0, 0, 0, -1, 0))
+    boss.roar = 0
+    assert boss.phase == 2
+    hp0 = boss.hp
+    game._damage_boss(Hit(boss, 100, 0, 0, 0, -1, 0))
+    assert abs(hp0 - boss.hp - 100 * boss.CORE_OPEN) < 1e-6
+    boss.pattern_index = 1                                 # rain
+    boss.attack_time = 0.0
+    h.run(h.seconds(1.5))
+    assert any(isinstance(r, MagmaRock) for r in game.asteroids), "magma rain"
+    h.shot("helios_phase3")
+    h.kill(boss)
+    h.run(h.seconds(boss.DEATH_TIME + JUICE_PAD + 1.7), clear_rocks=True)
+    assert game.state in (State.LEVEL_CLEAR, State.WIN)
+    game.to_title()
 
 
 def test_save(h):
@@ -1236,11 +1339,12 @@ def test_wingmen(h):
     while not game.boss.fighting:                        # the Leviathan's entry is long
         h.run(10, clear_rocks=True)
     h.kill(game.boss)
+    done = (State.WIN, State.LEVEL_CLEAR)
     for _ in range(h.seconds(10)):                    # the serpent dies plate by plate
         h.run(1, clear_rocks=True)
-        if game.state == State.WIN:
+        if game.state in done:
             break
-    assert game.state == State.WIN, game.state
+    assert game.state in done, game.state
     h.run(h.seconds(1.2))
     h.post(pygame.K_RETURN)
     assert game.state == State.REWARD and [i.id for i in game.gift_options] == ["PIP", "GUARDIAN"]
@@ -1248,7 +1352,7 @@ def test_wingmen(h):
     h.shot("gift_wingman")
     h.post(pygame.K_RETURN)
     assert game.inventory.owns("PIP") and game.save.wingman == "PIP"
-    assert game.state in (State.TITLE, State.DEV_MENU)
+    assert game.state in (State.TITLE, State.DEV_MENU, State.HANGAR)
     assert game.inventory.status("GUARDIAN") == SHOP and game.inventory.status("MAGPIE") == SHOP
     game.save.gifts.remove("1-4")
     game.save.owned.remove("PIP")
@@ -1681,7 +1785,8 @@ SECTIONS = (
     ("title", test_title), ("controls", test_controls), ("mouse", test_mouse),
     ("weapons", test_weapons),
     ("damage", test_damage), ("balance", test_balance), ("pickups", test_pickups),
-    ("campaign", test_campaign), ("level4", test_level4), ("save", test_save), ("menus", test_title_menus),
+    ("campaign", test_campaign), ("level4", test_level4),
+    ("level5", test_level5), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
     ("upgrades", test_upgrades), ("feel", test_feel),
     ("boosts", test_boosts), ("wingmen", test_wingmen),

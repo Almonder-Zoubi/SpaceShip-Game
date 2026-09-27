@@ -108,6 +108,7 @@ GIFTS = {
     "1-2": ("SPECIALS",),                # level 3 is built around BLAST + ULTIMATE
     "1-3": ("TITAN", "LANCE"),
     "1-4": ("PIP", "GUARDIAN"),          # the wingman slot opens
+    "1-5": ("SCATTER", "OVERDRIVE"),
 }
 
 

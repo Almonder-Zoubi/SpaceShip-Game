@@ -1,12 +1,15 @@
 """The levels, grouped into galaxies. A new level = a new Level entry in its galaxy's tuple."""
+from ..background.events import SunCorona
 from ..bosses.carrier import Carrier
 from ..bosses.gunship import GUNSHIP_SPEC, Gunship
+from ..bosses.helios import Helios
 from ..bosses.leviathan import Leviathan
 from ..bosses.mothership import Mothership
 from ..bosses.spec import BossSpec
-from ..config.loadouts import MK1, MK2, MK3, MK4
-from ..config.palette import NEBULA, NEBULA_ABYSS, NEBULA_CRIMSON, NEBULA_FROST
+from ..config.loadouts import MK1, MK2, MK3, MK4, MK5
+from ..config.palette import NEBULA, NEBULA_ABYSS, NEBULA_CRIMSON, NEBULA_FORGE, NEBULA_FROST
 from ..config.tuning import LEVEL_LENGTH
+from ..minions.minelayer import minelayer_squad
 from .model import BossEntry, Difficulty, Galaxy, Level, Wave
 
 DEFAULT_DIFFICULTY = Difficulty(
@@ -80,6 +83,31 @@ GALAXY_1_LEVELS = (
                  "WATCH THE DIVERS: THEY AIM, THEN LUNGE."),
           upgrade_notes=("ICE ROCKS SHATTER INTO SHARDS",
                          "BEWARE: KAMIKAZE DIVERS")),
+    # Magma rocks that explode (chain reactions), mine layers, the Leviathan again, HELIOS.
+    Level(5, "SOLAR FORGE", MK5,
+          Difficulty(spawn_interval=0.5, speed_min=68, speed_max=128, radius_min=4,
+                     radius_max=14, drift=20, palettes=("magma", "brown", "rust"),
+                     formation_interval=12, extras=((minelayer_squad, 9),), rock_hp=1.6,
+                     enemy_hp=1.5),
+          tuple(NEBULA_FORGE),
+          (Wave(45, name="THE SOLAR FORGE"),
+           Wave(40, (BossEntry(Leviathan, BossSpec("LEVIATHAN", strength=1.5, fight_time=35,
+                                                   player=MK5)),),
+                name="THE SERPENT FOLLOWED YOU",
+                radio=("THE LEVIATHAN FOLLOWED US OUT OF THE ICE.",
+                       "IT'S WOUNDED. FINISH IT.")),
+           Wave(40, (BossEntry(Helios, BossSpec("HELIOS", strength=5.0, fight_time=80,
+                                                player=MK5), music="helios"),),
+                name="THE LIVING FORGE",
+                radio=("THAT STATION IS ALIVE. IT BUILDS THE SWARM.",
+                       "WATCH THE RING: IT GLOWS BEFORE A FLARE.",
+                       "FLY THROUGH THE GAPS IN THE FIRE!"))),
+          music="level5", event=SunCorona,
+          radio=("THE SOLAR FORGE. THE SWARM SMELTS SHIPS HERE.",
+                 "MAGMA ROCKS EXPLODE: USE THEM, BURN THE REST.",
+                 "SHOOT THE MINES BEFORE THEY ARM."),
+          upgrade_notes=("MAGMA ROCKS EXPLODE: CHAIN REACTIONS",
+                         "MINE LAYERS: SHOOT THE MINES")),
 )
 
 GALAXIES = (

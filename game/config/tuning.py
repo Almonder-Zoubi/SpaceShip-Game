@@ -239,3 +239,18 @@ ARC_CHAIN = 64                   # px between two targets of a chain
 SECONDARY_SHARE = 0.2            # secondaries: this x gun DPS, only on rocks and minions
 ROCKET_POD_INTERVAL = 1.8        # 2 homing rockets
 SIDE_CANNON_INTERVAL = 0.22      # both sides, only when something is beside the ship
+
+# --- Level 5 SOLAR FORGE ------------------------------------------------------------------
+MAGMA_BLAST = 26                 # px + the rock's radius: a magma rock's blast reach
+MAGMA_BLAST_DAMAGE = 70          # to rocks and minions in reach (chain reactions)
+MINELAYER_HP = 25
+MINELAYER_SPEED = 55             # px/s across the screen
+MINELAYER_DROP = 1.2             # seconds between mines
+MINE_HP = 1
+MINE_ARM = 1.0                   # seconds before a mine is armed
+MINE_FALL = 22                   # px/s
+MINE_DAMAGE = 30                 # an armed mine touching the ship
+MINE_BLAST = 26                  # a mine shot down blows up: px reach ...
+MINE_BLAST_DAMAGE = 45           # ... damage to rocks and minions (never the ship)
+POINTS_MINELAYER = 250
+POINTS_MINE = 20

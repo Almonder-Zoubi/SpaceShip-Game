@@ -3,7 +3,10 @@ import math
 import random
 
 from ..config.display import LOW_H, LOW_W
+import pygame
+
 from ..config.tuning import ROCK_HP_BASE, ROCK_HP_PER_AREA, ROCK_MIN_FALL, ROCK_SPLIT_RADIUS
+from ..core.pixelart import make_glow
 
 HIT_FLASH = 0.06   # seconds a rock shows white after being hit
 
@@ -17,14 +20,19 @@ class Asteroid:
     SPLIT_RADIUS = ROCK_SPLIT_RADIUS   # rocks at least this big break into fragments
     HP_FACTOR = 1.0
     SPARKLE = False                    # glittering shards when it breaks
+    EXPLODES = False                   # blows up nearby rocks and minions (magma)
+    REFRACTS = False                   # splits a laser beam (crystal)
+    METAL = False                      # wreck metal: clangs, drops extra coins
 
-    def __init__(self, art, x, y, vx, vy, spin):
+    def __init__(self, art, x, y, vx, vy, spin, hp_scale=1.0):
         self.art = art
         self.x, self.y = float(x), float(y)       # centre
         self.vx, self.vy = vx, vy
         self.angle = random.uniform(0, math.tau)
         self.spin = spin
-        self.max_hp = (ROCK_HP_BASE + ROCK_HP_PER_AREA * art.radius ** 2) * self.HP_FACTOR
+        self.hp_scale = hp_scale                   # the level's rock toughness
+        self.max_hp = ((ROCK_HP_BASE + ROCK_HP_PER_AREA * art.radius ** 2) * self.HP_FACTOR
+                       * hp_scale)
         self.hp = self.max_hp
         self.flash = 0.0
 
@@ -127,7 +135,28 @@ class IceRock(Asteroid):
         return "ice_break"
 
 
-ROCK_KINDS = {"ice": IceRock}          # palette name -> rock class (default: Asteroid)
+class MagmaRock(Asteroid):
+    """Glowing magma: when it breaks it explodes and damages rocks and minions nearby,
+    so one shot can set off a chain reaction."""
+
+    EXPLODES = True
+    _glows = {}
+
+    def break_sound(self):
+        return "magma_burst"
+
+    def draw(self, surf):
+        super().draw(surf)
+        r = self.radius + 3
+        if r not in MagmaRock._glows:
+            MagmaRock._glows[r] = make_glow(r, (200, 70, 20), 0.55)
+        pulse = 0.6 + 0.4 * math.sin(self.angle * 3 + self.x * 0.05)
+        glow = MagmaRock._glows[r]
+        if pulse > 0.5:
+            surf.blit(glow, (int(self.x) - r, int(self.y) - r), special_flags=pygame.BLEND_ADD)
+
+
+ROCK_KINDS = {"ice": IceRock, "magma": MagmaRock}   # palette name -> rock class
 
 
 def rock_class(palette_name):
