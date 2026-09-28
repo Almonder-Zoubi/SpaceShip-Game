@@ -40,8 +40,8 @@ code, and pygame as the only dependency.
 ## 2. Structure: galaxies of 10 levels
 
 ```
-GALAXY 1  ORION REACH      levels 1-10   (1-4 done)
-GALAXY 2  THE VEIL         levels 1-10   sketch below
+GALAXY 1  ORION REACH      levels 1-10   done
+GALAXY 2  THE VEIL         levels 1-10   designed in section 4 (waiting for the go)
 GALAXY 3  BLOOM            levels 1-10   sketch below
 ...
 ```
@@ -183,22 +183,232 @@ whole top of the screen, then tears open. Boss rush: Mothership, Leviathan, Heli
 
 ---
 
-## 4. Galaxies 2+ — sketch (details later)
+## 4. Galaxy 2 — THE VEIL (design for G16+, waiting for the user's go)
 
-Each galaxy adds **one new mechanic for the whole galaxy** and one gear slot.
+The user's brief (2026-09-28): galaxy 2 must be **harder** than galaxy 1, with **new kinds of
+minions, obstacles and boss shots**, **smarter enemies**, and levels whose **flow** is new and
+**unpredictable**, not just "field -> boss" again. On top of that, a **main villain** who ties
+all galaxies together: every galaxy's last boss serves the villain, there are dialogs, and the player
+gathers **pieces of a puzzle**.
 
-| Galaxy | Theme / faction | Palette | New mechanic | New slot |
+### 4.1 The long story: VANTA and the Dawn Key
+
+**VANTA, THE HOLLOW KING** is the villain of the whole game. It is not a ship and not a
+creature: it is a hole in the light, an intelligence that *unmakes* stars and leaves perfect
+darkness behind. (The data cache THE HOLLOW on the galaxy 1 map was its first footprint.)
+
+- **What it wants:** the five shards of the **DAWN KEY**. Put together, the key opens THE CORE,
+  where every star in the universe is lit from, and VANTA wants to put that light out.
+- **The heralds:** each galaxy's finale boss is one of VANTA's five heralds, guarding (or
+  hunting for) one shard. Beat the herald and you take its shard first.
+- **What galaxy 1 meant, looking back:** the Swarm wasn't invading. It was **fleeing** VANTA
+  (the "SIGNAL FROM THE VEIL" cache says so already). The Overmind's heart guarded **shard 1**.
+  The player took it without knowing, so a new radio card after galaxy 1 reveals that the
+  rocket now carries a shard and VANTA has noticed.
+- **The mystery (the puzzle pieces):** who VANTA was. Each galaxy's hidden data caches become
+  **ECHOES**, fragments of VANTA's memory. Every echo is one tile of a **pixel mosaic** in the
+  new ARCHIVE screen on the star map, plus a line of text. A finished mosaic shows a picture,
+  and each picture is a clue:
+  - G1 mosaic: two rockets flying side by side (a pilot and a wingmate)
+  - G2 mosaic: one rocket turning back into the dark, alone
+  - G3 mosaic: an ARROW-shaped silhouette, hollow and black
+  - G4 mosaic: COMMANDER VEGA's portrait, younger
+  - G5: the answer. **VANTA was the scout before you**, the one who first used the Dawn Key
+    to save the Reach. It was hollowed by the Core, and Vega was the wingmate who left it
+    behind. The last fight is against a black ARROW that flies with *your* habits (see 4.4).
+- **Echo rewards:** finishing a galaxy's mosaic unlocks that galaxy's **secret level** (a
+  planet that appears on the star map), with a skin and a lot of credits.
+
+**Dialogs.** The radio cards grow into a small dialog system:
+- **Several speakers**, each with a 24x24 portrait: COMMANDER VEGA, the herald of the galaxy,
+  VANTA (a black square with two white pixels that blink), and "???" (static).
+- **Hijacked transmissions:** VANTA or a herald breaks into Vega's radio mid-level. The card
+  glitches (scanline tear, a colour shift, a bit-crushed sound) and the text types in red.
+- **Reactive taunts:** heralds comment on what the player does, with lines chosen by game
+  state: low hull ("YOU LEAK LIGHT, LITTLE SCOUT."), a long combo ("SO QUICK. SO LOUD."),
+  laser spam ("THAT BEAM AGAIN? I REMEMBER IT."), a retry ("BACK ALREADY?"). A line never
+  repeats within one level.
+- **Level-clear lines:** one story line under the rank, so the plot moves on even for
+  players who skip the radio.
+- Lines stay <= 43 characters (the card width, checked by the smoke test). ENTER skips.
+
+### 4.2 Harder, but fair
+
+Galaxy 2 raises difficulty through **new pressure**, not just bigger numbers. Pillar 4 still
+holds: everything is telegraphed.
+
+| Lever | Galaxy 1 | Galaxy 2 |
+|---|---|---|
+| Level boss strength | 5x | 5.5–6x, 4 phases (galaxy 1 has 3) |
+| Returning boss (warm-up) | 1.5x | 2x, and it has learned one new trick |
+| Galaxy boss | 5x | 7x, 5 phases |
+| Enemy bullets | one pattern at a time | from phase 3, **two patterns overlap** |
+| Bullet speed | base | +15% |
+| Repair kits in the field | every 13–20 s | every 22–30 s, and elites can steal them |
+| Repair before a boss | full | **full — a binding decision; the user may change it** (4.8) |
+| Minions | fixed stats | **ELITES** (4.5) and the DIRECTOR (4.4) |
+| Rank S | no-hit is rare | needs a no-hit boss phase and a combo of 40 or more |
+
+The player keeps growing too: ship models **MK XI–XX** add +30 HP / +2 gun per level
+(galaxy 1: +50 / +2), upgrade tracks get **tiers 6–10**, and the new gear (4.7) is the
+player's edge. The `BossSpec` rule stays: every boss is exactly `strength` times the
+level's par ship.
+
+### 4.3 Level flows: no two levels play the same way
+
+Galaxy 1 levels all follow the same shape: field → WARNING → boss (times 2–3 waves).
+In galaxy 2 **every level has its own flow**, taken from this list and shown on the star map
+card (e.g. "FLOW: PURSUIT"):
+
+| Flow | What happens | Why it feels new |
+|---|---|---|
+| **AMBUSH** | the boss arrives *without* a WARNING, somewhere in the middle of the field (only radio static warns you) | the safe rhythm breaks |
+| **PURSUIT** | something huge chases you *from the bottom*; the world scrolls faster; stay low and it bites, then the path closes and you turn to fight | you are the prey |
+| **ESCORT** | protect a slow ally (a Swarm brood pod) crossing the screen; its HP bar sits under yours | your attention is split |
+| **DARKNESS** | the screen is black, with a light cone around the ship; your tracers light the dark, enemy bullets glow | you read the space instead of seeing it |
+| **DUEL** | the herald hunts you across the level, fights a phase, *retreats*, and ambushes again | a rivalry, not one fight |
+| **SIEGE** | survive 90 s defending Vega's flagship at the bottom; no progress bar, only a timer | defence instead of travel |
+| **CROSSROADS** | halfway through, two portals: RED (harder, elites, x2 coins, mini-boss A) or BLUE (safer, mini-boss B) | a real choice; replays differ |
+| **GAUNTLET** | 4 short arenas; before each one a slot-machine card rolls a random **rule** (4.6) | nobody knows the next 30 s |
+| **MIRROR** | a shadow of your own ship flies mirrored across the centre and shoots back with your weapons | you fight yourself |
+| **RHYTHM** | everything moves on the beat of the music: bullets advance in steps, and the gaps open on the off-beat | you listen to dodge |
+
+On top of the flow, every attempt of a level rolls one **VEIL SHIFT**, a small random
+modifier shown on a card at the start: "ROCKS FAST", "DOUBLE MINIONS", "BULLETS SPLIT",
+"NO KITS, DOUBLE COINS", "ELITE SQUAD", "HEAVY GRAVITY", "BLIND SPOTS" (dark patches)...
+A retry is never the same level twice. Clearing a level under a hard shift pays a bonus.
+
+### 4.4 Smart enemies: the DIRECTOR and learning bosses
+
+This is the "intelligence" the user asked for, built from the NEMESIS plan (ROADMAP Phase 9):
+pure-Python online learning, no neural network, visible to the player, and tested.
+
+1. **The DIRECTOR** (like an AI game master): watches the player (hull %, combo, damage per
+   minute, deaths) and paces the level with **peaks and breathers**. It spawns harder when the
+   player is doing well and gives a short breather after a peak. It never goes below the
+   level's base difficulty, so it only makes things harder or keeps them the same.
+2. **The PLAYER MODEL** (saved, and shared across all of galaxy 2): where on the screen the
+   rocket spends its time, which way it dodges, gun vs laser share, reaction time to
+   telegraphs.
+3. **Learning bosses:** every galaxy 2 boss chooses its attacks with a **bandit** (it keeps
+   the patterns that hurt *you* and still tries others ~15% of the time), aims **ahead** of
+   your velocity, and gets **counters**: hug the bottom → floor sweepers, circle left →
+   cut-offs on the left, laser-heavy → a mirror shield only the gun breaks.
+4. **You can see what it learned:** after a death, the boss says what it noticed in one
+   line ("YOU ALWAYS BREAK LEFT."). Before the galaxy boss, an ANALYSIS card shows what it
+   learned about you.
+5. **Squad AI for minions:** leaders and followers (kill the leader and the squad
+   scatters), flanking pairs (one draws your fire, one strikes from the side), dodgers that
+   step out of a shot lined up on them.
+6. **Fairness rails:** a capped learning rate, `BossSpec` strength unchanged, every attack
+   telegraphed, and a "RESET WHAT THEY LEARNED" option.
+
+### 4.5 New minions, obstacles and boss shots
+
+**Minions (the HOLLOW, VANTA's army, plus Swarm remnants):**
+
+| Minion | Behaviour | Counterplay |
+|---|---|---|
+| WISP | light, fast; **side-steps** when a shot is lined up on it | fire where it will dodge to, or spread shots |
+| STALKER pair | flankers: one hovers in front, the other circles and strikes from the side | kill the circler first |
+| HOLLOW LEADER + squad | squad in formation; the leader gives orders (they focus fire) | kill the leader and they panic, scatter and stop shooting for 3 s |
+| LURKER | invisible in darkness; your tracers or a flare reveal it | light it up |
+| THIEF | steals a repair kit or boost and runs up | chase it for the item x2 |
+| ECHO | replays the path you flew 3 s ago as a trail of bullets | don't go back to where you were |
+| SWARM ALLY (level 3 on) | freed larvae that fight **for** you for a while | protect them in ESCORT |
+| **ELITE** version of any minion | golden aura, x3 HP, one extra trick (shield, dash, splits in two on death, reflects one shot), x3 coins | a mini-fight worth it |
+
+**Obstacles:**
+- **BONE ROCKS**: break into a marrow core that **regrows** the rock in 3 s unless you
+  finish it.
+- **RIFT PORTALS**: pairs of tears; rocks, bullets (yours too) and minions that enter one
+  come out of the other. They open with a 1 s shimmer, so nothing comes out unseen.
+- **VOID HOLES**: patches that **erase bullets** from both sides; they make safe spots and
+  blind spots.
+- **PHASE ROCKS**: real half the time, ghosts the other half (the outline blinks before
+  they turn solid).
+- **EGG CLUSTERS**: hatch minions after 6 s unless destroyed.
+- **CHAINED ROCKS**: two rocks on a tether that swings; shoot the chain to split them.
+
+**Boss shots (new bullet types, all telegraphed):**
+- **SPLITTERS**: break into 3 after 0.6 s (the bullet swells before it splits)
+- **BOOMERANGS**: fly out, stop, come back along a curve
+- **RUNES**: a marker appears on the floor, and 0.8 s later a bullet ring blooms from it
+- **SHADOW BULLETS**: dark cores with bright rims (for the DARKNESS levels)
+- **TWINNED**: two bullets that orbit each other while they travel
+- **CAGE**: 4 slow walls close in from the sides and leave one gap that moves
+- **LEAD SHOTS**: aimed where you *will* be (from the player model), drawn with a thin
+  line to where they are heading
+
+### 4.6 The ten levels of THE VEIL
+
+Palette family: purple, teal, bone white, with void black. Each level: one new minion or
+obstacle, one flow, one boss (or none), one gift.
+
+| # | Level | Flow | New thing | Boss | Idea |
+|---|---|---|---|---|---|
+| 1 | VEIL GATE | AMBUSH | WISP (dodges), RIFT PORTALS | THE WARDEN: a rotating shield ring; shots only pass through its gap, and it turns the gap away from your favourite side | "the door knows you're coming" |
+| 2 | BONE REEF | PURSUIT | BONE ROCKS, STALKER pairs | LEECH MAW: chases you up the screen, then turns and fights in the reef | "you are the prey" |
+| 3 | BROOD SANCTUARY | ESCORT | SWARM ALLIES, THIEF | HOLLOW REAPER: hunts the brood pod, not you; keep it busy | "the enemy of my enemy" |
+| 4 | THE DARK VEIL | DARKNESS | LURKER, SHADOW BULLETS | ECLIPSE: puts out the light; only the rim of its body glows | "fight what you can't see" |
+| 5 | MIRROR SEA | MIRROR | ECHO minions, PHASE ROCKS | THE MIMIC: copies your weapons and wingman; in phase 4 it replays your last 10 s as bullets | "your own worst enemy" |
+| 6 | PULSE NEBULA | RHYTHM | beat-locked everything, CAGE | TEMPO: a metronome boss; each phase raises the BPM | "listen to dodge" |
+| 7 | HOLLOW MAZE | CROSSROADS | VOID HOLES, EGG CLUSTERS | RED route: GRINDER / BLUE route: SPINNER (two mini-bosses); then the maze's heart | "choose your pain" |
+| 8 | LAST LIGHT | SIEGE | HOLLOW LEADER squads, ELITE waves | none: a 90 s DIRECTOR siege of Vega's flagship; its guns help you | "hold the line" |
+| 9 | THE COURT OF NYX | GAUNTLET + DUEL | CHAINED ROCKS, random rules | NYX appears in arenas 2 and 4, retreats, taunts; the 4 arena rules are rolled | "it is testing you" |
+| 10 | THE HOLLOW THRONE | finale | everything | boss rush (THE WARDEN, ECLIPSE, THE MIMIC at 2x) → **NYX, FIRST HERALD** (7x, 5 phases) → collapse | "the first herald falls" |
+
+**NYX, THE FIRST HERALD (galaxy 2 boss, level 10):**
+1. **The duel:** a sleek black ship with a white mask. Lead shots, and it dodges *your*
+   lined-up shots like a WISP. It uses everything the player model learned in galaxy 2.
+2. **Portals:** it opens rift portals around the screen and fires *through* them, from
+   behind and from the sides.
+3. **Eclipse:** the lights go out (DARKNESS); only its mask and its SHADOW BULLETS glow.
+4. **Unmaking:** void closes in from the screen edges (the arena shrinks); two patterns
+   overlap.
+5. **VANTA takes over:** the transmission is hijacked, and VANTA speaks through NYX
+   ("KEEP THE SHARD. I WILL TAKE IT FROM YOUR LIGHT."). A last desperate phase: runes
+   everywhere, cages.
+- After the win: **SHARD 2** of the DAWN KEY, the galaxy 2 medal, an ESCAPE through the
+  Veil as it tears apart, then the warp to galaxy 3, BLOOM. For the first time VANTA shows
+  its face on the radio.
+
+**Gifts (one per level, choose 1 of 2 as before):** the 2nd wingman slot (level 1), the
+first **ABILITY** (level 2, see 4.7), RAIL (primary), MINE TRAIL (secondary), new hull
+**VESPER** (a thin, dark scout), wingman **LUMEN** (lights up the dark, marks lurkers),
+upgrade tiers 6–10, and paints NYX / VEIL / BONE.
+
+### 4.7 Abilities (decision 7: "advanced levels unlock abilities")
+
+One ability slot, on **one new key**. That's a control change, so the user decides it first.
+The proposal: **SHIFT** (or right click), with a cooldown ring around the rocket.
+- **PHASE**: 0.4 s through bullets (i-frames), 8 s cooldown. Gift of level 2.
+- **FLARE**: lights up the dark and reveals lurkers for 4 s (DARKNESS levels).
+- **TIME SLIP**: enemy side at 40% for 2 s.
+- **REPAIR DRONE**: heals 15% over 5 s.
+- **DECOY**: a copy of the rocket that enemies and learning bosses aim at for 3 s.
+Without a key, abilities could instead fire **automatically** (PHASE when a hit would land,
+once per 12 s): simpler, but less skill.
+
+### 4.8 Open questions for the user (G16 starts after the answers)
+
+1. **Ability key:** SHIFT / right click, or automatic abilities?
+2. **Repair before bosses** (binding decision now: always full): keep it, or 50% in galaxy 2
+   so the fields matter more?
+3. **The learning bosses' memory:** per player save (it knows you across sessions) or
+   reset every run?
+4. **VANTA's twist** (it was the scout before you, and Vega left it behind): OK, or keep the
+   villain a pure alien evil?
+5. **Build order:** story + dialog system and the DIRECTOR first (they change every level),
+   then the levels one by one — or level 1 first to feel the new flow early?
+
+### 4.9 Galaxies 3+ (sketch, the heralds)
+
+| Galaxy | Theme | Palette | Galaxy mechanic | Herald (galaxy boss) |
 |---|---|---|---|---|
-| 2 THE VEIL | the Swarm's home: bio-mechanical | purple, teal, bone | **Elite enemies** (golden aura, drop more coins); galaxy modifiers per level (e.g. "rocks fast", "double minions") | 2nd wingman |
-| 3 BLOOM | living nebula, plant-like creatures | green, pink, gold | **Route map**: after each level choose 1 of 2 next levels (Star Fox style) | 2nd secondary weapon |
-| 4 CHRONO RIFT | time-bending ancients | cyan, white, black | **Time zones**: areas where bullets slow down or speed up | more abilities |
-
-**Abilities (decided: later, unlocked in advanced levels).** From galaxy 2 on, some gifts
-are *abilities and features* that help to win levels: e.g. a hull special per ship (WASP
-dash with i-frames, TITAN shield bubble, LANCE overcharge, ARROW repair drone), time slow,
-a phase shift through bullets, a second life per level. They get designed when galaxy 1 is
-done. The key (probably SHIFT) is decided then, keeping the "simple controls" rule in mind.
-| 5 THE CORE | everything returns | all palettes | remixes plus a true final boss | — |
+| 3 BLOOM | living nebula, plant creatures | green, pink, gold | **route map**: after each level choose 1 of 2 next levels | MORROW, THE WITHERING: rot spreads over the screen |
+| 4 CHRONO RIFT | time-bending ancients | cyan, white, black | **time zones**: bullets slow down or speed up | KAIROS, WHO STOLE TIME: rewinds its own damage unless you break the clock |
+| 5 THE CORE | everything returns | all palettes | remixes of every flow | **VANTA**: a black ARROW that flies with your habits |
 
 ---
 

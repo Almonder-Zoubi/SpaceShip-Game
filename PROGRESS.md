@@ -18,7 +18,7 @@ THE VEIL — design first). NEMESIS (Phase 9) is parked behind Phase 10.
 **Starting a new session?** Read this file's Snapshot + Decisions, then CLAUDE.md (module map,
 "where to look when debugging", conventions). Run the smoke test once before changing anything.
 
-## Handoff — next session: the user's playtest, then G16 (design first)
+## Handoff — next session: the user's answers to DESIGN 4.8, then G16 (story engine)
 
 State at hand-off (2026-09-28): branch `design`, everything committed and pushed, full smoke
 test green (31 sections), lint clean. Built in long cloud sessions without a real window:
@@ -38,8 +38,9 @@ designed 3–4; the Overmind's hive phase is the slowest part for the bot), whet
 map is fun or should be skippable (ENTER on the title could go straight to the hangar),
 whether +3% upgrade tiers feel worth it, wingman strength, prices.
 
-G16 plan (DESIGN section 4): galaxy 2 THE VEIL — elite enemies, galaxy modifiers, 2nd
-wingman slot, first abilities; needs a design pass with the user first. The warp gate on the
+G16+ plan: DESIGN section 4 (galaxy 2 THE VEIL, the villain VANTA, level flows, the
+DIRECTOR) and ROADMAP G16–G29. The user played level 10 ("perfect") and asked for this;
+the 5 open questions are in DESIGN 4.8. The warp gate on the
 star map (`starmap/model.GATE`) is where galaxy 2's map would begin.
 
 Working headless (cloud): `pip install -r requirements.txt pyflakes`, then
@@ -241,6 +242,21 @@ the sounds into `sounds/generated/` (git-ignored, ~14 s now).
   the key is decided then.
 
 ## Log
+
+### 2026-09-28 — G16.0: galaxy 2 THE VEIL designed (docs only)
+- The user tested level 10: "perfect". Their brief for galaxy 2: creative new minions,
+  obstacles and boss shots, smarter enemies, harder levels, new and unpredictable level
+  flows, and a main villain with followers, dialogs and puzzle pieces across galaxies.
+- DESIGN.md section 4 rewritten: VANTA, THE HOLLOW KING and the DAWN KEY (5 shards, one per
+  galaxy herald; the Overmind retroactively held shard 1); ECHO caches build a pixel
+  mosaic per galaxy (the mystery of who VANTA was, a secret level per galaxy); a dialog
+  system (several speakers, hijacked transmissions, reactive taunts); harder-but-fair
+  levers; 10 level FLOWS (ambush, pursuit, escort, darkness, duel, siege, crossroads,
+  gauntlet, mirror, rhythm) + a random VEIL SHIFT per attempt; the DIRECTOR and learning
+  bosses (the NEMESIS plan); new minions / obstacles / bullet types; the 10 levels and NYX,
+  THE FIRST HERALD; abilities; heralds of galaxies 3–5.
+- ROADMAP: G16–G29 plan. **Waiting on the 5 questions in DESIGN 4.8** (ability key, repair
+  before bosses, learning memory, VANTA's twist, build order).
 
 ### 2026-09-28 — G15: level 10 SWARM HEART, THE OVERMIND, the warp finale + the STAR MAP
 - `hazards/hive.HiveTunnel`: breathing flesh walls (width by row and time), contact hurts +

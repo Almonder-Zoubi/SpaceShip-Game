@@ -245,7 +245,18 @@ edge, ~+30%), `hp * firepower == 1` for hulls, all art + audio in code.
       the rocket between the level planets, 6 hidden data caches (story + coins, EXPLORER
       achievement -> STARDUST trail), the black hole planet pulls, the warp gate opens with
       the medal
-- [ ] G16 Galaxy 2 THE VEIL (elite enemies, modifiers, 2nd wingman slot, first abilities) — design first
+**Galaxy 2 THE VEIL** (design: DESIGN.md section 4, **waiting for the user's answers in 4.8**):
+- [x] G16.0 Design: VANTA + the DAWN KEY story, harder-but-fair levers, 10 level flows, the
+      DIRECTOR + learning bosses, new minions / obstacles / bullet types, 10 levels, NYX
+- [ ] G16 Story engine: multi-speaker dialogs + portraits, hijacked transmissions, reactive
+      taunts, level-clear story lines, ECHO caches + ARCHIVE mosaic on the star map, shards
+- [ ] G17 Brains: `PlayerModel` (saved), DIRECTOR (peaks + breathers), bandit attack choice,
+      lead shots, "IT LEARNED" lines (the NEMESIS plan, reused) — pure logic + tests
+- [ ] G18 Galaxy plumbing: galaxy 2 star map, MK XI–XX, upgrade tiers 6–10, ELITES, VEIL
+      SHIFT modifiers, new bullet types (splitter, boomerang, rune, shadow, twinned, cage)
+- [ ] G19 Abilities slot (after the user picks the key) + PHASE; 2nd wingman slot
+- [ ] G20–G29 Levels 1–10 (one per milestone, each with its FLOW: AMBUSH, PURSUIT, ESCORT,
+      DARKNESS, MIRROR, RHYTHM, CROSSROADS, SIEGE, GAUNTLET + DUEL, the NYX finale)
 
 ## Later / nice to have
 
