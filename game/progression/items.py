@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 SHIP, WEAPON, WINGMAN, SKIN = "SHIP", "WEAPON", "WINGMAN", "SKIN"   # kinds = inventory tabs
 UPGRADE = "UPGRADE"                      # the upgrades tab lists tracks, not items
-PRIMARY, SECONDARY = "PRIMARY", "SECONDARY"   # weapon slots
+PRIMARY, SECONDARY, ABILITY = "PRIMARY", "SECONDARY", "ABILITY"   # weapon slots
 PAINT, TRAIL, TRACER, BEAM, DEATH = "PAINT", "TRAIL", "TRACER", "BEAM", "DEATH"   # skin slots
 TABS = (SHIP, WEAPON, WINGMAN, UPGRADE, SKIN)
 
@@ -45,6 +45,17 @@ ITEMS = {item.id: item for item in (
     Item("SIDE CANNONS", "SIDE CANNONS", WEAPON, ("SECONDARY: FIRES AT", "WHATEVER IS BESIDE."),
          300, slot=SECONDARY),
     Item("SPECIALS", "BLAST + ULTIMATE", WEAPON, ("HITS CHARGE A BLAST", "AND A MISSILE STORM."), 0),
+    Item("PHASE", "PHASE", WEAPON, ("ABILITY (SHIFT): DASH", "THROUGH BULLETS."), 400,
+         slot=ABILITY),
+    Item("FLARE", "FLARE", WEAPON, ("ABILITY (SHIFT): LIGHT", "UP THE DARK FOR 5 S."), 400,
+         slot=ABILITY),
+    Item("TIME SLIP", "TIME SLIP", WEAPON, ("ABILITY (SHIFT): THE", "ENEMY SLOWS 2.5 S."), 500,
+         slot=ABILITY),
+    Item("REPAIR DRONE", "REPAIR DRONE", WEAPON, ("ABILITY (SHIFT): HEAL", "18% OVER 5 S."),
+         450, slot=ABILITY),
+    Item("DECOY", "DECOY", WEAPON, ("ABILITY (SHIFT): AIMED", "SHOTS CHASE A COPY."), 450,
+         slot=ABILITY),
+    Item("WING BAY", "WING BAY", WEAPON, ("A SECOND WINGMAN", "FLIES WITH YOU."), 600),
     Item("OVERDRIVE", "OVERDRIVE BOOST", WEAPON, ("BOOST PICKUP: FIRE", "RATE X2 FOR 6 S."), 250),
     Item("PIP", "PIP", WINGMAN, ("WINGMAN: A GUNNER", "WHO FIRES WITH YOU."), 300),
     Item("GUARDIAN", "GUARDIAN", WINGMAN, ("WINGMAN: ORBITS YOU,", "BLOCKS BULLETS."), 300),
@@ -67,6 +78,10 @@ ITEMS = {item.id: item for item in (
          slot=PAINT, look="gold", hint="ACHIEVEMENT: NO-HIT BOSS"),
     Item("SWARMBANE", "SWARMBANE PAINT", SKIN, ("BLACK CHITIN, ACID", "GREEN. THE MEDAL."), 0,
          slot=PAINT, look="swarmbane"),
+    Item("MIRROR", "MIRROR PAINT", SKIN, ("CHROME THAT SHOWS", "WHO IS BEHIND YOU."), 0,
+         slot=PAINT, look="mirror"),
+    Item("NYX", "NYX PAINT", SKIN, ("BLACK, WHITE MASK.", "THE HERALD'S OWN."), 0,
+         slot=PAINT, look="nyx"),
     Item("VEIL", "VEIL PAINT", SKIN, ("VOID BLACK, VIOLET", "TRIM. BLEND IN."), 0,
          slot=PAINT, look="veil"),
     Item("CLASSIC TRAIL", "CLASSIC TRAIL", SKIN, ("ORANGE ROCKET", "FLAMES."), 0, slot=TRAIL,
@@ -122,6 +137,10 @@ GIFTS = {
     "1-9": ("ARC", "SPECTER"),
     "1-10": ("SWARMBANE",),             # the galaxy medal's paint job
     "2-1": ("VEIL",),
+    "2-2": ("PHASE",),                   # the first ability (SHIFT / right click)
+    "2-3": ("WING BAY", "REPAIR DRONE"),
+    "2-4": ("FLARE", "DECOY"),
+    "2-5": ("TIME SLIP", "MIRROR"),
 }
 
 

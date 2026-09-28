@@ -44,6 +44,7 @@ class Wave:
     music: str = None            # its own field track (else the level's)
     escape: bool = False         # a timed escape run (the level's hazard collapses)
     ambush: float = 0.0          # > 0: the boss arrives unannounced at this share of the field
+    pursuit: bool = False        # something hunts the rocket through the field (hazards/pursuit)
 
 
 @dataclass(frozen=True)

@@ -4,7 +4,8 @@ from dataclasses import replace
 
 from ..config.display import LOW_W
 from ..config.palette import ACCENT
-from ..config.tuning import BOSS_KIT_INTERVAL, FULL_KIT_CHANCE, KIT_INTERVAL, WARNING_TIME
+from ..config.tuning import (BOSS_KIT_INTERVAL, FULL_KIT_CHANCE, GALAXY1_TIERS, KIT_INTERVAL,
+                             WARNING_TIME)
 from ..levels.data import LEVELS, galaxy_of, level_title
 from ..minions.diver import diver_squad
 from ..minions.drone import drone_formation
@@ -32,6 +33,7 @@ class LevelFlowMixin:
         self._reset_achievements()
         self._reset_brains()
         self._reset_shift()
+        self._reset_abilities()
         self.background.set_nebula(level.nebula)
         self.background.set_event(level.event)
         self.hazard = level.hazard() if level.hazard else None
@@ -94,7 +96,10 @@ class LevelFlowMixin:
         """The level's ship model as flown with the chosen hull, plus the upgrades bought;
         BLAST + ULTIMATE only once the player owns them (the level 2 gift). Bosses keep
         using the par model (level.loadout)."""
-        loadout = upgrades.apply(self.hull.apply(level.loadout), self.inventory.tiers)
+        tiers = self.inventory.tiers
+        if galaxy_of(level).number == 1:                 # tiers 6-10 are galaxy 2 tech
+            tiers = {k: min(v, GALAXY1_TIERS) for k, v in tiers.items()}
+        loadout = upgrades.apply(self.hull.apply(level.loadout), tiers)
         loadout = replace(loadout, colors=self.paint_for(loadout))       # paint skin
         if not self.inventory.owns("SPECIALS"):
             loadout = replace(loadout, blast=False, ultimate=False)

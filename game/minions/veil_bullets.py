@@ -172,5 +172,21 @@ def twinned(x, y, angle, speed, damage):
     return [TwinBullet(x, y, vx, vy, damage, 0.0), TwinBullet(x, y, vx, vy, damage, math.pi)]
 
 
+def cage(world, damage, gaps=None, speed=None, gap=None, top=34):
+    """CAGE: two walls of bullets slide in from the left and right edges; each wall has one
+    gap (a height where it is safe). gaps: (left wall gap y, right wall gap y)."""
+    from ..config.display import LOW_H, LOW_W
+    from ..config.tuning import CAGE_GAP, CAGE_SPEED
+    import random
+    speed = speed or CAGE_SPEED
+    gap = gap or CAGE_GAP
+    gaps = gaps or (random.uniform(top + 20, LOW_H - 40), random.uniform(top + 20, LOW_H - 40))
+    for side, gy in zip((-1, 1), gaps):
+        x = 2 if side < 0 else LOW_W - 2
+        for y in range(top, LOW_H, 9):
+            if not gy - gap / 2 < y < gy + gap / 2:
+                world.enemy_bullets.append(VeilBullet(x, y, -side * speed, 0, damage))
+
+
 def aimed(cls, x, y, angle, speed, damage):
     return cls(x, y, math.cos(angle) * speed, math.sin(angle) * speed, damage)

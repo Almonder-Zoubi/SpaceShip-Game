@@ -5,11 +5,12 @@ import random
 from ..config.palette import ACCENT, DANGER, FLAME, ICE_SHARDS, LASER, POWER, SMOKE, SPARK
 from ..config.tuning import (MAGMA_BLAST, MAGMA_BLAST_DAMAGE, REFRACT_BEAMS, REFRACT_RANGE,
                              REFRACT_SHARE, SLINGSHOT_CHARGE, BLAST_CHARGE_PER_DAMAGE, BLAST_CHARGE_PER_KILL, BOSS_ROAR_TIME,
-                             DRONE_KIT_CHANCE, POINTS_BOSS, POINTS_PER_RADIUS, ROCK_KIT_CHANCE,
+                             DRONE_KIT_CHANCE, MARROW_MIN_RADIUS, POINTS_BOSS, POINTS_PER_RADIUS,
+                             ROCK_KIT_CHANCE,
                              ULT_CHARGE_PER_BOSS_THIRD, ULT_CHARGE_PER_DAMAGE, ULT_CHARGE_PER_KILL)
 from ..core.particles import Shockwave
 from ..minions.base import Enemy
-from ..obstacles.asteroid import Asteroid
+from ..obstacles.asteroid import Asteroid, MarrowCore
 from ..pickups.types import FullRepair, PowerCore, RepairKit
 from ..ui.popup import Popup
 from ..weapons.base import Hit
@@ -119,6 +120,9 @@ class CombatMixin:
                 self.pickups.append(RepairKit(rock.x, rock.y))
         if rock.splits:
             self._split(rock)
+        if rock.REGROWS and r >= MARROW_MIN_RADIUS:     # reef bone: the marrow stays behind
+            art = self.library.pick(4, 5, (rock.art.palette_name,))
+            self.asteroids.append(MarrowCore(art, rock))
         if rock.EXPLODES:
             self.area_blast(rock.x, rock.y, MAGMA_BLAST + r, MAGMA_BLAST_DAMAGE)
 

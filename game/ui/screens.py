@@ -56,6 +56,7 @@ class ScreensMixin:
             self.ship.draw_flames(c)
             self.ship.draw(c)
             self.draw_wingmen(c)
+            self.draw_abilities(c)
             if self.shield and self.state == State.PLAYING:
                 self._draw_shield(c)
         for weapon in self.weapons + list(self.secondaries.values()):
@@ -148,6 +149,13 @@ class ScreensMixin:
             y = 62 if self.radio else 30                             # below the radio card
             self.font.draw(c, f"ESCAPE {left:04.1f}", (LOW_W // 2, y), color, scale=2,
                            shadow=TEXT_SHADOW, center=True)
+        bar = getattr(self.hazard, "draw_bar", None)  # e.g. the BROOD pod's hull
+        if bar and s in (State.PLAYING, State.PAUSED) and not self.radio:
+            bar(c, self.font)
+        if self.ability and s == State.PLAYING:      # the ability (SHIFT / right click)
+            ready = self.ability_cooldown <= 0
+            self.font.draw(c, f"SHIFT {self.ability}", (LOW_W - 94, LOW_H - 40),
+                           (200, 140, 255) if ready else TEXT_DIM, shadow=TEXT_SHADOW)
         if self.shift and s == State.PLAYING:        # this attempt's VEIL SHIFT
             self.font.draw(c, f"SHIFT: {self.shift.name}", (6, LOW_H - 30), (200, 140, 255),
                            shadow=TEXT_SHADOW)

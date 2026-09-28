@@ -7,7 +7,9 @@ import pygame
 from ..config.display import LOW_W
 from ..config.palette import (ACCENT, COIN, DANGER, EMPTY, GOOD, INK, TEXT, TEXT_DIM,
                               TEXT_SHADOW)
-from ..config.tuning import (ARC_JUMP, ARC_JUMPS, ARC_SHARE, BLAST_DPS, BLAST_TIME,
+from ..config.tuning import (ABILITY_COOLDOWN, ARC_JUMP, ARC_JUMPS, ARC_SHARE, BLAST_DPS,
+                             BLAST_TIME, DECOY_TIME, FLARE_TIME, PHASE_DASH, PHASE_TIME,
+                             REPAIR_SHARE, REPAIR_TIME, TIME_SLIP_SCALE, TIME_SLIP_TIME,
                              GUN_INTERVAL, PLASMA_INTERVAL, PLASMA_PIERCE, SCATTER_INTERVAL,
                              SCATTER_PELLETS, SECONDARY_SHARE, ULT_INTERVAL, ULT_TIME,
                              UPGRADE_TIERS, WINGMAN_XP)
@@ -16,7 +18,8 @@ from ..player.hulls import HULLS, hull_named
 from ..progression import upgrades
 from ..progression.inventory import LOCKED, OWNED, SHOP
 from ..progression.achievements import ACHIEVEMENTS
-from ..progression.items import PRIMARY, SECONDARY, SHIP, SKIN, UPGRADE, WEAPON, WINGMAN
+from ..progression.items import (ABILITY, PRIMARY, SECONDARY, SHIP, SKIN, UPGRADE, WEAPON,
+                                 WINGMAN)
 from ..wingmen.base import level_for
 from ..wingmen.types import WINGMEN
 from .item_art import ItemArt
@@ -47,6 +50,8 @@ class HangarView:
     secondary: str = None        # equipped secondary weapon
     skins: dict = None           # skin slot -> equipped skin item id
     achievements: int = 0        # achievements earned
+    wingman2: str = None         # the second wingman (WING BAY)
+    ability: str = None          # the ability on SHIFT
 
     @property
     def rows(self):
@@ -216,7 +221,8 @@ class HangarScreen:
                 return ("EQUIPPED", GOOD) if item.id == view.equipped else ("OWNED", TEXT)
             if item.kind == WINGMAN:
                 level = level_for((view.wingmen_xp or {}).get(item.id, 0))
-                return (f"FLIES LV{level}", GOOD) if item.id == view.wingman else (
+                flies = item.id in (view.wingman, view.wingman2)
+                return (f"FLIES LV{level}", GOOD) if flies else (
                     f"LV{level}", TEXT)
             if item.kind == SKIN:
                 equipped = (view.skins or {}).get(item.slot) == item.id
@@ -227,6 +233,8 @@ class HangarScreen:
                 return "OWNED", TEXT
             if item.slot == SECONDARY:
                 return ("SECONDARY", GOOD) if item.id == view.secondary else ("OWNED", TEXT)
+            if item.slot == ABILITY:
+                return ("ON SHIFT", GOOD) if item.id == view.ability else ("OWNED", TEXT)
             return "ON BOARD", GOOD
         if status == SHOP:
             return f"{item.price} CR", COIN[2]
@@ -322,6 +330,17 @@ class HangarScreen:
                            "ROCKS + MINIONS ONLY"),
             "SIDE CANNONS": (f"{base.gun_dps * SECONDARY_SHARE:.0f} DPS PER SIDE",
                              "ROCKS + MINIONS ONLY"),
+            "PHASE": (f"DASH {PHASE_DASH} PX, {PHASE_TIME:g} S UNTOUCHABLE",
+                      f"COOLDOWN {ABILITY_COOLDOWN['PHASE']:g} S  (SHIFT)"),
+            "FLARE": (f"LIGHTS THE DARK FOR {FLARE_TIME:g} S",
+                      f"COOLDOWN {ABILITY_COOLDOWN['FLARE']:g} S  (SHIFT)"),
+            "TIME SLIP": (f"ENEMIES AT {TIME_SLIP_SCALE * 100:.0f}% FOR {TIME_SLIP_TIME:g} S",
+                          f"COOLDOWN {ABILITY_COOLDOWN['TIME SLIP']:g} S  (SHIFT)"),
+            "REPAIR DRONE": (f"HEALS {REPAIR_SHARE * 100:.0f}% IN {REPAIR_TIME:g} S",
+                             f"COOLDOWN {ABILITY_COOLDOWN['REPAIR DRONE']:g} S  (SHIFT)"),
+            "DECOY": (f"A DECOY FOR {DECOY_TIME:g} S",
+                      f"COOLDOWN {ABILITY_COOLDOWN['DECOY']:g} S  (SHIFT)"),
+            "WING BAY": ("TWO WINGMEN FLY WITH YOU:", "PICK THEM IN THE WINGMEN TAB"),
         }[item_id]
         y0 = LIST_Y + rows * ROW_H + 10
         for i, line in enumerate(lines):

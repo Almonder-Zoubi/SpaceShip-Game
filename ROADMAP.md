@@ -256,11 +256,20 @@ edge, ~+30%), `hp * firepower == 1` for hulls, all art + audio in code.
       lead shots, counters, "IT LEARNED" lines, journal KNOWN page + forget — pure logic + tests
 - [x] G18 Galaxy plumbing: galaxy 2 star map + warp gates, MK XI, ELITES, VEIL SHIFT
       modifiers, new bullet types (splitter, boomerang, rune, lead, shadow, twinned), 50% boss
-      repair, AMBUSH flow (still open: upgrade tiers 6–10, the CAGE pattern, MK XII+ per level)
-- [ ] G19 Abilities slot on SHIFT / right click + PHASE; 2nd wingman slot
+      repair, AMBUSH flow; later: upgrade tiers 6–10, the CAGE pattern, MK XII–XX
+- [x] G19 Abilities slot on SHIFT / right click: PHASE, FLARE, TIME SLIP, REPAIR DRONE, DECOY;
+      the WING BAY (2nd wingman); upgrade tiers 6–10 (after galaxy 1; galaxy 1 counts 5)
 - [x] G20 Level 1 VEIL GATE (AMBUSH): wisps, rift portals, THE WARDEN (learning)
-- [ ] G21–G29 Levels 2–10 (one per milestone, each with its FLOW: AMBUSH, PURSUIT, ESCORT,
-      DARKNESS, MIRROR, RHYTHM, CROSSROADS, SIEGE, GAUNTLET + DUEL, the NYX finale)
+- [x] G21 Level 2 BONE REEF (PURSUIT): the maw's jaws, bone rocks + regrowing marrow,
+      stalkers, LEECH MAW
+- [x] G22 Level 3 BROOD SANCTUARY (ESCORT): the pod + its riders, latchers, THE HOLLOW
+      REAPER (harvest, break the scythe); a saved brood pays and is remembered
+- [x] G23 Level 4 THE DARK VEIL (DARKNESS): light only from engine / shots / blasts, lurkers,
+      ECLIPSE
+- [x] G24 Level 5 MIRROR SEA (MIRROR): your reflection, echo ghosts, phase rocks, THE MIMIC
+- [x] G25 Level 6 PULSE NEBULA (RHYTHM): the enemy side moves on a 120 bpm beat, cages, TEMPO
+- [ ] G26–G29 Levels 7–10 (CROSSROADS, SIEGE, GAUNTLET + DUEL, the NYX finale) + galaxy 2
+      story (echoes / mosaic 2, G2 warp transmission, shard 2, reactive taunts)
 
 ## Later / nice to have
 

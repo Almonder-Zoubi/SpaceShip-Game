@@ -3,13 +3,14 @@ DIRECTOR paces levels that ask for it, learning bosses get their saved bandits, 
 is written into the save file (it remembers the player across sessions)."""
 import math
 import random
+from collections import deque
 
 from ..brains.bandit import Bandit
 from ..brains.director import Director
 from ..brains.insight import insights
 from ..brains.model import PlayerModel
 from ..config.display import LOW_H, LOW_W
-from ..config.tuning import BRAIN_THREAT
+from ..config.tuning import BRAIN_THREAT, HISTORY_SECONDS
 from .states import Phase, State
 
 MEMORY = 5.0                     # seconds: how far back "recent" damage / kills reach
@@ -50,6 +51,16 @@ class BrainsMixin:
         self.recent_damage = 0.0          # share of max hull lost per second (smoothed)
         self.recent_kills = 0.0           # kills per second (smoothed)
         self.death_insight = None         # "IT LEARNED: ..." on the game over screen
+        self.ship_history = deque()       # (time, x, y) of the last HISTORY_SECONDS of flight
+        self.firing_now = False           # the player is firing (the mirror copies it)
+
+    def ship_at(self, seconds_ago):
+        """Where the rocket was that long ago (echoes, the Mimic's replay), or None."""
+        when = self.time - seconds_ago
+        for t, x, y in reversed(self.ship_history):
+            if t <= when:
+                return x, y
+        return None
 
     @property
     def director_active(self):
@@ -77,10 +88,14 @@ class BrainsMixin:
         decay = math.exp(-dt / MEMORY)
         self.recent_damage *= decay
         self.recent_kills *= decay
+        self.firing_now = firing
         if self.state != State.PLAYING or not self.ship.alive:
             self.pressure = 1.0
             return
         ship = self.ship
+        self.ship_history.append((self.time, ship.x, ship.y))
+        while self.ship_history and self.ship_history[0][0] < self.time - HISTORY_SECONDS:
+            self.ship_history.popleft()
         self.player_model.observe(dt, ship.x, ship.y, ship.vx, ship.vy, self._threatened(),
                                   self.weapon.name if firing else None)
         if self.director_active and self.phase == Phase.FIELD:

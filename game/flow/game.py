@@ -38,6 +38,7 @@ from ..weapons.plasma import Plasma
 from ..weapons.scatter import Scatter
 from ..weapons.secondary import RocketPod, SideCannons
 from ..weapons.specials import Blast, Ultimate
+from .abilities import AbilitiesMixin
 from .boosts import BoostsMixin
 from .brains import BrainsMixin
 from .combat import CombatMixin
@@ -66,14 +67,14 @@ SIGNATURE_RADII = (9, 11, 13)   # big rocks prebuilt for every later colour (mag
 class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixin, HangarMixin,
            JuiceMixin, BoostsMixin, WingmenMixin, SkinsMixin, OptionsMixin, SoundMixin,
            DevMixin, FinaleMixin, StarMapMixin, JournalMixin, BrainsMixin, ShiftsMixin,
-           ScreensMixin):
+           AbilitiesMixin, ScreensMixin):
     """Owns the window, the world objects and the state machine.
 
     Mixins (one file each in flow/ and ui/) add: key handling, level flow, world update,
     combat, progression (coins, rank, payout), hangar + gifts, game feel (juice, damage
     numbers, radio), boosts + combo, wingmen, skins + achievements, options, sound, dev tools,
-    the galaxy finale, the star map, the journal, the enemy's brains, VEIL SHIFTS and
-    drawing. They all work on the attributes
+    the galaxy finale, the star map, the journal, the enemy's brains, VEIL SHIFTS,
+    abilities and drawing. They all work on the attributes
     created here.
     """
 
@@ -249,6 +250,7 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
         self._update_pickups(dt)
         self._update_boosts(dt)
         self._update_shift(edt, real_dt)
+        self._update_abilities(dt)
         if self.state == State.PLAYING:
             self._check_ship_collisions()
             self._update_phase(dt, world_speed)

@@ -247,6 +247,33 @@ the sounds into `sounds/generated/` (git-ignored, ~14 s now).
 
 ## Log
 
+### 2026-09-28 — G19 + G21–G25: abilities, WING BAY, tiers 6–10, levels 2–6 of THE VEIL
+- User feedback on G2 L1: "not that hard, but so many shots" -> galaxy 2 bosses fire
+  **fewer, harder shots** (the Warden's fans every 0.8 s; the new bosses the same way), and
+  galaxy 2 bosses are 6–6.5x (the Warden 5.5 -> 6.0).
+- G19: `flow/abilities.py` — one ability on SHIFT / right click with a cooldown ring (PHASE
+  dash + i-frames, FLARE, TIME SLIP, REPAIR DRONE, DECOY; `aim_target()` is what aimed shots
+  chase). Abilities are items (`slot=ABILITY`), equipped in the hangar. The WING BAY flies a
+  second wingman (`save.wingman2`). Upgrade tiers 6–10 (buyable after galaxy 1's medal;
+  galaxy 1 levels count at most 5, so its balance is unchanged). MK XII–XX.
+- G21 BONE REEF (`hazards/pursuit.py`, `minions/stalker.py`, `bosses/leechmaw.py`): the maw
+  rises from below while you idle, UP pushes it back, a bite drops it back 30 px (no bite
+  chains); big bone rocks leave a marrow core that grows back.
+- G22 BROOD SANCTUARY (`hazards/escort.py`, `minions/latcher.py`, `bosses/reaper.py`): a pod
+  to protect (bar at the bottom), its riders zap minions; the Reaper's harvest drains it
+  unless you hit the scythe. A saved brood: +400 CR and `story` BROOD_SAVED **(ask: should
+  the brood help later, e.g. in level 10?)**.
+- G23 THE DARK VEIL (`hazards/darkness.py`, `minions/lurker.py`, `bosses/eclipse.py`).
+- G24 MIRROR SEA (`hazards/mirror.py`, `minions/mirror.py`, `bosses/mimic.py`; `PhaseRock`;
+  `ship_at()` = the ship's last 12 s).
+- G25 PULSE NEBULA (`hazards/pulse.py`: `time_scale` on the enemy side, 0.25..2.25 on a
+  120 bpm beat; `bosses/tempo.py`; `veil_bullets.cage()`).
+- 10 new tracks, 5 dossiers; galaxy 2's first radio lines spell LOOKBEHIND (so far LOOKBE).
+- Bot (maxed, all 10 tiers, tank): L1–L6 all won, bosses 18–67 s vs par 45–50. The bot
+  ignores darkness and the beat, so L4 / L6 read easier for it than for a pilot.
+- Smoke: new sections `abilities`, `veil2`; the cap tests are per galaxy (galaxy 2 >= 3.2x
+  with all 10 tiers + PIP). **Not seen in a real window yet** (darkness uses BLEND_RGBA_SUB).
+
 ### 2026-09-28 — G18 + G20: galaxy 2 plumbing and level 1 VEIL GATE
 - Multi-galaxy: `GALAXIES` has THE VEIL (`boss_repair=0.5`); `level_title()` ("G2 LEVEL 1");
   records / coins / unlocks use the global level index; a `finale` level warps even when

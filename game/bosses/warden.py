@@ -137,9 +137,11 @@ class Warden(Learner, Boss):
                ("fans", "runes", "boomerangs", "twins", "spray"),
                ("fans", "runes", "splitters", "twins", "spray"))
     SLOT, REST = 2.8, 0.7
-    FAN_INTERVAL, FAN_SPEED, FAN_GAP = 0.55, 120, 0.22
-    RUNE_INTERVAL, SPLIT_INTERVAL, BOOM_INTERVAL, TWIN_INTERVAL = 0.9, 0.8, 0.6, 0.5
-    SPRAY_INTERVAL = 0.09
+    # Fewer, harder shots (playtest: "so many shots, each hardly hurts"): the intervals set
+    # how often it fires, and AIMED_RATE below turns that into more damage per bullet.
+    FAN_INTERVAL, FAN_SPEED, FAN_GAP = 0.8, 125, 0.22
+    RUNE_INTERVAL, SPLIT_INTERVAL, BOOM_INTERVAL, TWIN_INTERVAL = 1.2, 1.1, 0.85, 0.75
+    SPRAY_INTERVAL = 0.14
     RING_PASS = 0.25                       # a hit on a ring still does this share
     RING_TURN = (0.7, 0.8, 1.6, 1.8)       # rad/s the gaps can turn
     # Aimed damage per second at a rocket sitting still: the lead shot in the middle of every

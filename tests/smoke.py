@@ -25,14 +25,14 @@ from game.config.loadouts import MK1, MK2, MK3, MK4
 from game.config.tuning import (ARC_JUMPS, PLASMA_PIERCE, COMBO_COIN_CAP, COMBO_MAX, COMBO_STEP, COMBO_WINDOW,
                                 DEATH_DELAY, FEVER_AT, MEDIC_DELAY, MEDIC_REVIVE, PIP_SHARE,
                                 POWER_MAX, REPAIR_SMALL, SHIELD_HITS, UPGRADE_COSTS,
-                                UPGRADE_TIERS, WARNING_TIME, WINGMAN_KO_TIME,
+                                UPGRADE_TIERS, GALAXY1_TIERS, WARNING_TIME, WINGMAN_KO_TIME,
                                 WINGMAN_TRAIN_COST, WINGMAN_TRAIN_XP, WINGMAN_XP,
                                 WINGMAN_XP_KILL, WINGMAN_XP_OWN)
 from game.core.input import Keys
 from game.core.storage import SaveData
 from game.flow.game import Game
 from game.flow.states import Phase, State
-from game.levels.data import GALAXIES, LEVELS
+from game.levels.data import GALAXIES, LEVELS, galaxy_of
 from game.minions.diver import Diver
 from game.minions.drone import drone_formation
 from game.bosses.helios import Flare, Helios
@@ -72,7 +72,7 @@ from game.progression.results import RANKS, LevelStats, better_rank
 from game.ui.popup import DamageNumber
 from game.weapons.base import Hit
 from game.bosses.overmind import Overmind
-from game.config.display import LOW_H
+from game.config.display import LOW_H, LOW_W
 from game.config.tuning import (BOSS_ROAR_TIME, ESCAPE_SPEED, LARVA_TIME, MAP_H, MAP_W,
                                 SPORE_RIPEN, SPORE_SHOTS, SPORE_SWELL)
 from game.hazards.hive import HiveTunnel
@@ -97,6 +97,24 @@ from game.minions.veil_bullets import (Boomerang, RuneMark, SplitterBullet, Twin
                                       VeilBullet, twinned)
 from game.minions.wisp import Wisp
 from game.story.dialog import UNKNOWN, VANTA, VEGA, Line, cards, is_hijack
+from game.bosses.eclipse import Eclipse
+from game.bosses.leechmaw import LeechMaw
+from game.bosses.mimic import Mimic
+from game.bosses.reaper import Reaper
+from game.bosses.tempo import Tempo
+from game.config.tuning import (DECOY_TIME, MARROW_REGROW, PHASE_DASH, PHASE_TIME, POD_SAVED_COINS,
+                                REAPER_BREAK, REPAIR_SHARE, REPAIR_TIME, TIME_SLIP_SCALE,
+                                TIME_SLIP_TIME)
+from game.hazards.darkness import Darkness
+from game.hazards.escort import BroodEscort
+from game.hazards.mirror import MirrorSea
+from game.hazards.pulse import PulseField
+from game.hazards.pursuit import MawPursuit
+from game.minions.latcher import latcher_trio
+from game.minions.lurker import lurker_pair
+from game.minions.mirror import echo_ghost
+from game.minions.stalker import stalker_pair
+from game.obstacles.asteroid import MarrowCore, rock_class
 from game.story.lore import (ACROSTIC, DECODED, DOSSIER_BY_BOSS, DOSSIERS, ECHOES, HERALDS,
                              TEXT_WIDTH, TRANSMISSIONS, VANTA_FILE)
 
@@ -1814,6 +1832,8 @@ def test_veil(h):
     # RIFTS carry rocks, enemy bullets and your shots through.
     rifts = game.hazard
     rifts.rifts.clear()
+    rifts.jumps = 0
+    rifts.recent.clear()
     a, b = rifts.open_pair()
     for r in (a, b):
         r.age = RIFT_OPEN + 0.1
@@ -1826,7 +1846,8 @@ def test_veil(h):
     game.enemy_bullets = [bullet(a.x - 2, a.y, 0, 0, 0)]
     rifts.update(1 / 60, game)
     assert math.hypot(rock.x - b.x, rock.y - b.y) < RIFT_RADIUS + 2
-    assert math.hypot(shot.x - b.x, shot.y - b.y) < RIFT_RADIUS + 2 and rifts.jumps == 3
+    assert math.hypot(shot.x - b.x, shot.y - b.y) < RIFT_RADIUS + 2 and rifts.jumps == 3, (
+        rifts.jumps, shot.x, shot.y, b.x, b.y, a.x, a.y)
     h.run(2)
     h.shot("rifts")
     game.enemy_bullets.clear()
@@ -1896,10 +1917,10 @@ def test_veil(h):
     h.kill(boss)
     for _ in range(h.seconds(10)):
         h.run(1, clear_rocks=True)
-        if game.state == State.WIN:
+        if game.state == State.LEVEL_CLEAR:
             break
     game.god = False
-    assert game.state == State.WIN and "THE WARDEN" in game.save.bosses
+    assert game.state == State.LEVEL_CLEAR and "THE WARDEN" in game.save.bosses
     h.run(h.seconds(1.2))
     h.shot("veil_clear")
     game.save.gifts = [k for k in game.save.gifts if k != "2-1"]
@@ -1909,6 +1930,8 @@ def test_veil(h):
     assert game.state == State.REWARD and [i.id for i in game.gift_options] == ["VEIL"]
     h.run(h.seconds(0.6))
     h.post(pygame.K_RETURN)
+    assert game.state == State.HANGAR and game.next_launch[0] == 11, game.state
+    h.post(pygame.K_ESCAPE)                              # the hangar backs out to the Veil's map
     assert game.state == State.STAR_MAP and game.star_map.gmap.galaxy == 2, (
         game.state, getattr(game, "star_map", None) and game.star_map.gmap.galaxy)
     game.save.skins = {}
@@ -2141,9 +2164,11 @@ def test_upgrades(h):
     refused, maxed), saved tiers, bosses still balanced on par, and the cap: a maxed build
     still faces a 5x boss as >= 3.5x."""
     assert [upgrades.cost(t) for t in range(UPGRADE_TIERS + 1)] == [*UPGRADE_COSTS, None]
-    maxed = {t: UPGRADE_TIERS for t in upgrades.TRACK_IDS}
+    maxed = {t: GALAXY1_TIERS for t in upgrades.TRACK_IDS}          # galaxy 1 caps at tier 5
+    full = {t: UPGRADE_TIERS for t in upgrades.TRACK_IDS}
     assert abs(upgrades.power_ratio({}) - 1) < 1e-9
     assert abs(upgrades.power_ratio(maxed) - 1.3225) < 1e-6, upgrades.power_ratio(maxed)
+    assert abs(upgrades.power_ratio(full) - 1.69) < 1e-6, upgrades.power_ratio(full)
     assert abs(upgrades.power_ratio({"LASER": 5}) - upgrades.power_ratio({"GUNS": 5})) < 1e-9
     assert abs(upgrades.power_ratio({"GUNS": 5, "LASER": 5}) - 1.15) < 1e-9, "weapons don't stack"
     up = upgrades.apply(MK4, maxed)
@@ -2152,13 +2177,16 @@ def test_upgrades(h):
     assert abs(up.max_speed - MK4.max_speed * 1.2) < 1e-9 and abs(up.charge_rate - 1.5) < 1e-9
     assert upgrades.apply(MK4, {}) == MK4
 
-    # The cap: every boss in a damage race against a maxed build, with every hull.
+    # The cap: every boss in a damage race against a maxed build, with every hull
+    # (galaxy 1 counts 5 tiers; galaxy 2 all 10, and its bosses are built stronger).
     for level in LEVELS:
+        g1 = galaxy_of(level).number == 1
+        tiers, edge = (maxed, 1.33) if g1 else (full, 1.7)
         for spec in (e.spec for wave in level.waves for e in wave.bosses):
             for hull in HULLS:
-                ship = upgrades.apply(hull.apply(spec.player), maxed)
+                ship = upgrades.apply(hull.apply(spec.player), tiers)
                 ratio = (spec.hp / ship.gun_dps) / (ship.max_hp / spec.dps)
-                assert ratio >= spec.strength / 1.33, (spec.name, hull.name, ratio)
+                assert ratio >= spec.strength / edge, (spec.name, hull.name, ratio)
                 if spec.strength >= 5:
                     assert ratio >= 3.5, (spec.name, hull.name, ratio)
 
@@ -2217,7 +2245,7 @@ def test_upgrades(h):
         json.dump({"version": 2, "unlocked": 2, "coins": 5}, f)
     assert SaveData(h.save_path).upgrades == {}
     with open(h.save_path, "w") as f:
-        json.dump({"version": 2, "upgrades": {"ARMOR": 9, "GUNS": -2}}, f)
+        json.dump({"version": 2, "upgrades": {"ARMOR": 19, "GUNS": -2}}, f)
     assert SaveData(h.save_path).upgrades == {"ARMOR": UPGRADE_TIERS, "GUNS": 0}
     game.save._reset()
     game.save.save()
@@ -2500,15 +2528,17 @@ def test_wingmen(h):
     h.run(2, clear_rocks=True)
     assert not any(isinstance(w, Twin) for w in game.wingmen)
 
-    # Balance: maxed upgrades + a level 5 PIP still face a 5x boss as >= 3.5x.
-    maxed = {t: UPGRADE_TIERS for t in upgrades.TRACK_IDS}
+    # Balance: maxed upgrades + a level 5 PIP still face a 5x boss as >= 3.5x (galaxy 1,
+    # 5 tiers) and a galaxy 2 boss as >= 3.2x (all 10 tiers).
     for level in LEVELS:
+        g1 = galaxy_of(level).number == 1
+        maxed = {t: GALAXY1_TIERS if g1 else UPGRADE_TIERS for t in upgrades.TRACK_IDS}
         for spec in (e.spec for wave in level.waves for e in wave.bosses if e.spec.strength >= 5):
             for hull in HULLS:
                 ship = upgrades.apply(hull.apply(spec.player), maxed)
                 dps = ship.gun_dps * (1 + PIP_SHARE[-1])       # PIP fires a share of it
                 ratio = (spec.hp / dps) / (ship.max_hp / spec.dps)
-                assert ratio >= 3.5, (spec.name, hull.name, ratio)
+                assert ratio >= (3.5 if g1 else 3.2), (spec.name, hull.name, ratio)
 
     # The level 4 gift (PIP or GUARDIAN) after the win; MAGPIE in the shop; a cleared level
     # whose gift is missing (a save from before the update) gets it when the hangar opens.
@@ -2972,6 +3002,286 @@ def test_busy(h):
     game.choose_hull(ARROW)
 
 
+def _boss_rounds(h, boss, shots=None):
+    """Every phase, every attack of a learning boss: force each option for one slot."""
+    game = h.game
+    for phase in range(boss.PHASES):
+        while boss.phase < phase:
+            boss.roar = 0
+            game._damage_boss(Hit(boss, boss.max_hp * 0.2, 0, 0, 0, -1, 0))
+        boss.roar = 0
+        for option in boss.OPTIONS[phase]:
+            boss.attack, boss.attack_time = option, 0.0
+            if hasattr(boss, "fire_timer"):
+                boss.fire_timer = 0.0
+            h.run(h.seconds(min(boss.SLOT, 3.0)), FIRE, clear_rocks=True)
+            game.ship.hp = game.ship.max_hp
+        if shots:
+            h.shot(f"{shots}_phase{phase + 1}")
+
+
+def _veil_level(h, number, hazard, music, boss_cls, shot):
+    """Start galaxy 2 level `number`, fly its field a while, then jump to its boss."""
+    game = h.game
+    level = GALAXIES[1].levels[number - 1]
+    index = LEVELS.index(level)
+    game.save.unlock(index + 1)
+    game.start(index)
+    game.radio = None
+    assert isinstance(game.hazard, hazard) and game._music_track() == music, game._music_track()
+    assert game.ship.loadout.name == f"MK {['XII', 'XIII', 'XIV', 'XV', 'XVI'][number - 2]}"
+    game.god = True
+    h.run(h.seconds(6), FIRE)
+    h.shot(f"{shot}_field")
+    return level, index
+
+
+def _veil_boss(h, index, boss_cls, shot):
+    game = h.game
+    level = LEVELS[index]
+    game.start(index, 0, len(level.waves) - 1, 0)
+    game.radio = None
+    h.run(h.seconds(WARNING_TIME + 3.5), clear_rocks=True)
+    boss = game.boss
+    assert isinstance(boss, boss_cls) and boss.fighting, (boss, game.phase)
+    assert boss.spec.name in DOSSIER_BY_BOSS
+    _boss_rounds(h, boss, shot)
+    return boss
+
+
+def _win_level(h, boss):
+    game = h.game
+    boss.roar = 0
+    h.kill(boss)
+    for _ in range(h.seconds(10)):
+        h.run(1, clear_rocks=True)
+        if game.state in (State.LEVEL_CLEAR, State.WIN):      # WIN: the last level so far
+            break
+    assert game.state in (State.LEVEL_CLEAR, State.WIN) and boss.spec.name in game.save.bosses, (
+        game.state, game.phase, boss.state, game.save.bosses)
+
+
+def test_abilities(h):
+    """G19: abilities on SHIFT / right click (PHASE dash + i-frames, FLARE, TIME SLIP slows
+    the enemy side, REPAIR DRONE heals, DECOY takes the aim), cooldowns, the WING BAY's second
+    wingman, upgrade tiers 6-10 (locked until galaxy 1 is beaten, capped in galaxy 1)."""
+    game = h.game
+    game.choose_hull(ARROW)
+    index = LEVELS.index(GALAXIES[1].levels[0])
+    game.save.unlock(index + 1)
+    game.save.ability = "PHASE"
+    game.start(index)
+    game.radio = None
+    game.god = True                                      # only the abilities change the hull
+    ship = game.ship
+    assert game.ability == "PHASE" and game.ability_ready
+    ship.x, ship.y, ship.vx, ship.vy = 160, 200, 0, 0
+    h.post(pygame.K_LSHIFT)
+    assert ship.y < 200 - PHASE_DASH + 2 and ship.invulnerable_time >= PHASE_TIME
+    assert not game.ability_ready and not game.use_ability(), "on cooldown"
+    h.run(h.seconds(0.2))
+    h.shot("ability_phase")
+    game.ability_cooldown = 0
+    # Right click works too.
+    game.save.ability = "TIME SLIP"
+    pygame.event.post(pygame.event.Event(pygame.MOUSEBUTTONDOWN, pos=(10, 10), button=3))
+    game.handle_events()
+    assert game.time_slip > 0 and abs(game.enemy_dt(1.0) - TIME_SLIP_SCALE) < 1e-9
+    h.run(h.seconds(TIME_SLIP_TIME + 0.1))
+    assert game.enemy_dt(1.0) == 1.0
+    game.ability_cooldown = 0
+    game.save.ability = "REPAIR DRONE"
+    ship.hp = ship.max_hp * 0.5
+    assert game.use_ability()
+    h.run(h.seconds(REPAIR_TIME + 0.2), clear_rocks=True)
+    assert ship.hp >= ship.max_hp * (0.5 + REPAIR_SHARE) - 2, ship.hp / ship.max_hp
+    game.ability_cooldown = 0
+    game.save.ability = "DECOY"
+    assert game.use_ability() and game.aim_target() is game.decoy
+    ship.x = 60
+    h.run(h.seconds(0.3), clear_rocks=True)
+    h.shot("ability_decoy")
+    assert game.aim_target() is not ship
+    h.run(h.seconds(DECOY_TIME), clear_rocks=True)
+    assert game.aim_target() is ship
+    game.ability_cooldown = 0
+    game.save.ability = "FLARE"
+    assert game.use_ability() and game.flare > 0
+    game.save.ability = "NOT AN ABILITY"
+    assert game.ability is None and not game.use_ability()
+    game.save.ability = None
+
+    # WING BAY: a second wingman flies on the other side.
+    game.save.wingman, game.save.wingman2 = None, None
+    game.choose_wingman("PIP")
+    game.choose_wingman("GUARDIAN")
+    assert game.save.wingman == "GUARDIAN" and game.save.wingman2 == "PIP"
+    game.start(index)
+    assert len(game.wingmen) == 2 and {w.side for w in game.wingmen} == {-1, 1}
+    h.run(h.seconds(1), FIRE)
+    h.shot("wing_bay")
+    game.save.owned.remove("WING BAY")
+    game.start(index)
+    assert len(game.wingmen) == 1
+    game.save.owned.append("WING BAY")
+    game.save.wingman = game.save.wingman2 = None
+
+    # Tiers 6-10: galaxy 1 counts at most 5; galaxy 2 all of them.
+    game.save.upgrades = {"ARMOR": UPGRADE_TIERS}
+    g1 = game.loadout_for(LEVELS[3])
+    g2 = game.loadout_for(GALAXIES[1].levels[0])
+    hull = game.hull.apply(LEVELS[3].loadout)
+    assert g1.max_hp == round(hull.max_hp * upgrades.track_named("ARMOR").multiplier(GALAXY1_TIERS))
+    hull2 = game.hull.apply(GALAXIES[1].levels[0].loadout)
+    assert g2.max_hp == round(hull2.max_hp * upgrades.track_named("ARMOR").multiplier(UPGRADE_TIERS))
+    game.save.upgrades = {"ARMOR": GALAXY1_TIERS}
+    game.save.coins = 10 ** 5
+    medals = list(game.save.medals)
+    game.save.medals = []
+    armor = upgrades.track_named("ARMOR")
+    game.hangar_confirm = None
+    game._hangar_upgrade(armor)
+    game._hangar_upgrade(armor)
+    assert game.inventory.tier("ARMOR") == GALAXY1_TIERS and "GALAXY 1" in game.hangar_message[0]
+    game.save.medals = [1]
+    game._hangar_upgrade(armor)
+    game._hangar_upgrade(armor)
+    assert game.inventory.tier("ARMOR") == GALAXY1_TIERS + 1, game.hangar_message
+    game.save.medals = medals
+    game.save.upgrades = {}
+    game.god = False
+    game.to_title()
+
+
+def test_veil_levels(h):
+    """Galaxy 2 levels 2-6: BONE REEF (the maw's pursuit, marrow regrowth, LEECH MAW), BROOD
+    SANCTUARY (the pod, its riders, THE HOLLOW REAPER's harvest), THE DARK VEIL (darkness,
+    ECLIPSE), MIRROR SEA (reflection, the ship's history, THE MIMIC), PULSE NEBULA (the beat,
+    TEMPO) - every boss attack in every phase, and each level won."""
+    game = h.game
+    game.choose_hull(ARROW)
+
+    # BONE REEF: the jaws rise while you idle and fall back when you boost.
+    level, index = _veil_level(h, 2, MawPursuit, "reef", LeechMaw, "reef")
+    maw = game.hazard
+    assert game.wave.pursuit and maw.active and game._world_speed() > 1.0
+    game.god = False
+    ship = game.ship
+    ship.hp = 10 ** 6
+    ship.invulnerable_time, game.shield = 0, 0
+    maw.bite_y = ship.y + ship.h / 2 + 30
+    ship.y = LOW_H - 20
+    h.run(h.seconds(1.5), clear_rocks=True)
+    assert maw.bites >= 1, "idle at the bottom: it bites"
+    high = maw.bite_y
+    h.run(h.seconds(1.5), Keys(pygame.K_UP), clear_rocks=True)
+    assert maw.bite_y > high, "boosting pulls away"
+    h.shot("reef_jaws")
+    game.god = True
+    # A big bone rock leaves a marrow core that grows back into a rock.
+    art = game.library.pick(12, 14, ("reef",))
+    rock = rock_class("reef")(art, 160, 80, 0, 0, 0)
+    game.asteroids = [rock]
+    game._destroy_rock(rock, scored=True)
+    cores = [r for r in game.asteroids if isinstance(r, MarrowCore)]
+    assert len(cores) == 1 and cores[0].transform() is None
+    cores[0].grow = MARROW_REGROW
+    assert type(cores[0].transform()).__name__ == "BoneRock"
+    game.spawn_enemies(stalker_pair(game))
+    h.run(h.seconds(2), FIRE)
+    boss = _veil_boss(h, index, LeechMaw, "leechmaw")
+    assert not game.hazard.active, "the pursuit ends at the boss"
+    _win_level(h, boss)
+
+    # BROOD SANCTUARY: stray shots hurt the pod, its riders zap minions, the pod pays you.
+    level, index = _veil_level(h, 3, BroodEscort, "sanctuary", Reaper, "sanctuary")
+    pod = game.hazard.pod
+    game.extra_timers = [99.0] * len(game.extra_timers)
+    game.enemies.clear()
+    game.enemy_bullets = []
+    hp = pod.hp
+    game.enemy_bullets.append(EnemyBullet(pod.x, pod.y, 0, 0, 40))
+    h.run(2, clear_rocks=True)
+    assert pod.hp == hp - 20, "a stray bullet hits the pod for half"
+    latchers = latcher_trio(game)
+    game.spawn_enemies(latchers)
+    for e in latchers:
+        e.x, e.y = pod.x + 10, pod.y - 20
+    hps = [e.hp for e in latchers]
+    game.hazard.ally_timer = 0
+    h.run(2, clear_rocks=True)
+    assert any(e.hp < h0 or e not in game.enemies for e, h0 in zip(latchers, hps)), "zapped"
+    boss = _veil_boss(h, index, Reaper, "reaper")
+    pod = game.hazard.pod
+    pod.hp = pod.max_hp
+    boss.attack, boss.attack_time, boss.fire_timer = "harvest", 0.0, 0.0
+    boss.harvesting, boss.broken, boss.stagger = True, 0.0, 0.0
+    hp = pod.hp
+    h.run(h.seconds(2.0), clear_rocks=True)
+    assert boss.harvesting and pod.hp < hp, "the harvest drains the pod"
+    game._damage_boss(Hit(boss.scythe, boss.max_hp * REAPER_BREAK * 1.2, boss.scythe.x,
+                          boss.scythe.y, 0, -1, 0))
+    assert not boss.harvesting and boss.harvests_broken == 1, "hit the scythe to break it"
+    pod.hp = pod.max_hp
+    coins = game.pending_coins
+    game.save.story = [s for s in game.save.story if s != "BROOD_SAVED"]
+    _win_level(h, boss)
+    assert "BROOD_SAVED" in game.save.story and game.payout.total > 0
+    assert game.pending_coins >= coins + POD_SAVED_COINS or game.payout.total >= POD_SAVED_COINS
+
+    # THE DARK VEIL: darkness over the field; FLARE lifts it.
+    level, index = _veil_level(h, 4, Darkness, "dark", Eclipse, "dark")
+    game.spawn_enemies(lurker_pair(game))
+    h.run(h.seconds(2), FIRE)
+    h.shot("dark_lurkers")
+    game.save.ability = "FLARE"
+    game.ability_cooldown = 0
+    assert game.use_ability()
+    h.run(h.seconds(0.5), FIRE)
+    h.shot("dark_flare")
+    game.save.ability = None
+    boss = _veil_boss(h, index, Eclipse, "eclipse")
+    _win_level(h, boss)
+
+    # MIRROR SEA: the reflection forms and mirrors you; the ship's path is remembered.
+    level, index = _veil_level(h, 5, MirrorSea, "mirror", Mimic, "mirror")
+    sea = game.hazard
+    if sea.reflection is None:                           # shot down: it re-forms
+        sea.back = 0.0
+        h.run(2)
+    reflection = sea.reflection
+    assert reflection in game.enemies
+    game.ship.x = 100
+    h.run(h.seconds(1.5), clear_rocks=True)
+    assert abs(reflection.x - (LOW_W - game.ship.x)) < 20, "it mirrors you"
+    h.shot("mirror_reflection")
+    reflection.damage(10 ** 6)
+    reflection.damage(10 ** 6)                           # (an elite's shell takes the first)
+    h.run(2, clear_rocks=True)
+    assert sea.reflection is None and sea.back > 0, "broken, it comes back later"
+    assert game.ship_at(1) is not None
+    game.spawn_enemies(echo_ghost(game))
+    h.run(h.seconds(2), FIRE)
+    boss = _veil_boss(h, index, Mimic, "mimic")
+    for name in ("LASER", "SCATTER", "PLASMA", "ARC", "GUN"):     # it copies each weapon
+        boss.attack, boss.attack_time, boss.fire_timer, boss.copying = "copy", 0.0, 0.0, name
+        h.run(h.seconds(1.6), clear_rocks=True)
+        game.ship.hp = game.ship.max_hp
+    _win_level(h, boss)
+
+    # PULSE NEBULA: the enemy side lunges on the beat and drifts between beats.
+    level, index = _veil_level(h, 6, PulseField, "pulse", Tempo, "pulse")
+    scales = []
+    for _ in range(h.seconds(0.5)):
+        h.run(1, clear_rocks=True)
+        scales.append(game.enemy_dt(1.0))
+    assert min(scales) < 0.4 and max(scales) > 2.0, (min(scales), max(scales))
+    boss = _veil_boss(h, index, Tempo, "tempo")
+    _win_level(h, boss)
+    game.god = False
+    game.to_title()
+
+
 SECTIONS = (
     ("title", test_title), ("controls", test_controls), ("mouse", test_mouse),
     ("weapons", test_weapons),
@@ -2980,7 +3290,8 @@ SECTIONS = (
     ("level5", test_level5), ("level6", test_level6), ("level7", test_level7),
     ("level8", test_level8), ("level9", test_level9), ("level10", test_level10),
     ("starmap", test_starmap), ("journal", test_journal),
-    ("brains", test_brains), ("veil", test_veil), ("save", test_save), ("menus", test_title_menus),
+    ("brains", test_brains), ("veil", test_veil), ("abilities", test_abilities),
+    ("veil2", test_veil_levels), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
     ("upgrades", test_upgrades), ("feel", test_feel),
     ("boosts", test_boosts), ("wingmen", test_wingmen),

@@ -47,3 +47,21 @@ MK10 = Loadout("MK X", max_hp=550, max_speed=168, gun_damage=23, laser_dps=350,
 # Galaxy 2: +30 HP / +2 gun per level (galaxy 1 grew +50 / +2): the enemy grows faster.
 MK11 = Loadout("MK XI", max_hp=580, max_speed=170, gun_damage=25, laser_dps=375,
                laser_heat_rate=0.19, colors="mk11", blast=True, ultimate=True)
+MK12 = Loadout("MK XII", max_hp=610, max_speed=171, gun_damage=27, laser_dps=400,
+               laser_heat_rate=0.18, colors="mk12", blast=True, ultimate=True)
+MK13 = Loadout("MK XIII", max_hp=640, max_speed=172, gun_damage=29, laser_dps=425,
+               laser_heat_rate=0.18, colors="mk13", blast=True, ultimate=True)
+MK14 = Loadout("MK XIV", max_hp=670, max_speed=173, gun_damage=31, laser_dps=450,
+               laser_heat_rate=0.18, colors="mk14", blast=True, ultimate=True)
+MK15 = Loadout("MK XV", max_hp=700, max_speed=174, gun_damage=33, laser_dps=475,
+               laser_heat_rate=0.17, colors="mk15", blast=True, ultimate=True)
+MK16 = Loadout("MK XVI", max_hp=730, max_speed=175, gun_damage=35, laser_dps=500,
+               laser_heat_rate=0.17, colors="mk16", blast=True, ultimate=True)
+MK17 = Loadout("MK XVII", max_hp=760, max_speed=176, gun_damage=37, laser_dps=525,
+               laser_heat_rate=0.17, colors="mk17", blast=True, ultimate=True)
+MK18 = Loadout("MK XVIII", max_hp=790, max_speed=177, gun_damage=39, laser_dps=550,
+               laser_heat_rate=0.16, colors="mk18", blast=True, ultimate=True)
+MK19 = Loadout("MK XIX", max_hp=820, max_speed=178, gun_damage=41, laser_dps=575,
+               laser_heat_rate=0.16, colors="mk19", blast=True, ultimate=True)
+MK20 = Loadout("MK XX", max_hp=850, max_speed=180, gun_damage=43, laser_dps=600,
+               laser_heat_rate=0.16, colors="mk20", blast=True, ultimate=True)

@@ -17,8 +17,14 @@ class WorldMixin:
                                          and (self.phase == Phase.FIELD or ambush)):
             rate = self.pressure * (AMBUSH_ROCKS if ambush else 1.0)
             self.asteroids += self.spawner.update(dt * rate, world_speed)
-        for rock in self.asteroids:
+        for i, rock in enumerate(self.asteroids):
             rock.update(dt, world_speed)
+            grown = getattr(rock, "transform", None)    # a marrow core grows its bone back
+            new = grown() if grown else None
+            if new:
+                self.asteroids[i] = new
+                self.fire.burst(new.x, new.y, 10, 50, 0.3, [(255, 220, 220), (220, 60, 80)],
+                                size=(1, 2))
         kept = []
         for rock in self.asteroids:
             if rock.offscreen:

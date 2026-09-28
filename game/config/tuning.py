@@ -147,8 +147,11 @@ RANK_BONUS = {"S": 2.0, "A": 1.5, "B": 1.0, "C": 0.5}
 # --- Upgrades (hangar, bought with coins) ---------------------------------------
 # 5 tracks x 5 tiers, a capped edge on top of the level's par ship model (BossSpec keeps
 # using par). ARMOR x GUNS at full tiers = 1.15 x 1.15 = POWER 132%: a 5x boss feels ~3.8x.
-UPGRADE_TIERS = 5
-UPGRADE_COSTS = (100, 200, 350, 550, 800)     # price of tier 1 .. 5
+UPGRADE_TIERS = 10
+UPGRADE_COSTS = (100, 200, 350, 550, 800,     # price of tier 1 .. 5 (galaxy 1)
+                 1100, 1400, 1800, 2300, 2900)  # tiers 6 .. 10: galaxy 2 tech
+GALAXY1_TIERS = 5                # tiers that count in galaxy 1 levels (and that can be bought
+                                 # before galaxy 1 is beaten): galaxy 1's balance stays as is
 UPGRADE_BONUS = {                             # per tier, as a share of the par value
     "ARMOR": 0.03,                            # max HP
     "GUNS": 0.03,                             # machine-gun damage
@@ -382,3 +385,73 @@ RIFT_LIFE = 9.0                  # seconds a pair of rift portals stays open
 RIFT_OPEN = 1.0                  # shimmer before it carries anything
 RIFT_INTERVAL = (6.0, 9.0)
 AMBUSH_ROCKS = 0.6                # rocks keep falling during an ambush fight, a bit thinner
+
+# --- Abilities (galaxy 2: one slot, SHIFT or the right mouse button) ------------------------
+ABILITY_COOLDOWN = {"PHASE": 7.0, "FLARE": 14.0, "TIME SLIP": 16.0, "REPAIR DRONE": 20.0,
+                    "DECOY": 15.0}
+PHASE_TIME = 0.45                # PHASE: i-frames ...
+PHASE_DASH = 80                  # ... and a dash this far (px) where the rocket is heading
+FLARE_TIME = 5.0                 # FLARE: the darkness lifts, lurkers show
+TIME_SLIP_TIME = 2.5             # TIME SLIP: the enemy side runs at ...
+TIME_SLIP_SCALE = 0.35           # ... this speed
+REPAIR_TIME = 5.0                # REPAIR DRONE: heals ...
+REPAIR_SHARE = 0.18              # ... this share of the hull over REPAIR_TIME
+DECOY_TIME = 3.5                 # DECOY: aimed shots go for a copy of the rocket
+
+# --- G2 L2 BONE REEF (PURSUIT) -----------------------------------------------------------
+MARROW_REGROW = 3.0              # seconds until a marrow core grows its bone rock back
+MARROW_MIN_RADIUS = 7            # bone rocks this big leave a marrow core
+PURSUIT_RISE = 9.0               # px/s the maw's bite line creeps up the screen ...
+PURSUIT_FALL = 26.0              # ... and falls back while the rocket boosts (UP)
+PURSUIT_START = 40               # px above the bottom edge where the bite line starts
+PURSUIT_BITE = 0.1               # share of max hull a bite takes
+PURSUIT_SATED = 30               # px the jaws drop back after a bite (no bite chains)
+PURSUIT_SPEED = 1.3              # the world rushes past during the chase
+STALKER_HP = 16
+STALKER_SPEED = 70
+STALKER_DASH = 260               # px/s: the striker's dash across the screen
+STALKER_WARN = 0.7               # its dotted line shows this long first
+STALKER_DAMAGE = 22
+POINTS_STALKER = 220
+
+# --- G2 L3 BROOD SANCTUARY (ESCORT) ------------------------------------------------------
+POD_HP = 600                     # the brood pod's hull (its own bar)
+POD_SPEED = 18                   # px/s it drifts from side to side
+LATCHER_HP = 9
+LATCHER_SPEED = 80
+LATCHER_DRAIN = 14               # pod hull per second while a latcher is on it
+POINTS_LATCHER = 120
+ALLY_DAMAGE = 9                  # a freed larva's zap
+ALLY_INTERVAL = 1.1
+ALLY_RANGE = 90
+POD_SAVED_COINS = 400            # the brood survives: its gift of credits
+REAPER_DRAIN = 55                # pod hull per second while the Reaper harvests
+REAPER_BREAK = 0.035             # share of the Reaper's max hp on its scythe breaks a harvest
+
+# --- G2 L4 THE DARK VEIL (DARKNESS) ------------------------------------------------------
+DARK_ALPHA = 238                 # how black the dark is (0..255)
+LIGHT_SHIP = 58                  # px: the rocket's light
+LIGHT_SHOT = 12                  # px: every tracer carries a little light
+LIGHT_BOOM = 34                  # px: explosions light the field for a moment
+LURKER_HP = 14
+LURKER_SPEED = 38
+LURKER_FIRE = 2.0
+POINTS_LURKER = 200
+
+# --- G2 L5 MIRROR SEA (MIRROR) -----------------------------------------------------------
+REFLECTION_HP = 40               # your mirror image's hull; it reforms ...
+REFLECTION_BACK = 8.0            # ... after this long
+REFLECTION_FIRE = 0.3            # it fires when you fire, this often
+PHASE_ROCK_CYCLE = (2.2, 1.6)    # seconds solid, seconds ghost
+ECHO_DELAY = 3.0                 # an echo flies where you were this long ago ...
+ECHO_DROP = 0.3                  # ... and leaves a mine there this often
+ECHO_HP = 12
+POINTS_ECHO = 180
+HISTORY_SECONDS = 12.0           # how much of the rocket's path the game remembers
+
+# --- G2 L6 PULSE NEBULA (RHYTHM) ---------------------------------------------------------
+PULSE_BPM = 120                  # the level's music; the enemy side moves on its beat
+PULSE_LOW = 0.25                 # speed between beats ...
+PULSE_HIGH = 2.25                # ... and on the beat (cos^2 pulse: averages 1)
+CAGE_SPEED = 55                  # px/s the cage walls close in
+CAGE_GAP = 46                    # px: the gap in each wall

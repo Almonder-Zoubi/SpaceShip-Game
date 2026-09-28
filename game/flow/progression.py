@@ -2,12 +2,15 @@
 import math
 import random
 
+from ..config.palette import GOOD
 from ..config.tuning import (BOSS_ROAR_TIME, COIN_BIG, ELITE_COINS, COIN_BOSS_PHASE, COIN_TALLY_RATE,
-                             WRECK_COINS)
+                             POD_SAVED_COINS, WRECK_COINS)
+from ..hazards.escort import target_pod
 from ..levels.data import galaxy_of
 from ..pickups.types import BigCoin, Coin
 from ..progression.economy import boss_coins, level_payout, minion_coins, rock_coins
 from ..progression.results import LevelStats
+from ..ui.popup import Popup
 from .states import State
 
 
@@ -82,10 +85,20 @@ class ProgressionMixin:
         if self.level_rank == "S":
             self.achieve("RANK_S")
         first = not self.save.is_cleared(self.level_key)
+        self._brood_saved()
         self.pending_coins = self.shift_payout(self.pending_coins)      # a VEIL SHIFT pays more
         self.payout = level_payout(self.pending_coins, self.level_index + 1, self.level_rank, first)
         self.bank_before = self.save.coins
         self.save.clear_level(self.level_key, self.level_rank, self.payout.total)
+
+    def _brood_saved(self):
+        """BROOD SANCTUARY: a pod that lived to the end pays the pilot back (and is remembered)."""
+        pod = target_pod(self)
+        if pod is None:
+            return
+        self.pending_coins += POD_SAVED_COINS
+        self.save.remember("story", "BROOD_SAVED")
+        self.popups.append(Popup("BROOD SAVED +%d" % POD_SAVED_COINS, pod.x, pod.y - 16, GOOD))
 
     def tally(self):
         """Coins counted into the bank so far on the results screen (animation)."""

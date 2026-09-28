@@ -38,7 +38,7 @@ class Learner:
     @staticmethod
     def lead_aim(world, x, y, speed):
         """Angle to where the rocket will be when the bullet gets there (not where it is)."""
-        ship = world.ship
+        ship = world.aim_target()                          # (a DECOY fools it)
         t = math.hypot(ship.x - x, ship.y - y) / max(1.0, speed)
         tx = ship.x + ship.vx * t * LEAD_AIM
         ty = ship.y + ship.vy * t * LEAD_AIM

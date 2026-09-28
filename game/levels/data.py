@@ -11,15 +11,27 @@ from ..bosses.scrapjaw import Scrapjaw
 from ..bosses.spec import BossSpec
 from ..bosses.twins import Twins
 from ..bosses.warden import Warden
+from ..bosses.eclipse import Eclipse
+from ..bosses.leechmaw import LeechMaw
+from ..bosses.mimic import Mimic
+from ..bosses.reaper import Reaper
+from ..bosses.tempo import Tempo
 from ..bosses.wraith import Wraith
-from ..config.loadouts import MK1, MK2, MK3, MK4, MK5, MK6, MK7, MK8, MK9, MK10, MK11
+from ..config.loadouts import (MK1, MK2, MK3, MK4, MK5, MK6, MK7, MK8, MK9, MK10, MK11, MK12,
+                               MK13, MK14, MK15, MK16)
 from ..config.palette import (NEBULA, NEBULA_ABYSS, NEBULA_CRIMSON, NEBULA_CRYSTAL, NEBULA_FORGE,
                               NEBULA_FROST, NEBULA_GHOST, NEBULA_HIVE, NEBULA_HORIZON,
-                              NEBULA_RUST, NEBULA_VEIL)
+                              NEBULA_RUST, NEBULA_VEIL, NEBULA_REEF, NEBULA_SANCTUARY,
+                              NEBULA_DARK, NEBULA_MIRROR, NEBULA_PULSE)
 from ..hazards.blackhole import BlackHole
 from ..hazards.fog import FogBanks
 from ..hazards.hive import HiveTunnel
 from ..hazards.rifts import RiftPortals
+from ..hazards.darkness import Darkness
+from ..hazards.escort import BroodEscort
+from ..hazards.mirror import MirrorSea
+from ..hazards.pulse import PulseField
+from ..hazards.pursuit import MawPursuit
 from ..config.tuning import BOSS_REPAIR_G2, LEVEL_LENGTH
 from ..minions.interceptor import interceptor_pair
 from ..minions.minelayer import minelayer_squad
@@ -28,6 +40,10 @@ from ..minions.prism import prism_turret
 from ..minions.salvager import salvager
 from ..minions.swarm import larva_flock, spore_cluster
 from ..minions.wisp import wisp_pair
+from ..minions.latcher import latcher_trio
+from ..minions.lurker import lurker_pair
+from ..minions.mirror import echo_ghost
+from ..minions.stalker import stalker_pair
 from .model import BossEntry, Difficulty, Galaxy, Level, Wave
 
 DEFAULT_DIFFICULTY = Difficulty(
@@ -268,16 +284,104 @@ GALAXY_2_LEVELS = (
                      extras=((wisp_pair, 8),), rock_hp=2.9, enemy_hp=2.8, elite_chance=0.12),
           tuple(NEBULA_VEIL),
           (Wave(45, name="THROUGH THE GATE"),
-           Wave(70, (BossEntry(Warden, BossSpec("THE WARDEN", strength=5.5, fight_time=45,
+           Wave(70, (BossEntry(Warden, BossSpec("THE WARDEN", strength=6.0, fight_time=45,
                                                 player=MK11), music="warden"),),
                 name="THE GATE IS QUIET", ambush=0.3,
                 radio=("QUIET HERE. TOO QUIET. KEEP MOVING.",))),
           music="veil", hazard=RiftPortals, director=True, shifts=True,
-          radio=("WELCOME TO THE VEIL. STAY SHARP, SCOUT.",
+          radio=("LOOK SHARP, SCOUT. WELCOME TO THE VEIL.",
                  "RIFTS CARRY EVERYTHING - YOUR SHOTS TOO.",
                  "GOLDEN ONES ARE ELITES. WORTH THE TROUBLE."),
           upgrade_notes=("THE VEIL: ELITES, SHIFTS, RIFTS",
                          "BOSS REPAIR ONLY 50% FROM NOW")),
+    # PURSUIT: the Leech Maw hunts you through the reef; boost to stay ahead of its jaws.
+    Level(2, "BONE REEF", MK12,
+          Difficulty(spawn_interval=0.6, speed_min=64, speed_max=122, radius_min=5,
+                     radius_max=14, drift=14, palettes=("reef", "bone"),
+                     extras=((stalker_pair, 9),), rock_hp=3.0, enemy_hp=2.9, elite_chance=0.12),
+          tuple(NEBULA_REEF),
+          (Wave(55, name="RUN!", pursuit=True,
+                radio=("IT'S RIGHT BEHIND YOU. BOOST! UP! UP!",)),
+           Wave(35, (BossEntry(LeechMaw, BossSpec("LEECH MAW", strength=6.0, fight_time=45,
+                                                  player=MK12), music="maw"),),
+                name="IT'S PASSING YOU",
+                radio=("IT OVERTOOK YOU. NOW IT WANTS TO FEED.",))),
+          music="reef", hazard=MawPursuit, director=True, shifts=True,
+          radio=("ON YOUR SIX! SOMETHING IS CHASING YOU!",
+                 "THE REEF IS MADE OF BONE. BIG BONE.",
+                 "BIG ROCKS LEAVE A MARROW CORE. IT REGROWS."),
+          upgrade_notes=("PHASE: SHIFT DASHES THROUGH SHOTS",
+                         "BOOST (UP) TO OUTRUN THE MAW")),
+    # ESCORT: keep a pod of freed larvae alive; its riders zap minions for you.
+    Level(3, "BROOD SANCTUARY", MK13,
+          Difficulty(spawn_interval=0.56, speed_min=62, speed_max=120, radius_min=4,
+                     radius_max=13, drift=14, palettes=("void", "veil"),
+                     extras=((latcher_trio, 8), (wisp_pair, 11)), rock_hp=3.1, enemy_hp=3.0,
+                     elite_chance=0.13),
+          tuple(NEBULA_SANCTUARY),
+          (Wave(60, name="GUARD THE BROOD"),
+           Wave(30, (BossEntry(Reaper, BossSpec("THE HOLLOW REAPER", strength=6.0,
+                                                fight_time=50, player=MK13), music="reaper"),),
+                name="IT CAME FOR THEM",
+                radio=("THE REAPER. BREAK ITS SCYTHE - FAST!",))),
+          music="sanctuary", hazard=BroodEscort, director=True, shifts=True,
+          radio=("ONE POD OF LARVAE BROKE FREE. GUARD IT.",
+                 "LATCHERS DRAIN IT. SHOOT THEM OFF.",
+                 "THE LITTLE ONES FIGHT BACK. FOR YOU."),
+          upgrade_notes=("WING BAY: TWO WINGMEN FLY",
+                         "REPAIR DRONE: SHIFT HEALS")),
+    # DARKNESS: only your engine, your shots and explosions make light.
+    Level(4, "THE DARK VEIL", MK14,
+          Difficulty(spawn_interval=0.58, speed_min=60, speed_max=116, radius_min=4,
+                     radius_max=13, drift=12, palettes=("shade",),
+                     extras=((lurker_pair, 7), (wisp_pair, 13)), rock_hp=3.2, enemy_hp=3.1, elite_chance=0.13),
+          tuple(NEBULA_DARK),
+          (Wave(60, name="LIGHTS OUT"),
+           Wave(25, (BossEntry(Eclipse, BossSpec("ECLIPSE", strength=6.0, fight_time=50,
+                                                 player=MK14), music="eclipse"),),
+                name="A LIGHT IN THE DARK",
+                radio=("A LIGHT! NO - DON'T FLY TOWARD IT!",))),
+          music="dark", hazard=Darkness, director=True, shifts=True,
+          radio=("KEEP YOUR LIGHTS ON. IT'S PITCH BLACK.",
+                 "YOUR SHOTS LIGHT THE WAY. SO DO BLASTS.",
+                 "RED EYES IN THE DARK. THOSE ARE LURKERS."),
+          upgrade_notes=("FLARE: SHIFT LIGHTS IT ALL UP",
+                         "DECOY: SHIFT DRAWS THEIR FIRE")),
+    # MIRROR: your reflection fights you; the past you (echoes) retraces your path.
+    Level(5, "MIRROR SEA", MK15,
+          Difficulty(spawn_interval=0.62, speed_min=62, speed_max=120, radius_min=4,
+                     radius_max=13, drift=14, palettes=("chrome", "veil"),
+                     extras=((echo_ghost, 10), (wisp_pair, 13)), rock_hp=3.3, enemy_hp=3.2,
+                     elite_chance=0.14),
+          tuple(NEBULA_MIRROR),
+          (Wave(60, name="STILL WATERS"),
+           Wave(25, (BossEntry(Mimic, BossSpec("THE MIMIC", strength=6.5, fight_time=50,
+                                               player=MK15), music="mimic"),),
+                name="IT KNOWS YOUR MOVES",
+                radio=("IT'S COPYING YOU. SWITCH IT UP!",))),
+          music="mirror", hazard=MirrorSea, director=True, shifts=True,
+          radio=("BEAUTIFUL SEA. DON'T TRUST YOUR MIRROR.",
+                 "YOUR REFLECTION FIRES WHEN YOU FIRE.",
+                 "CHROME ROCKS FLICKER. SHOOT WHEN SOLID."),
+          upgrade_notes=("TIME SLIP: SHIFT SLOWS THEM",
+                         "ECHOES FLY WHERE YOU FLEW")),
+    # PULSE: the whole enemy side moves on the beat. Listen and fly the off-beat.
+    Level(6, "PULSE NEBULA", MK16,
+          Difficulty(spawn_interval=0.55, speed_min=66, speed_max=126, radius_min=4,
+                     radius_max=13, drift=12, palettes=("pulse",),
+                     extras=((wisp_pair, 8), (stalker_pair, 12)), rock_hp=3.4, enemy_hp=3.3, elite_chance=0.14),
+          tuple(NEBULA_PULSE),
+          (Wave(60, name="FEEL THE BEAT"),
+           Wave(25, (BossEntry(Tempo, BossSpec("TEMPO", strength=6.5, fight_time=50,
+                                               player=MK16), music="tempo"),),
+                name="ON THE ONE",
+                radio=("ITS PENDULUM KEEPS TIME. SO CAN YOU.",))),
+          music="pulse", hazard=PulseField, director=True, shifts=True,
+          radio=("EVERYTHING HERE MOVES ON THE BEAT.",
+                 "ON THE KICK THEY LUNGE. THEN THEY DRIFT.",
+                 "FLY IN THE GAPS BETWEEN THE BEATS."),
+          upgrade_notes=("THE ENEMY MOVES ON THE BEAT",
+                         "CAGES: FIND THE GAP IN EACH WALL")),
 )
 
 GALAXIES = (

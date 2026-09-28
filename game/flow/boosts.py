@@ -67,6 +67,8 @@ class BoostsMixin:
 
     def enemy_dt(self, dt):
         """Time for rocks, enemies, bosses and their bullets (SLOW-MO halves it)."""
+        dt *= self.slip_scale                         # the TIME SLIP ability
+        dt *= getattr(self.hazard, "time_scale", 1.0)  # a level that moves on the beat
         return dt * SLOWDOWN_SCALE if self.boost_left("SLOW-MO") > 0 else dt
 
     def absorb_hit(self, x, y):

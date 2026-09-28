@@ -36,7 +36,9 @@ class SaveData:
         self.wingmen_xp = {}     # wingman -> total XP
         self.primaries = None    # the 2 primary weapons R switches between (None = default)
         self.secondary = None    # the automatic secondary weapon (or None)
-        self.skins = {}          # skin slot (PAINT, TRAIL ...) -> equipped skin item
+        self.ability = None      # the ability on SHIFT / right click (or None)
+        self.wingman2 = None     # the second wingman (needs the WING BAY)
+        self.skins = {}         # skin slot (PAINT, TRAIL ...) -> equipped skin item
         self.achievements = []   # ids of earned achievements
         self.minion_kills = 0    # lifetime counter (an achievement)
         self.medals = []         # galaxies beaten (numbers): the medal on the title / star map
@@ -80,6 +82,9 @@ class SaveData:
             secondary = data.get("secondary")
             self.secondary = None if secondary is None else str(secondary)
             self.skins = {str(k): str(v) for k, v in dict(data.get("skins", {})).items()}
+            ability, wingman2 = data.get("ability"), data.get("wingman2")
+            self.ability = None if ability is None else str(ability)
+            self.wingman2 = None if wingman2 is None else str(wingman2)
             self.achievements = _strings(data.get("achievements", []))
             self.minion_kills = max(0, int(data.get("minion_kills", 0)))
             self.medals = [int(m) for m in data.get("medals", [])]
@@ -99,6 +104,7 @@ class SaveData:
         self.upgrades, self.options = {}, {}
         self.wingman, self.wingmen_xp = None, {}
         self.primaries, self.secondary = None, None
+        self.ability, self.wingman2 = None, None
         self.skins, self.achievements, self.minion_kills = {}, [], 0
         self.medals, self.caches = [], []
         self.bosses, self.shards, self.story = [], [], []
@@ -117,6 +123,7 @@ class SaveData:
                            "options": self.options, "wingman": self.wingman,
                            "wingmen_xp": self.wingmen_xp, "primaries": self.primaries,
                            "secondary": self.secondary, "skins": self.skins,
+                           "ability": self.ability, "wingman2": self.wingman2,
                            "achievements": self.achievements,
                            "minion_kills": self.minion_kills, "medals": self.medals,
                            "caches": self.caches, "bosses": self.bosses,

@@ -401,6 +401,110 @@ def warden():
                 beat=beat, lead_echo=(0.2, 0.3))
 
 
+# --- galaxy 2, levels 2-6 --------------------------------------------------------------------------
+def reef():
+    """BONE REEF: something is right behind you. C minor at a sprint, the bass never rests."""
+    chords = ["Cm", "Cm", "Ab", "Bb", "Cm", "Cm", "Fm", "G"]
+    melody = """C5 . Eb5 . G5 . C6 . | Bb5 . G5 . Eb5 . G5 . | Ab5 . . . C6 . Eb6 . | D6 . Bb5 . F5 . D5 .
+                C5 . G5 . C6 . Eb6 . | D6 . C6 . G5 . Eb5 . | F5 . Ab5 . C6 . F6 . | G5 . B5 . D6 . - -"""
+    beat = "k h s h k k s h k h s h k k s s"
+    return song(164, chords, melody, arp_pattern=(0, 1, 2, 1), bass_rhythm="R O R O R O R O",
+                beat=beat)
+
+
+def maw():
+    """LEECH MAW: F minor, low and hungry, a lead that climbs out of the throat."""
+    chords = ["Fm", "Fm", "Db", "C", "Fm", "Fm", "Bbm", "C7"]
+    melody = """F4 . Ab4 . C5 . F5 . | E5 . F5 . Ab5 . C6 . | Db6 . . . Ab5 . F5 . | E5 . G5 . C6 . E6 .
+                F6 . C6 . Ab5 . F5 . | Ab5 . C6 . F6 . Ab6 . | Bb5 . Db6 . F6 . Bb6 . | G6 . E6 . C6 . - -"""
+    beat = "k . h k s . h k k . h k s s h s"
+    return song(176, chords, melody, arp_pattern=(0, 1, 2, 3), bass_rhythm="R R O R R R O R",
+                beat=beat, lead_echo=(0.17, 0.3))
+
+
+def sanctuary():
+    """BROOD SANCTUARY: E minor, soft and watchful - something here is worth protecting."""
+    chords = ["Em", "C", "G", "D", "Em", "C", "Am", "B"]
+    melody = """E5 . . . G5 . B5 . | C6 . . . G5 . E5 . | D5 . G5 . B5 . D6 . | A5 . . . F#5 . D5 .
+                E5 . G5 . B5 . E6 . | E6 . C6 . G5 . E5 . | A5 . C6 . E6 . A6 . | F#6 . . . D#6 . - -"""
+    beat = "k . . h s . . h k . k h s . . h"
+    return song(112, chords, melody, lead=LEAD_SOFT, arp_pattern=(0, 1, 2, 1, 3, 1), arp_octave=5,
+                bass_rhythm="R . F . R . O .", beat=beat, lead_echo=(0.4, 0.4),
+                arp_echo=(0.27, 0.35), bass_instrument=BASS_LONG)
+
+
+def reaper():
+    """THE HOLLOW REAPER: B minor with a raised leading tone, a scythe of 16th notes."""
+    chords = ["Bm", "Bm", "G", "F#", "Bm", "Bm", "Em", "F#7"]
+    melody = """B4 . D5 . F#5 . B5 . | A5 . F#5 . D5 . F#5 . | G5 . B5 . D6 . G6 . | F#6 . C#6 . A#5 . F#5 .
+                B5 . F#5 . D5 . B4 . | D5 . F#5 . B5 . D6 . | E6 . B5 . G5 . E5 . | F#5 . A#5 . C#6 . - -"""
+    beat = "k h h s k h s h k h h s k s s s"
+    return song(158, chords, melody, arp_pattern=(0, 2, 1, 2), bass_rhythm="R R O R R O R O",
+                beat=beat, lead_echo=(0.19, 0.3))
+
+
+def dark():
+    """THE DARK VEIL: almost nothing. A minor, long notes, rests where you listen for them."""
+    chords = ["Am", "Am", "Fmaj7", "E", "Am", "Am", "Dm", "E"]
+    melody = """A4 . . . . . C5 . | E5 . . . - - - - | F5 . . . E5 . C5 . | B4 . . . - - - -
+                A4 . . . E5 . A5 . | C6 . . . B5 . . . | A5 . . . F5 . D5 . | G#5 . . . - - - -"""
+    beat = "k . . . . . . . s . . . . . h ."
+    return song(100, chords, melody, lead=LEAD_SOFT, arp_pattern=(0, 2, 1, 2), arp_octave=3,
+                bass_rhythm="R . . . - . . .", beat=beat, lead_echo=(0.6, 0.5),
+                arp_echo=(0.45, 0.5), bass_instrument=BASS_LONG)
+
+
+def eclipse():
+    """ECLIPSE: C# minor, blinding - the lead burns bright over a pounding pulse."""
+    chords = ["C#m", "C#m", "A", "B", "C#m", "C#m", "F#m", "G#"]
+    melody = """C#5 . E5 . G#5 . C#6 . | B5 . G#5 . E5 . G#5 . | A5 . C#6 . E6 . A6 . | F#6 . D#6 . B5 . F#5 .
+                G#5 . C#6 . E6 . G#6 . | F#6 . E6 . C#6 . G#5 . | A5 . C#6 . F#6 . A6 . | G#6 . . . C6 . - -"""
+    beat = "k h s h k h s k k h s h k k s s"
+    return song(150, chords, melody, arp_pattern=(0, 1, 2, 3), bass_rhythm="R O R O R R O R",
+                beat=beat, lead_echo=(0.2, 0.35))
+
+
+def mirror():
+    """MIRROR SEA: D dorian, glassy and calm on top, every phrase answered by its echo."""
+    chords = ["Dm", "G", "Dm", "G", "C", "Am", "Dm", "A"]
+    melody = """D5 . F5 . A5 . D6 . | B5 . . . G5 . D5 . | F5 . A5 . D6 . F6 . | E6 . . . B5 . G5 .
+                C6 . E6 . G6 . E6 . | C6 . A5 . E5 . A5 . | D6 . A5 . F5 . D5 . | C#5 . E5 . A5 . - -"""
+    beat = "k . h . s . h . k . h k s . h ."
+    return song(132, chords, melody, lead=LEAD_SOFT, arp_pattern=(0, 1, 2, 3, 2, 1), arp_octave=5,
+                bass_rhythm="R . R . F . O .", beat=beat, lead_echo=(0.45, 0.55),
+                arp_echo=(0.34, 0.45), bass_instrument=BASS_LONG)
+
+
+def mimic():
+    """THE MIMIC: G minor - the melody runs down where yours would run up."""
+    chords = ["Gm", "Gm", "Eb", "D", "Gm", "Gm", "Cm", "D7"]
+    melody = """G5 . D5 . Bb4 . G4 . | Bb4 . D5 . G5 . Bb5 . | Bb5 . G5 . Eb5 . Bb4 . | A4 . D5 . F#5 . A5 .
+                D6 . Bb5 . G5 . D5 . | G5 . Bb5 . D6 . G6 . | Eb6 . C6 . G5 . Eb5 . | F#5 . A5 . D6 . - -"""
+    beat = "k h s h k h s h k k s h k h s s"
+    return song(160, chords, melody, arp_pattern=(2, 1, 0, 1), bass_rhythm="R R O R R O R R",
+                beat=beat, lead_echo=(0.19, 0.4))
+
+
+def pulse():
+    """PULSE NEBULA: exactly 120 bpm, four on the floor - the enemy moves on this kick."""
+    chords = ["Em", "Em", "C", "D", "Em", "Em", "Am", "B"]
+    melody = """E5 . E5 . G5 . E5 . | B5 . . . A5 . G5 . | E5 . E5 . G5 . C6 . | B5 . A5 . F#5 . D5 .
+                E5 . E5 . G5 . B5 . | E6 . . . D6 . B5 . | C6 . A5 . E5 . A5 . | B5 . D#6 . F#6 . - -"""
+    beat = "k . h . k . h . k . h . k . h ."
+    return song(120, chords, melody, arp_pattern=(0, 1, 2, 1), bass_rhythm="R . O . R . O .",
+                beat=beat)
+
+
+def tempo():
+    """TEMPO: 120 bpm clockwork in A minor; the snare lands where the pendulum turns."""
+    chords = ["Am", "Am", "F", "G", "Am", "Am", "Dm", "E7"]
+    melody = """A5 . E5 . A5 . E5 . | C6 . B5 . A5 . E5 . | F5 . C6 . F5 . C6 . | G5 . D6 . B5 . G5 .
+                A5 . C6 . E6 . A6 . | G6 . E6 . C6 . A5 . | D6 . F6 . A6 . F6 . | E6 . G#5 . B5 . - -"""
+    beat = "k h s h k h s h k h s h k h s h"
+    return song(120, chords, melody, arp_pattern=(0, 1, 2, 3), bass_rhythm="R O R O R O R O",
+                beat=beat)
+
+
 # --- jingles (play once) ----------------------------------------------------------------------------
 def level_clear():
     lead = "C5 E5 G5 C6 . . G5 C6 . . . . . . . . - - - -"
@@ -436,5 +540,7 @@ SONGS = {"title": title, "level1": level1, "level2": level2, "level3": level3,
          "level9": level9, "twins": twins,
          "level10": level10, "overmind": overmind, "escape": escape, "starmap": starmap,
          "veil": veil, "warden": warden,
+         "reef": reef, "maw": maw, "sanctuary": sanctuary, "reaper": reaper, "dark": dark,
+         "eclipse": eclipse, "mirror": mirror, "mimic": mimic, "pulse": pulse, "tempo": tempo,
          "level_clear": level_clear, "game_over": game_over, "win": win}
 JINGLES = ("level_clear", "game_over", "win")      # play once instead of looping

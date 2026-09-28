@@ -319,6 +319,11 @@ def page():
                tone("triangle", 660, 880, 0.05, 0.12))
 
 
+def ability():
+    """An ability fires: a quick rising shimmer."""
+    return mix(tone("triangle", 500, 1500, 0.18, 0.35), at(0.05, noise(0.15, 9000, 4000, 0.15)))
+
+
 def select():
     return tone("square", 880, None, 0.04, 0.3, duty=0.25)
 
@@ -350,6 +355,6 @@ SOUNDS = {
     "achievement": achievement, "magma_burst": magma_burst, "flare": flare,
     "teleport": teleport, "metal_break": metal_break,
     "white_hole": white_hole, "spore": spore, "heartbeat": heartbeat, "warp": warp,
-    "data_cache": data_cache, "hijack": hijack, "page": page,
+    "data_cache": data_cache, "hijack": hijack, "page": page, "ability": ability,
 }
 LOOPS = ("laser", "engine", "arc")         # played on their own channel, looping

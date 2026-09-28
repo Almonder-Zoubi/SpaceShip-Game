@@ -60,7 +60,7 @@ class Wisp(Enemy):
         self.fire_timer -= dt
         if self.fire_timer <= 0:
             self.fire_timer = WISP_FIRE * random.uniform(0.8, 1.2)
-            ship = world.ship
+            ship = world.aim_target()
             t = math.hypot(ship.x - self.x, ship.y - self.y) / WISP_BULLET_SPEED
             angle = math.atan2(ship.y + ship.vy * t * 0.8 - self.y, ship.x + ship.vx * t * 0.8 - self.x)
             world.enemy_bullets.append(aimed(LeadShot, self.x, self.y + 4, angle,

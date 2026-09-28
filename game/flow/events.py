@@ -29,6 +29,9 @@ class EventsMixin:
                 self.mouse.move(event.pos, event.rel)
             elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
                 self.mouse.firing = False
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 3:
+                if self.state == State.PLAYING:
+                    self.use_ability()               # right click: the ability
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 self.mouse.click(event.pos)
                 if self.state not in (State.PLAYING, State.PAUSED):
@@ -138,6 +141,8 @@ class EventsMixin:
             self.switch_weapon()
         elif key == pygame.K_t:
             self.fire_ultimate()
+        elif key in (pygame.K_LSHIFT, pygame.K_RSHIFT):
+            self.use_ability()
         elif key in (pygame.K_RETURN, pygame.K_KP_ENTER) and self.radio:
             self.skip_radio()
 

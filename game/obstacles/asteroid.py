@@ -5,8 +5,8 @@ import random
 from ..config.display import LOW_H, LOW_W
 import pygame
 
-from ..config.tuning import (COMET_SPEED, ROCK_HP_BASE, ROCK_HP_PER_AREA, ROCK_MIN_FALL,
-                             ROCK_SPLIT_RADIUS, WRECK_HP)
+from ..config.tuning import (COMET_SPEED, MARROW_REGROW, PHASE_ROCK_CYCLE, ROCK_HP_BASE,
+                             ROCK_HP_PER_AREA, ROCK_MIN_FALL, ROCK_SPLIT_RADIUS, WRECK_HP)
 from ..core.pixelart import make_glow
 
 HIT_FLASH = 0.06   # seconds a rock shows white after being hit
@@ -24,6 +24,7 @@ class Asteroid:
     EXPLODES = False                   # blows up nearby rocks and minions (magma)
     REFRACTS = False                   # splits a laser beam (crystal)
     METAL = False                      # wreck metal: clangs, drops extra coins
+    REGROWS = False                    # reef bone: leaves a marrow core that grows back
     FRAGMENT = None                    # class of its fragments (None = the same class)
 
     def __init__(self, art, x, y, vx, vy, spin, hp_scale=1.0):
@@ -212,8 +213,87 @@ class Comet(IceRock):
         super().draw(surf)
 
 
+class BoneRock(Asteroid):
+    """Reef bone (galaxy 2): a big one doesn't split. It leaves a pulsing marrow core that
+    grows the whole rock back in MARROW_REGROW seconds, unless you finish it."""
+
+    REGROWS = True
+    HP_FACTOR = 0.9
+
+    @property
+    def splits(self):
+        return False
+
+
+class MarrowCore(Asteroid):
+    """What is left of a bone rock: small, soft, and it heals into the rock again."""
+
+    HP_FACTOR = 1.6
+
+    def __init__(self, art, rock):
+        super().__init__(art, rock.x, rock.y, rock.vx * 0.5, max(ROCK_MIN_FALL, rock.vy * 0.6),
+                         rock.spin * 0.3, rock.hp_scale)
+        self.big_art = rock.art
+        self.grow = 0.0
+
+    def update(self, dt, world_speed):
+        super().update(dt, world_speed)
+        self.grow += dt
+
+    def transform(self):
+        """The world swaps this in when it returns a rock: the bone has grown back."""
+        if self.grow < MARROW_REGROW:
+            return None
+        return BoneRock(self.big_art, self.x, self.y, self.vx, self.vy, self.spin, self.hp_scale)
+
+    def draw(self, surf):
+        super().draw(surf)
+        k = self.grow / MARROW_REGROW                        # a ring that closes as it heals
+        r = int(self.radius + 14 * (1 - k)) + 2
+        if int(self.grow * (4 + 10 * k)) % 2 == 0:
+            pygame.draw.circle(surf, (220, 60, 80), (int(self.x), int(self.y)), r, 1)
+
+
+class PhaseRock(Asteroid):
+    """Mirror chrome (galaxy 2): solid for a while, then a ghost that shots and the rocket
+    pass through. Its outline blinks for a moment before it turns solid again."""
+
+    def __init__(self, art, x, y, vx, vy, spin, hp_scale=1.0):
+        super().__init__(art, x, y, vx, vy, spin, hp_scale)
+        self.cycle = random.uniform(0, sum(PHASE_ROCK_CYCLE))
+
+    @property
+    def solid(self):
+        return self.cycle % sum(PHASE_ROCK_CYCLE) < PHASE_ROCK_CYCLE[0]
+
+    def update(self, dt, world_speed):
+        super().update(dt, world_speed)
+        self.cycle += dt
+
+    def contains(self, px, py):
+        return self.solid and super().contains(px, py)
+
+    def collides_with(self, ship):
+        return self.solid and super().collides_with(ship)
+
+    def draw(self, surf):
+        if self.solid:
+            super().draw(surf)
+            return
+        t = self.cycle % sum(PHASE_ROCK_CYCLE) - PHASE_ROCK_CYCLE[0]     # seconds a ghost
+        soon = PHASE_ROCK_CYCLE[1] - t < 0.45
+        ghost = self.art.frames[self.frame_index].copy()
+        ghost.fill((255, 255, 255, 60), special_flags=pygame.BLEND_RGBA_MULT)
+        surf.blit(ghost, self.topleft)
+        if soon and int(self.cycle * 16) % 2 == 0:
+            left, top = self.topleft
+            for x, y in self.mask.outline()[::2]:
+                surf.fill((255, 255, 255), (left + x, top + y, 1, 1))
+
+
 ROCK_KINDS = {"ice": IceRock, "magma": MagmaRock,          # palette name -> rock class
-              "crystal": CrystalRock, "wreck": WreckChunk, "comet": Comet}
+              "crystal": CrystalRock, "wreck": WreckChunk, "comet": Comet, "reef": BoneRock,
+              "chrome": PhaseRock}
 
 
 def rock_class(palette_name):

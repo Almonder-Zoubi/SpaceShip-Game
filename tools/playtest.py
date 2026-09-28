@@ -78,7 +78,10 @@ def bot_keys(game):
         if ship.x < left + 6 or ship.x > right - 6:
             keys = [k for k in keys if k not in (pygame.K_LEFT, pygame.K_RIGHT)]
             keys.append(pygame.K_RIGHT if ship.x < left + 6 else pygame.K_LEFT)
-    if ship.y < 190:
+    maw = game.hazard if getattr(game.hazard, "active", False) else None   # BONE REEF jaws
+    if maw and hasattr(maw, "bite_y") and ship.y + ship.h / 2 > maw.bite_y - 30:
+        keys.append(pygame.K_UP)
+    elif ship.y < 190:
         keys.append(pygame.K_DOWN)
     if game.ship.loadout.ultimate and game.ultimate.ready:
         game.fire_ultimate()
