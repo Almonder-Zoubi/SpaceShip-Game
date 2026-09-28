@@ -3,7 +3,7 @@ inventory and the upgrade tiers.
 
 Version 2 added the profile: coins in the bank, best rank per cleared level, owned items,
 shop items, claimed gifts and upgrade tiers (missing = all 0); later fields (medals, star
-map caches) default to empty. Older files load with an empty bank; their inventory is rebuilt
+map caches, defeated bosses, shards, story beats) default to empty. Older files load with an empty bank; their inventory is rebuilt
 from the unlocked levels (progression.inventory). Broken values fall back to a fresh save."""
 import datetime
 import json
@@ -41,6 +41,9 @@ class SaveData:
         self.minion_kills = 0    # lifetime counter (an achievement)
         self.medals = []         # galaxies beaten (numbers): the medal on the title / star map
         self.caches = []         # star map data caches found (ids)
+        self.bosses = []         # boss names defeated at least once (the journal's files)
+        self.shards = []         # Dawn Key shards carried (galaxy numbers)
+        self.story = []          # story beats already played (lore.TRANSMISSIONS ids)
         self.load()
 
     @property
@@ -80,6 +83,9 @@ class SaveData:
             self.minion_kills = max(0, int(data.get("minion_kills", 0)))
             self.medals = [int(m) for m in data.get("medals", [])]
             self.caches = _strings(data.get("caches", []))
+            self.bosses = _strings(data.get("bosses", []))
+            self.shards = [int(s) for s in data.get("shards", [])]
+            self.story = _strings(data.get("story", []))
         except (OSError, ValueError, TypeError, KeyError, AttributeError):
             self._reset()                               # unreadable: start fresh
 
@@ -92,6 +98,7 @@ class SaveData:
         self.primaries, self.secondary = None, None
         self.skins, self.achievements, self.minion_kills = {}, [], 0
         self.medals, self.caches = [], []
+        self.bosses, self.shards, self.story = [], [], []
 
     def save(self):
         if not self.path:
@@ -108,7 +115,8 @@ class SaveData:
                            "secondary": self.secondary, "skins": self.skins,
                            "achievements": self.achievements,
                            "minion_kills": self.minion_kills, "medals": self.medals,
-                           "caches": self.caches}, f, indent=2)
+                           "caches": self.caches, "bosses": self.bosses,
+                           "shards": self.shards, "story": self.story}, f, indent=2)
             os.replace(tmp, self.path)
         except OSError:
             pass                                        # read-only folder: play on without saving
@@ -159,6 +167,15 @@ class SaveData:
         if galaxy in self.medals:
             return False
         self.medals.append(galaxy)
+        self.save()
+        return True
+
+    def remember(self, field, value):
+        """Add value to a list field (bosses, shards, story) once. Returns True if new."""
+        values = getattr(self, field)
+        if value in values:
+            return False
+        values.append(value)
         self.save()
         return True
 

@@ -5,8 +5,9 @@ import random
 
 from ..config.display import LOW_H, LOW_W
 from ..config.palette import FLAME_WHITE
-from ..config.tuning import WARP_TIME
+from ..config.tuning import WARP_CALL, WARP_TIME
 from ..levels.data import galaxy_of
+from ..story.lore import TRANSMISSIONS
 from .states import State
 
 
@@ -17,7 +18,9 @@ class FinaleMixin:
 
     def begin_warp(self):
         """The galaxy is beaten: medal, clean screen, cut-scene."""
-        self.medal_new = self.save.add_medal(galaxy_of(self.level).number)
+        galaxy = galaxy_of(self.level).number
+        self.medal_new = self.save.add_medal(galaxy)
+        self.save.remember("shards", galaxy)          # the herald's Dawn Key shard
         self.asteroids.clear()
         self.enemies.clear()
         self.enemy_bullets.clear()
@@ -26,6 +29,10 @@ class FinaleMixin:
         self._warp_flashed = False
         self.set_state(State.WARP)
         self.audio.play("warp")
+        beat = f"G{galaxy}_WARP"                      # someone breaks into the channel
+        if beat in TRANSMISSIONS:
+            self.radio_say(TRANSMISSIONS[beat], delay=WARP_CALL)
+            self.save.remember("story", beat)
 
     @property
     def warp_progress(self):

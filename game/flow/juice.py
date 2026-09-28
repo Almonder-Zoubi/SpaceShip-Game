@@ -4,6 +4,7 @@ from ..config.palette import FLAME
 from ..config.tuning import (DAMAGE_NUMBER_EVERY, JUICE, REDUCED_FLASH, SLOWMO_SCALE,
                              SLOWMO_TIME)
 from ..ui.popup import DamageNumber
+from ..story.dialog import cards, is_hijack
 from ..ui.radio import RadioCard
 from .states import State
 
@@ -19,6 +20,7 @@ class JuiceMixin:
         self.damage_at = (0, 0)
         self.damage_timer = 0.0
         self.radio = None              # RadioCard on screen (or None)
+        self.radio_queue = []          # the cards that follow it (a conversation)
 
     def juice(self, tier, x=None, y=None, colors=FLAME):
         """Feedback proportional to the event: 'small', 'medium' or 'large'."""
@@ -63,13 +65,30 @@ class JuiceMixin:
             self.damage_sum = 0.0
 
     # --- radio -----------------------------------------------------------------------------
-    def radio_say(self, lines):
-        """Radio card after the level / wave title (self.alert) has faded."""
-        delay = self.alert[3] if self.alert else 0.0
-        self.radio = RadioCard(lines, delay=delay) if lines else None
+    def radio_say(self, lines, delay=None):
+        """Radio cards after the level / wave title (self.alert) has faded. lines: strings
+        (Vega speaks) or story Lines; a change of speaker starts the next card."""
+        if delay is None:
+            delay = self.alert[3] if self.alert else 0.0
+        self.radio_queue = [RadioCard(text, speaker) for speaker, text in cards(lines)]
+        self.radio = None
+        if self.radio_queue:
+            self.radio = self.radio_queue.pop(0)
+            self.radio.t = -delay
 
     def _update_radio(self, dt):
         if self.radio:
+            was_visible = self.radio.visible
             self.radio.update(dt)
+            if self.radio.visible and not was_visible and is_hijack(self.radio.speaker):
+                self.audio.play("hijack")
             if self.radio.done:
-                self.radio = None
+                self.radio = self.radio_queue.pop(0) if self.radio_queue else None
+                if self.radio and is_hijack(self.radio.speaker):
+                    self.audio.play("hijack")
+
+    def skip_radio(self):
+        """ENTER: finish typing / close this card (the next one follows)."""
+        self.radio.skip()
+        if self.radio.done:
+            self.radio = self.radio_queue.pop(0) if self.radio_queue else None

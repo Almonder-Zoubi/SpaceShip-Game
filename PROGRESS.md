@@ -18,7 +18,7 @@ THE VEIL — design first). NEMESIS (Phase 9) is parked behind Phase 10.
 **Starting a new session?** Read this file's Snapshot + Decisions, then CLAUDE.md (module map,
 "where to look when debugging", conventions). Run the smoke test once before changing anything.
 
-## Handoff — next session: G16 (story engine), then G17 (brains)
+## Handoff — next session: G17 (brains: player model, DIRECTOR, learning bosses)
 
 State at hand-off (2026-09-28): branch `design`, everything committed and pushed, full smoke
 test green (31 sections), lint clean. Built in long cloud sessions without a real window:
@@ -246,6 +246,28 @@ the sounds into `sounds/generated/` (git-ignored, ~14 s now).
   the key is decided then.
 
 ## Log
+
+### 2026-09-28 — G16: story engine + the JOURNAL (the user's idea)
+- The user asked for a board to read the story in peace (achievements, strength, defeated
+  bosses and their link to VANTA, future ones blacked out, the puzzle pieces) and for a
+  twisted story that makes sense at the end. Built:
+- `story/` (pure data): `dialog.Line` + `cards()` (a card per speaker, 3 lines max, VANTA /
+  ??? hijack), `lore.py` (boss DOSSIERS with margin notes, HERALDS, VANTA_FILE, ECHOES,
+  ACROSTIC, TRANSMISSIONS, GHOST_RECORD; the docstring states the answer to the mystery).
+- JOURNAL state (`flow/journal.py` + `ui/journal.py`): J on the title / star map; pages
+  PILOT, BOSSES (the boss's own sprite or a silhouette), ECHOES (mosaic 3x2 + decoder), LOG
+  (every radio line + intercepted transmissions, scrolls). Music: `starmap`.
+- Radio: speakers with portraits (`ui/portraits.py`: VEGA, VANTA, ??? static), a queue for
+  conversations, hijacked cards tear, flicker and type in red (SFX `hijack`); `page` SFX.
+- The warp after galaxy 1 now carries a transmission (???, VANTA, Vega; 15 s, ENTER skips
+  card by card) and hands out Dawn Key **shard 1** (`save.shards`); beaten bosses go into
+  `save.bosses`; `save.story` remembers beats. The title shows the ghost record after
+  galaxy 1. **(ask)** The first radio line of levels 1–10 was reworded for the acrostic
+  (same meaning); the pirate ledger cache now names the job (wake what sleeps at the rift).
+- Font: `#` is a solid block (redactions).
+- Smoke test: new `journal` section (acrostic, line lengths, every boss has a file, cards,
+  unknown -> defeated file, herald redaction, VANTA's file growing, decoder, log highlight,
+  star map J, hijacked conversation); `level10` checks shard 1 + the transmission.
 
 ### 2026-09-28 — G16.0: galaxy 2 THE VEIL designed (docs only)
 - The user tested level 10: "perfect". Their brief for galaxy 2: creative new minions,

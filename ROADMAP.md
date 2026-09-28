@@ -248,8 +248,10 @@ edge, ~+30%), `hp * firepower == 1` for hulls, all art + audio in code.
 **Galaxy 2 THE VEIL** (design: DESIGN.md section 4, approved; decisions in section 15):
 - [x] G16.0 Design: VANTA + the DAWN KEY story, harder-but-fair levers, 10 level flows, the
       DIRECTOR + learning bosses, new minions / obstacles / bullet types, 10 levels, NYX
-- [ ] G16 Story engine: multi-speaker dialogs + portraits, hijacked transmissions, reactive
-      taunts, level-clear story lines, ECHO caches + ARCHIVE mosaic on the star map, shards
+- [x] G16 Story engine + JOURNAL: multi-speaker dialogs + portraits, hijacked transmissions,
+      boss files with margin notes, heralds + VANTA's file, ECHO mosaic + decoder, radio
+      acrostic, ghost record, Dawn Key shard 1 (reactive taunts + level-clear lines come with
+      the galaxy 2 levels)
 - [ ] G17 Brains: `PlayerModel` (saved), DIRECTOR (peaks + breathers), bandit attack choice,
       lead shots, "IT LEARNED" lines (the NEMESIS plan, reused) — pure logic + tests
 - [ ] G18 Galaxy plumbing: galaxy 2 star map, MK XI–XX, upgrade tiers 6–10, ELITES, VEIL

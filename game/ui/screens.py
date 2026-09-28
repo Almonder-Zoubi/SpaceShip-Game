@@ -1,5 +1,6 @@
 """Drawing a frame: world layers, HUD, and the full-screen overlays of every state."""
 import math
+import random
 
 import pygame
 
@@ -9,6 +10,7 @@ from ..config.palette import (ACCENT, BOOST_COLORS, COIN, DANGER, EMPTY, GOOD, I
 from ..flow.states import Phase, State
 from ..config.tuning import WARP_TIME
 from ..levels.data import GALAXIES, LEVELS
+from ..story.lore import GHOST_RECORD
 from .medal import draw_medal
 
 
@@ -17,6 +19,9 @@ class ScreensMixin:
 
     def draw(self):
         c = self.canvas
+        if self.state == State.JOURNAL:           # a screen of its own (ui/journal.py)
+            self.journal_view.draw(c, self.journal_page(), self.time, int(self.time * 2.5) % 2 == 0)
+            return
         if self.state == State.STAR_MAP:          # a screen of its own (starmap/view.py)
             self.star_map_view.draw(c, self.star_map, self.time, self.save.coins,
                                     int(self.time * 2.5) % 2 == 0)
@@ -199,7 +204,9 @@ class ScreensMixin:
             f.draw(c, "THE SWARM FLEES HOME.", (cx, 150), TEXT, shadow=TEXT_SHADOW, center=True)
             f.draw(c, f"NEXT: GALAXY {galaxy.number + 1}  {name}", (cx, 162), ACCENT,
                    shadow=TEXT_SHADOW, center=True)
-        if t > 1.0 and int(self.time * 2.5) % 2 == 0:
+        if self.radio:                            # the hijacked transmission, at the bottom
+            self.radio_view.draw(c, self.radio, self.time, top=174)
+        elif t > 1.0 and int(self.time * 2.5) % 2 == 0:
             f.draw(c, "ENTER: CONTINUE", (cx, 222), TEXT_DIM, shadow=TEXT_SHADOW, center=True)
 
     def _draw_pause(self, c, blink):
@@ -374,12 +381,19 @@ class ScreensMixin:
                 line = f"{i + 1}. {r['score']:06d}  LEVEL {r['level']}  {r['date']}"
                 f.draw(c, line, (LOW_W // 2, 147 + i * 10), TEXT if i == 0 else TEXT_DIM,
                        shadow=TEXT_SHADOW, center=True)
+            if self.ghost_record_shown:           # a record nobody could have set. Yet.
+                g = GHOST_RECORD
+                line = f"0. {g['score']:06d}  LEVEL {g['level']}  {g['date']}"
+                if int(self.time * 9) % 11 == 0:
+                    line = "".join(ch if ch == " " or random.random() < 0.6 else "#" for ch in line)
+                f.draw(c, line, (LOW_W // 2, 147 + len(records) * 10), DANGER,
+                       shadow=TEXT_SHADOW, center=True)
             return
         lines = ("ARROWS / WASD / MOUSE  MOVE",
                  "UP  BOOST     DOWN  RETRO",
                  "SPACE / LEFT CLICK  FIRE",
                  "R  GUN / LASER    T  ULTIMATE",
-                 "P PAUSE   C SCANLINES   ESC QUIT")
+                 "J JOURNAL  P PAUSE  C CRT  ESC QUIT")
         for i, line in enumerate(lines):
             f.draw(c, line, (LOW_W // 2, 134 + i * 11), TEXT_DIM, shadow=TEXT_SHADOW, center=True)
         if self.best:

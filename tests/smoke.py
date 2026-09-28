@@ -79,6 +79,9 @@ from game.hazards.hive import HiveTunnel
 from game.minions.swarm import SporePod, larva_flock
 from game.progression.items import PAINT
 from game.starmap.model import BLACK_HOLE, CACHES, GATE, NODES
+from game.story.dialog import UNKNOWN, VANTA, VEGA, Line, cards, is_hijack
+from game.story.lore import (ACROSTIC, DECODED, DOSSIER_BY_BOSS, DOSSIERS, ECHOES, HERALDS,
+                             TEXT_WIDTH, TRANSMISSIONS, VANTA_FILE)
 
 FIRE = Keys(pygame.K_SPACE)
 JUICE_PAD = 0.8          # hit-stop + slow-mo after a big event stretch the world's time
@@ -1333,7 +1336,11 @@ def test_level10(h):
     h.shot("warp")
     h.run(h.seconds(3.0))
     h.shot("warp_jump")
-    h.post(pygame.K_RETURN)
+    assert 1 in game.save.shards and "G1_WARP" in game.save.story, "shard 1 + the transmission"
+    for _ in range(8):                                   # ENTER skips the radio cards first
+        h.post(pygame.K_RETURN)
+        if game.state == State.WIN:
+            break
     assert game.state == State.WIN, "ENTER skips the rest"
     game.god = False
     h.run(h.seconds(1.2))
@@ -1447,6 +1454,126 @@ def test_starmap(h):
     assert set(saved.caches) == {c.id for c in CACHES}
     h.post(pygame.K_ESCAPE)
     assert game.state == State.TITLE
+
+
+def test_journal(h):
+    """JOURNAL + story: Vega's first radio words spell the hidden message, every lore line
+    fits, the journal opens from the title (J) and the map, boss files open when a boss is
+    beaten (margin note), heralds stay black until their galaxy is near, VANTA's file grows,
+    ECHOES fill the mosaic and switch on the decoder, dialogs switch speakers (a hijacked
+    card), the ghost record appears after galaxy 1."""
+    game = h.game
+    assert "".join(level.radio[0][0] for level in LEVELS[:10]) == ACROSTIC
+    assert DECODED.replace(" ", "") == ACROSTIC
+    for d in DOSSIERS:
+        for line in d.facts + d.vanta + (d.note,):
+            assert len(line) <= TEXT_WIDTH, line
+    for herald in HERALDS:
+        assert all(len(line) <= TEXT_WIDTH for line in herald.lines)
+    assert all(len(text) <= TEXT_WIDTH for _, text in VANTA_FILE)
+    assert all(len(e.text) <= TEXT_WIDTH for e in ECHOES)
+    for line in TRANSMISSIONS["G1_WARP"]:
+        assert len(line.text) <= 43
+    names = {e.spec.name for level in LEVELS for w in level.waves for e in w.bosses}
+    assert names <= set(DOSSIER_BY_BOSS), names - set(DOSSIER_BY_BOSS)
+    assert {e.cache for e in ECHOES} <= {c.id for c in CACHES}
+    assert sorted(e.tile for e in ECHOES) == list(range(6))
+    # Dialog cards: a new card per speaker, 3 lines at most.
+    split = cards(["A", "B", Line(VANTA, "C"), Line(VANTA, "D"), "E", "F", "G", "H"])
+    assert [(s_, len(t)) for s_, t in split] == [(VEGA, 2), (VANTA, 2), (VEGA, 3), (VEGA, 1)]
+    assert is_hijack(VANTA) and not is_hijack(VEGA)
+
+    # A fresh logbook: nothing known yet.
+    save = game.save
+    save.bosses, save.cleared, save.medals, save.shards = [], {}, [], []
+    save.caches, save.story = [], []
+    game.to_title()
+    h.post(pygame.K_j)
+    assert game.state == State.JOURNAL and game._music_track() == "starmap"
+    h.run(5)
+    h.shot("journal_pilot")
+    h.post(pygame.K_RIGHT)
+    page = game.journal_page()
+    files = {f.where + f.status: f for f in page.bosses}
+    gunship = page.bosses[0]
+    assert gunship.status == "unknown" and gunship.name.startswith("?")
+    nyx = next(f for f in page.bosses if f.where == "GALAXY 2")
+    assert nyx.name == "N##", "a herald stays black"
+    vanta = page.bosses[-1]
+    assert vanta.status == "vanta" and vanta.name == "#####"
+    h.shot("journal_bosses_blank")
+    # Beating a boss opens its file (with a margin note in red).
+    game.start(0, 0, 0, 0)
+    game.radio = None
+    game.god = True
+    h.run(h.seconds(WARNING_TIME + 0.5), clear_rocks=True)
+    while not game.boss.fighting:
+        h.run(10, clear_rocks=True)
+    h.kill(game.boss)
+    h.run(h.seconds(game.boss.DEATH_TIME + JUICE_PAD + 0.5), clear_rocks=True)
+    game.god = False
+    assert "GUNSHIP" in save.bosses
+    game.to_title()
+    game.open_journal()
+    game.journal_switch(1)
+    page = game.journal_page()
+    assert page.bosses[0].status == "defeated" and page.bosses[0].note
+    assert files                                          # (built without errors before)
+    h.run(5)
+    h.shot("journal_gunship")
+    # Galaxy 1 beaten: the next herald gets a name, VANTA a file, the ghost record shows.
+    save.medals, save.shards = [1], [1]
+    page = game.journal_page()
+    nyx = next(f for f in page.bosses if f.where == "GALAXY 2")
+    assert nyx.name == "NYX" and game.ghost_record_shown
+    vanta = page.bosses[-1]
+    assert vanta.name == "VANTA" and len(vanta.lines) == 4
+    game.journal_cursor["BOSSES"] = len(page.bosses) - 1
+    h.run(5)
+    h.shot("journal_vanta")
+    # Echoes fill the mosaic; all six switch on the decoder, which lights the hidden letters.
+    save.caches = [e.cache for e in ECHOES[:3]]
+    game.journal_switch(1)
+    assert not game.decoder and sum(got for _, got in game.journal_page().echoes) == 3
+    h.run(5)
+    h.shot("journal_echoes")
+    save.caches = [e.cache for e in ECHOES]
+    page = game.journal_page()
+    assert game.decoder and len(page.bosses[-1].lines) == 6
+    game.journal_switch(1)
+    page = game.journal_page()
+    assert page.log[0][0] == "decoded" and DECODED in page.log[0][1]
+    assert sum(1 for kind, _, hl in page.log if hl) == min(save.unlocked, len(LEVELS))
+    for _ in range(30):
+        h.post(pygame.K_DOWN)
+    assert game.journal_cursor["LOG"] > 0
+    h.run(5)
+    h.shot("journal_log")
+    h.post(pygame.K_ESCAPE)
+    assert game.state == State.TITLE
+    game.time = 6.5
+    save.add_record(500, 1)
+    game.draw()
+    h.shot("title_ghost_record")
+    # From the star map, J opens it and ESC comes back to the map.
+    game.open_star_map(0)
+    h.post(pygame.K_j)
+    assert game.state == State.JOURNAL
+    h.post(pygame.K_ESCAPE)
+    assert game.state == State.STAR_MAP
+    # A hijacked conversation in flight: VANTA first, then Vega.
+    game.start(0)
+    game.radio_say(TRANSMISSIONS["G1_WARP"], delay=0)
+    assert game.radio.speaker == UNKNOWN
+    h.run(10)
+    h.shot("radio_hijack")
+    game.skip_radio()
+    game.skip_radio()
+    assert game.radio.speaker == VANTA and len(game.radio_queue) == 1
+    game.skip_radio()
+    game.skip_radio()
+    assert game.radio.speaker == VEGA
+    game.to_title()
 
 
 def test_save(h):
@@ -2496,7 +2623,7 @@ SECTIONS = (
     ("campaign", test_campaign), ("level4", test_level4),
     ("level5", test_level5), ("level6", test_level6), ("level7", test_level7),
     ("level8", test_level8), ("level9", test_level9), ("level10", test_level10),
-    ("starmap", test_starmap), ("save", test_save), ("menus", test_title_menus),
+    ("starmap", test_starmap), ("journal", test_journal), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
     ("upgrades", test_upgrades), ("feel", test_feel),
     ("boosts", test_boosts), ("wingmen", test_wingmen),

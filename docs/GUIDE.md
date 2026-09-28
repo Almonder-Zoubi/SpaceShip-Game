@@ -110,6 +110,7 @@ loop. Its behaviour is split into **mixins**, one file each, all working on the 
 | `SoundMixin` | `flow/sound.py` | which music plays in which state, engine / laser loops |
 | `DevMixin` | `flow/dev.py` | dev menu items, god mode, hotkeys |
 | `FinaleMixin` | `flow/finale.py` | the galaxy finale: WARP cut-scene, medal, then the win results |
+| `JournalMixin` | `flow/journal.py` | the JOURNAL (J): builds a `JournalPage` (pilot, boss files, echoes, radio log) for `ui/journal.py` |
 | `StarMapMixin` | `flow/starmap.py` | the STAR MAP: fly between planets, data caches (coins once, EXPLORER), landing opens the hangar |
 | `ScreensMixin` | `ui/screens.py` | drawing every frame and every state's overlay |
 
@@ -127,7 +128,7 @@ run():  handle_events()          keys/mouse -> self.held, self.mouse, state hand
 
 ### States and phases
 
-- **State** (`flow/states.py`): TITLE -> STAR_MAP -> HANGAR -> PLAYING -> (PAUSED / DYING ->
+- **State** (`flow/states.py`): TITLE (J: JOURNAL) -> STAR_MAP -> HANGAR -> PLAYING -> (PAUSED / DYING ->
   GAME_OVER) -> LEVEL_CLEAR (results) -> REWARD (gift, first clear only) -> HANGAR -> PLAYING
   ... -> (WARP after a `finale` level) -> WIN -> gift -> STAR_MAP. Plus DEV_MENU. ESC goes one
   screen back (hangar -> map -> title).
@@ -292,6 +293,17 @@ colours shared by several things go in `config/palette.py`.
   `draw_back` (behind rocks), `draw_mid` (over rocks and minions, under the ship and enemy
   bullets) and `draw_front`. Set `Level(hazard=X)`; the game creates one per attempt as
   `game.hazard`.
+
+### Story: a dialog, a boss file, a puzzle piece
+
+- **A conversation:** `radio_say([...])` takes plain strings (Vega) and `story.dialog.Line(speaker,
+  text)`; a change of speaker starts a new card, VANTA / `???` cards glitch (hijack). One-off
+  story beats go into `story/lore.TRANSMISSIONS` and are remembered in `save.story`.
+- **A boss file:** a `Dossier(boss_spec_name, facts, vanta, note)` in `story/lore.DOSSIERS`. The
+  journal shows it once the boss is beaten (`save.bosses`, or a cleared level with that boss).
+- **A puzzle piece:** read the answer in the `story/lore.py` docstring first. A clue must agree
+  with it (a player who reads everything must find no contradiction). Kinds so far: ECHOES
+  (mosaic tiles in caches), margin notes, the radio ACROSTIC, the ghost record, dossier lines.
 
 ### A star map secret (data cache)
 

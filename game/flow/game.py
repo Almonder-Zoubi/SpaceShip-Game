@@ -25,6 +25,7 @@ from ..progression.inventory import Inventory
 from ..ui.gifts import GiftScreen
 from ..ui.hangar import HangarScreen
 from ..ui.item_art import ItemArt
+from ..ui.journal import JournalView
 from ..ui.radio import RadioView
 from ..ui.hud import Hud
 from ..ui.screens import ScreensMixin
@@ -41,6 +42,7 @@ from .combat import CombatMixin
 from .dev import DevMixin
 from .events import EventsMixin
 from .finale import FinaleMixin
+from .journal import JournalMixin
 from .hangar import HangarMixin
 from .juice import JuiceMixin
 from .level_flow import LevelFlowMixin
@@ -60,13 +62,13 @@ SIGNATURE_RADII = (9, 11, 13)   # big rocks prebuilt for every later colour (mag
 
 class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixin, HangarMixin,
            JuiceMixin, BoostsMixin, WingmenMixin, SkinsMixin, OptionsMixin, SoundMixin,
-           DevMixin, FinaleMixin, StarMapMixin, ScreensMixin):
+           DevMixin, FinaleMixin, StarMapMixin, JournalMixin, ScreensMixin):
     """Owns the window, the world objects and the state machine.
 
     Mixins (one file each in flow/ and ui/) add: key handling, level flow, world update,
     combat, progression (coins, rank, payout), hangar + gifts, game feel (juice, damage
     numbers, radio), boosts + combo, wingmen, skins + achievements, options, sound, dev tools,
-    the galaxy finale, the star map and drawing. They all work on the attributes
+    the galaxy finale, the star map, the journal and drawing. They all work on the attributes
     created here.
     """
 
@@ -87,7 +89,7 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
         self.clock = pygame.time.Clock()
         self.font = PixelFont()
         self.hud = Hud(self.font)
-        art = ItemArt()
+        art = self.item_art = ItemArt()
         self.hangar_screen = HangarScreen(self.font, art)
         self.gift_screen = GiftScreen(self.font, art)
         self.shake = ScreenShake()
@@ -119,6 +121,7 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
         self.load_options()
         self.radio_view = RadioView(self.font)
         self.star_map_view = StarMapView(self.font, LEVELS)
+        self.journal_view = JournalView(self.font, art)
         self._sound_state = {}                    # weapon states last frame (see SoundMixin)
         self.level_index = self.start_level
         ship = self.save.ship if self.inventory.owns(self.save.ship) else ARROW.name
@@ -218,6 +221,8 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
             self.ship.update(dt, keys, self.fire, self.smoke, autopilot=True)
         elif self.state == State.WARP:
             self._update_warp(dt)
+        elif self.state == State.JOURNAL:
+            self.library.build_step()
         elif self.state == State.STAR_MAP:
             self.library.build_step()
             self._update_star_map(real_dt, keys, mouse)

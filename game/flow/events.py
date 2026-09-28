@@ -63,13 +63,27 @@ class EventsMixin:
             step = 1 if key in RIGHT_KEYS else -1
             self.start_level = (self.start_level + step) % self.selectable_levels
             self.audio.play("select")
+        elif key == pygame.K_j:
+            self.open_journal()
         elif key in START_KEYS or key in MOVE_KEYS:
             self.open_star_map()
         elif key == pygame.K_ESCAPE:
             return False
 
+    def _keys_journal(self, key):
+        if key in LEFT_KEYS + RIGHT_KEYS:
+            self.journal_switch(1 if key in RIGHT_KEYS else -1)
+        elif key in UP_KEYS + DOWN_KEYS:
+            self.journal_move(1 if key in DOWN_KEYS else -1)
+        elif key in START_KEYS:
+            self.journal_switch(1)
+        elif key in (pygame.K_ESCAPE, pygame.K_j):
+            self.close_journal()
+
     def _keys_star_map(self, key):
-        if key in START_KEYS:
+        if key == pygame.K_j and not self.star_map.card:
+            self.open_journal()
+        elif key in START_KEYS:
             self.star_map_enter()
         elif key == pygame.K_ESCAPE:
             if self.star_map.card:
@@ -123,9 +137,7 @@ class EventsMixin:
         elif key == pygame.K_t:
             self.fire_ultimate()
         elif key in (pygame.K_RETURN, pygame.K_KP_ENTER) and self.radio:
-            self.radio.skip()
-            if self.radio.done:
-                self.radio = None
+            self.skip_radio()
 
     def _keys_paused(self, key):
         """Paused: the options menu (UP/DOWN pick, LEFT/RIGHT change)."""
@@ -154,7 +166,9 @@ class EventsMixin:
             self.to_title()
 
     def _keys_warp(self, key):
-        if key in START_KEYS and self.state_time > 1.0:
+        if key in START_KEYS and self.radio:
+            self.skip_radio()
+        elif key in START_KEYS and self.state_time > 1.0:
             self.finish_warp()
 
     def _keys_win(self, key):

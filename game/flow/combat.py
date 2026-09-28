@@ -233,6 +233,8 @@ class CombatMixin:
                 self.achieve("NO_HIT")
             self.score += POINTS_BOSS
             self._record_boss_time(b)
+            if not self.dev:
+                self.save.remember("bosses", b.spec.name)     # opens its journal file
             self._drop_boss_coins(b)
             self.set_phase(Phase.CLEARED)
 

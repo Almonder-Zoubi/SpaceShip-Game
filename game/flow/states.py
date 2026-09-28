@@ -5,6 +5,7 @@ from enum import Enum, auto
 class State(Enum):
     TITLE = auto()
     STAR_MAP = auto()    # fly between the level planets, find data caches, land = hangar
+    JOURNAL = auto()     # the logbook: pilot, boss files, echoes, radio log (J)
     HANGAR = auto()      # inventory before every level: equip, buy, SPACE launches
     REWARD = auto()      # gift after a first level clear: choose 1 of 2
     DEV_MENU = auto()    # --dev: pick any level / wave / boss to start from

@@ -41,7 +41,7 @@ SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 tools/playtest.py 1-4 --tank
 
 Headless smoke test (no window, no audio device) — run after every change. It drives every state
 and mechanic in named sections (title, controls, mouse, weapons, damage, balance, pickups,
-campaign, level4, level5, level6, level7, level8, level9, level10, starmap, save, economy, inventory, upgrades, feel, boosts, wingmen, arsenal, skins, menus, hulls, dev, retry, audio, busy); each section starts from its own state:
+campaign, level4, level5, level6, level7, level8, level9, level10, starmap, journal, save, economy, inventory, upgrades, feel, boosts, wingmen, arsenal, skins, menus, hulls, dev, retry, audio, busy); each section starts from its own state:
 
 ```bash
 SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test [--shots DIR]
@@ -73,7 +73,7 @@ Every folder's `__init__.py` docstring lists what its modules do.
 | Folder | Modules | Responsibility |
 |---|---|---|
 | `config/` | `display`, `palette`, `tuning`, `loadouts` | Resolution + paths, shared colours, gameplay numbers, ship models `MK1..MK9` (`Loadout`) |
-| `core/` | `pixelart`, `pixelfont`, `particles`, `input`, `storage`, `options` | Engine helpers: sprite-from-rows, `CharCanvas`, `mirrored`/`outlined`, RotSprite, dithering, noise, glow; 5x7 font; `ParticleSystem`/`Shockwave`/`ScreenShake`; `Keys` + key groups, `Mouse` (steering target + left-click fire); `SaveData` (`save.json` v2: records, unlocks, ship, coin bank, best rank per level, inventory, upgrade tiers, options, galaxy medals, star map caches); `Options` (volumes, reduce shake / flashes) |
+| `core/` | `pixelart`, `pixelfont`, `particles`, `input`, `storage`, `options` | Engine helpers: sprite-from-rows, `CharCanvas`, `mirrored`/`outlined`, RotSprite, dithering, noise, glow; 5x7 font; `ParticleSystem`/`Shockwave`/`ScreenShake`; `Keys` + key groups, `Mouse` (steering target + left-click fire); `SaveData` (`save.json` v2: records, unlocks, ship, coin bank, best rank per level, inventory, upgrade tiers, options, galaxy medals, star map caches, defeated bosses, Dawn Key shards, story beats); `Options` (volumes, reduce shake / flashes) |
 | `background/` | `nebula`, `planet`, `starfield`, `events`, `background` | One layer per module; `events` = one event layer per level (`Level.event`: sun corona ...); `Background` draws them back to front |
 | `player/` | `hulls`, `art`, `ship` | `Hull` shapes (ARROW, WASP, TITAN, LANCE, SPECTER: rows, nozzles, barrels, stat multipliers); MK paint jobs + banked/lean frames; `Ship` (controls, lean, throttle, flames, health) |
 | `weapons/` | `base`, `gun`, `laser`, `scatter`, `plasma`, `arc`, `specials`, `homing`, `bolts`, `secondary` | `Hit` (+`source`), `Weapon` (+`rate`), `raycast()`, `is_boss_part()`; primaries `MachineGun`, `Laser`, `Scatter`, `Plasma`, `Arc`; `Charged` → `Blast`, `Ultimate` (+`Missile`); `RocketSwarm`, `Bolts`; secondaries `RocketPod`, `SideCannons` |
@@ -86,9 +86,10 @@ Every folder's `__init__.py` docstring lists what its modules do.
 | `levels/` | `model`, `data` | `Difficulty` (+ `extras` minion spawners, `rock_hp`, `enemy_hp`), `Level` (+ `radio`, `event`, `hazard`, `finale`), `Wave` (+ `music`, `escape`), `BossEntry` (incl. music track), `Galaxy`; `GALAXIES` (10 levels each), `LEVELS` (all, play order), `galaxy_of()` |
 | `progression/` | `results`, `economy`, `items`, `inventory`, `upgrades`, `achievements` | Pure logic (no pygame): `LevelStats` + rank S/A/B/C; coin drops and the level-clear `Payout`; item catalog + `GIFTS` + prices; `Inventory` (owns / status / claim / buy, upgrade tiers + `buy_upgrade`, migrates old saves); upgrade `TRACKS`, `apply(loadout, tiers)`, `power_ratio()`; `ACHIEVEMENTS` (each unlocks a skin) |
 | `audio/` | `synth`, `sfx`, `music`, `bank`, `player` | Pure-Python chiptune synth; SFX recipes (`SOUNDS`); songs as chords + melodies (`SONGS`); WAV cache in `sounds/generated/`; `Audio` (`play`, `loop`, `music`) |
-| `ui/` | `hud`, `popup`, `item_art`, `hangar`, `gifts`, `radio`, `medal`, `screens` | HUD + banners; floating popups + boss `DamageNumber`s; radio cards (COMMANDER VEGA portrait); item pictures (ship previews, weapon + upgrade icons, locked silhouettes); HANGAR 2.0 (`HangarView`: tabs, list, stats, shop, UPGRADES tab, POWER %); gift cards; the galaxy medal; `ScreensMixin` draws every state (pause = options menu, boss name card on WARNING, WARP cut-scene) |
+| `ui/` | `hud`, `popup`, `item_art`, `hangar`, `gifts`, `radio`, `portraits`, `medal`, `journal`, `screens` | HUD + banners; floating popups + boss `DamageNumber`s; radio cards (any speaker; a hijacked card glitches) + `Portraits` (VEGA, VANTA, ??? static); the JOURNAL screen (`JournalView`); item pictures (ship previews, weapon + upgrade icons, locked silhouettes); HANGAR 2.0 (`HangarView`: tabs, list, stats, shop, UPGRADES tab, POWER %); gift cards; the galaxy medal; `ScreensMixin` draws every state (pause = options menu, boss name card on WARNING, WARP cut-scene) |
+| `story/` | `dialog`, `lore` | Pure data: `Line(speaker, text)`, `cards()`, hijacking speakers; boss `DOSSIERS` (+ margin notes), `HERALDS`, `VANTA_FILE`, `ECHOES` (mosaic tiles), the radio `ACROSTIC`, `TRANSMISSIONS`, `GHOST_RECORD`. The module docstring holds the answer to the mystery: every clue must agree with it |
 | `starmap/` | `model`, `view` | The STAR MAP between title and hangar: `NODES` (level planets), `CACHES` (hidden lore + coins), `MapShip`, `StarMap` (rules, no pygame); `StarMapView` (parallax stars, planets, route, gate, scanner, cards) |
-| `flow/` | `game`, `states`, `events`, `level_flow`, `world`, `combat`, `progression`, `hangar`, `juice`, `boosts`, `wingmen`, `skins`, `options`, `sound`, `dev`, `finale`, `starmap` | `Game` = setup, main loop, update order. The rest is one **mixin per responsibility**: key handling (one `_keys_<state>` method per state), level/wave/phase flow + hull choice, world update + hazards, player hits, coins + stats + rank + payout, hangar + gifts + shop, juice (tiers, hit-stop, slow-mo, damage numbers, radio), boosts + combo / FEVER, wingmen (hits, knock-outs, XP banked at level end), skins + achievements, options, music/loops, dev tools, the galaxy finale (WARP cut-scene + medal), the star map (flying, caches, landing) |
+| `flow/` | `game`, `states`, `events`, `level_flow`, `world`, `combat`, `progression`, `hangar`, `juice`, `boosts`, `wingmen`, `skins`, `options`, `sound`, `dev`, `finale`, `starmap`, `journal` | `Game` = setup, main loop, update order. The rest is one **mixin per responsibility**: key handling (one `_keys_<state>` method per state), level/wave/phase flow + hull choice, world update + hazards, player hits, coins + stats + rank + payout, hangar + gifts + shop, juice (tiers, hit-stop, slow-mo, damage numbers, radio), boosts + combo / FEVER, wingmen (hits, knock-outs, XP banked at level end), skins + achievements, options, music/loops, dev tools, the galaxy finale (WARP cut-scene + medal), the star map (flying, caches, landing), the journal (J: pilot, boss files, echoes, radio log) |
 
 Other folders: `tests/smoke.py` (headless smoke test, `run_smoke_test(shots, seed, only)`),
 `tools/build_audio.py` (renders `game/audio` recipes to WAV), `tools/playtest.py` (bot playtest:
@@ -111,6 +112,9 @@ Where to look when debugging:
 - Flow between screens: title → STAR MAP (`flow/starmap.py`, ENTER on a planet) → HANGAR → level;
   hangar ESC → map, map ESC → title. After the galaxy's last level (`Level.finale`): WARP → WIN →
   gift → star map. An `escape` wave has no boss: `_finish_wave()` moves on when its field ends.
+- Story: text lives in `story/lore.py` (and the levels' `radio`); lines <= 43 characters on radio
+  cards, <= 32 in the journal (smoke section `journal` checks both, and the ACROSTIC: the first
+  letter of each level's first radio line). Changing a level's first radio line can break it.
 - Wrong music or a sound missing → `flow/sound.py` (state → track, loops) or the event's own call.
 
 ## Conventions

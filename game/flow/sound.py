@@ -14,7 +14,7 @@ class SoundMixin:
         s = self.state
         if s in MENU_STATES:
             return "title"
-        if s == State.STAR_MAP:
+        if s in (State.STAR_MAP, State.JOURNAL):
             return "starmap"
         if s == State.LEVEL_CLEAR:
             return "level_clear"

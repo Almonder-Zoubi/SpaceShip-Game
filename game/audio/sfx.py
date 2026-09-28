@@ -305,6 +305,20 @@ def data_cache():
                tone("triangle", freq("E7"), None, 0.3, 0.25))
 
 
+def hijack():
+    """A hostile voice breaks into the radio: bit-crushed static that stutters, a low drone."""
+    burst = noise(0.9, 2500, 600, 0.45, attack=0.01, power=0.4)
+    crushed = [v if (i // 700) % 3 else 0.0 for i, v in enumerate(burst)]
+    return mix(crushed, tone("saw", 55, 48, 0.9, 0.3, attack=0.05, power=0.5),
+               at(0.35, tone("square", 1900, 300, 0.12, 0.15, duty=0.1)))
+
+
+def page():
+    """The journal: a page turns (a soft papery swish)."""
+    return mix(noise(0.12, 7000, 2500, 0.25, attack=0.03, power=1.0),
+               tone("triangle", 660, 880, 0.05, 0.12))
+
+
 def select():
     return tone("square", 880, None, 0.04, 0.3, duty=0.25)
 
@@ -336,6 +350,6 @@ SOUNDS = {
     "achievement": achievement, "magma_burst": magma_burst, "flare": flare,
     "teleport": teleport, "metal_break": metal_break,
     "white_hole": white_hole, "spore": spore, "heartbeat": heartbeat, "warp": warp,
-    "data_cache": data_cache,
+    "data_cache": data_cache, "hijack": hijack, "page": page,
 }
 LOOPS = ("laser", "engine", "arc")         # played on their own channel, looping

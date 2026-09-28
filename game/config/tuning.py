@@ -327,7 +327,8 @@ LARVA_SPEED = 115                # px/s top speed
 LARVA_DAMAGE = 8
 LARVA_TIME = 9.0                 # seconds a flock hunts before it leaves
 POINTS_LARVA = 30
-WARP_TIME = 9.0                  # the galaxy finale's cut-scene (ENTER skips)
+WARP_TIME = 15.0                 # the galaxy finale's cut-scene (ENTER skips)
+WARP_CALL = 2.0                  # seconds into it when the hijacked transmission starts
 
 # --- Star map (the explorable galaxy map between title and hangar) --------------------------
 MAP_W, MAP_H = 720, 520          # px: the map is bigger than the screen, the camera follows

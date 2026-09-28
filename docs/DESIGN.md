@@ -232,6 +232,29 @@ darkness behind. (The data cache THE HOLLOW on the galaxy 1 map was its first fo
   players who skip the radio.
 - Lines stay <= 43 characters (the card width, checked by the smoke test). ENTER skips.
 
+**Built in G16 (2026-09-28): the JOURNAL and the hidden layers.** The user asked for a board
+to read the story in peace. `J` on the title or the star map opens the **LOGBOOK OF SCOUT
+ARROW-01**:
+- **PILOT:** the ship as it flies now (model, hull, gun, laser, speed, POWER %), upgrade tiers,
+  gear owned, achievements (with the skin they give), medals and the DAWN KEY (shards).
+- **BOSSES:** every boss's file with its own sprite: what the fleet knows, its link to
+  VANTA, and a **red margin note in someone else's hand**. Unbeaten bosses are black
+  silhouettes, future heralds black bars (N##), VANTA's file opens line by line.
+- **ECHOES:** the mosaic (6 tiles from the star map caches) and the decoder.
+- **LOG:** every radio line heard, level by level, plus the intercepted transmissions.
+
+The hidden layers (the "mind-blowing" part: each one is small, and together they point to
+one answer that the `story/lore.py` docstring states):
+1. **Vega's acrostic:** the first letters of Vega's first line in levels 1–10 spell
+   `YOU ARE NEXT`. The decoder (all 6 echoes) lights them up in the LOG.
+2. **The margin notes** were written by the previous owner of the callsign ARROW-01 ("THAT
+   PLATE IS MINE." on Scrapjaw, whose jaw holds a plate stamped ARROW-01).
+3. **The ghost record:** after galaxy 1 the title's score board shows `0. 999999 LEVEL 50
+   ARROW-01`, a finished game by your own callsign. It glitches.
+4. **The mosaic** shows two ships leaving side by side, and one is your MK I ARROW.
+5. **The hijacked transmission** in the warp: VANTA says "WE HAVE DONE THIS BEFORE." Vega
+   says the signal is a lie.
+
 ### 4.2 Harder, but fair
 
 Galaxy 2 raises difficulty through **new pressure**, not just bigger numbers. Pillar 4 still

@@ -234,7 +234,7 @@ class StarMapView:
                 f.draw(surf, "BEAT THE GALAXY TO OPEN IT", (LOW_W // 2, rect.y + 18), TEXT_DIM,
                        shadow=TEXT_SHADOW, center=True)
         elif blink:
-            f.draw(surf, "FLY TO A PLANET   ENTER: HANGAR   ESC: TITLE", (LOW_W // 2, LOW_H - 12),
+            f.draw(surf, "FLY TO A PLANET  ENTER: LAND  J: JOURNAL", (LOW_W // 2, LOW_H - 12),
                    TEXT_DIM, shadow=TEXT_SHADOW, center=True)
 
     def _draw_node_card(self, surf, starmap, i, blink):
