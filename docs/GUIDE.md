@@ -109,6 +109,8 @@ loop. Its behaviour is split into **mixins**, one file each, all working on the 
 | `OptionsMixin` | `flow/options.py` | pause-menu options (volume, reduce shake / flashes), saved |
 | `SoundMixin` | `flow/sound.py` | which music plays in which state, engine / laser loops |
 | `DevMixin` | `flow/dev.py` | dev menu items, god mode, hotkeys |
+| `FinaleMixin` | `flow/finale.py` | the galaxy finale: WARP cut-scene, medal, then the win results |
+| `StarMapMixin` | `flow/starmap.py` | the STAR MAP: fly between planets, data caches (coins once, EXPLORER), landing opens the hangar |
 | `ScreensMixin` | `ui/screens.py` | drawing every frame and every state's overlay |
 
 ### One frame
@@ -125,9 +127,10 @@ run():  handle_events()          keys/mouse -> self.held, self.mouse, state hand
 
 ### States and phases
 
-- **State** (`flow/states.py`): TITLE -> HANGAR -> PLAYING -> (PAUSED / DYING -> GAME_OVER)
-  -> LEVEL_CLEAR (results) -> REWARD (gift, first clear only) -> HANGAR -> PLAYING ... -> WIN.
-  Plus DEV_MENU.
+- **State** (`flow/states.py`): TITLE -> STAR_MAP -> HANGAR -> PLAYING -> (PAUSED / DYING ->
+  GAME_OVER) -> LEVEL_CLEAR (results) -> REWARD (gift, first clear only) -> HANGAR -> PLAYING
+  ... -> (WARP after a `finale` level) -> WIN -> gift -> STAR_MAP. Plus DEV_MENU. ESC goes one
+  screen back (hangar -> map -> title).
 - **Phase** while PLAYING: FIELD (asteroids, progress bar) -> WARNING (hull repaired) ->
   BOSS -> CLEARED, repeated for every boss of a wave and every wave of a level.
 
@@ -223,10 +226,14 @@ colours shared by several things go in `config/palette.py`.
    `event=` a background event layer class, `hazard=` a level-wide mechanic class, and in
    `Difficulty`: `extras=((spawn_function, seconds), ...)` minion spawners, `rock_hp`,
    `enemy_hp` (later ship models hit much harder, so later fields need tougher rocks).
+   Per wave: `music=` its own field track, `escape=True` for a timed run without a boss
+   (the level's hazard reads `game.wave.escape`, e.g. the hive collapses). `finale=True` on
+   a galaxy's last level plays the WARP cut-scene and awards the galaxy medal.
 6. The gift after its first clear: `GIFTS["1-n"] = (item_a, item_b)` in `progression/items.py`.
 7. Automatic: level select, unlocking, dev menu entries, level-clear screen, WIN after the last level.
-8. Tests: the `level9` section expects WIN after level 9 (the last level). A level 10 moves
-   the WIN checks into a new `level10` section in `tests/smoke.py` (add it to `SECTIONS`).
+8. The star map: add a planet position to `starmap/model.NODES` (one per level, in order).
+9. Tests: the `level10` section expects WARP + WIN after level 10 (the last level). A level
+   11 moves those checks into a new section in `tests/smoke.py` (add it to `SECTIONS`).
 
 ### A new boss
 
@@ -285,6 +292,13 @@ colours shared by several things go in `config/palette.py`.
   `draw_back` (behind rocks), `draw_mid` (over rocks and minions, under the ship and enemy
   bullets) and `draw_front`. Set `Level(hazard=X)`; the game creates one per attempt as
   `game.hazard`.
+
+### A star map secret (data cache)
+
+Append a `Cache(id, x, y, title, lines, coins)` to `starmap/model.CACHES` (map px inside
+`MAP_W x MAP_H`, lines <= 40 characters — the smoke test checks). It is invisible until the
+rocket is `MAP_CACHE_SEEN` px away; the scanner ring beeps faster as it gets close. Finding
+every cache earns EXPLORER, so a new cache makes that achievement a little harder.
 
 ### A new player ship (hull)
 

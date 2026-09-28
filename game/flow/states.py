@@ -4,6 +4,7 @@ from enum import Enum, auto
 
 class State(Enum):
     TITLE = auto()
+    STAR_MAP = auto()    # fly between the level planets, find data caches, land = hangar
     HANGAR = auto()      # inventory before every level: equip, buy, SPACE launches
     REWARD = auto()      # gift after a first level clear: choose 1 of 2
     DEV_MENU = auto()    # --dev: pick any level / wave / boss to start from
@@ -13,6 +14,7 @@ class State(Enum):
     GAME_OVER = auto()
     LEVEL_CLEAR = auto() # rocket blasts off, upgrade screen, ENTER starts the next level
     WIN = auto()         # last level cleared
+    WARP = auto()        # galaxy finale: the warp cut-scene before the results
 
 
 class Phase(Enum):

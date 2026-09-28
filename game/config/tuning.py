@@ -308,3 +308,32 @@ INTERCEPTOR_COOLDOWN = 0.8       # vulnerable from every side after a dash
 INTERCEPTOR_DAMAGE = 28
 POINTS_INTERCEPTOR = 320
 COMET_SPEED = 1.8                # comets fall this much faster than rocks
+
+# --- Level 10 SWARM HEART -----------------------------------------------------------------
+HIVE_WALL = (14, 34)             # px: the hive walls' width at both sides (min, max)
+HIVE_WALL_DAMAGE = 0.05          # share of max HP when the ship touches a wall
+ESCAPE_WALL = 70                 # walls close in to this width during the escape
+ESCAPE_SPEED = 1.5               # the world rushes past this much faster during the escape
+SPORE_HP = 12
+SPORE_FALL = 32                  # px/s
+SPORE_RIPEN = 105                # y where a pod starts to swell ...
+SPORE_SWELL = 0.7                # ... for this long (the telegraph), then bursts
+SPORE_SHOTS = 8                  # bullets in the burst ring
+SPORE_BULLET_SPEED = 62
+SPORE_BULLET_DAMAGE = 12
+POINTS_SPORE = 60
+LARVA_HP = 4
+LARVA_SPEED = 115                # px/s top speed
+LARVA_DAMAGE = 8
+LARVA_TIME = 9.0                 # seconds a flock hunts before it leaves
+POINTS_LARVA = 30
+WARP_TIME = 9.0                  # the galaxy finale's cut-scene (ENTER skips)
+
+# --- Star map (the explorable galaxy map between title and hangar) --------------------------
+MAP_W, MAP_H = 720, 520          # px: the map is bigger than the screen, the camera follows
+MAP_ACCEL = 320                  # px/s^2
+MAP_SPEED = 130                  # px/s top speed
+MAP_DRAG = 2.2                   # velocity lost per second (drifts to a stop)
+MAP_REACH = 22                   # px: close enough to a planet to open its card
+MAP_CACHE_SEEN = 46              # px: a hidden data cache becomes visible this close
+MAP_GRAVITY = 240                # the black hole planet's pull (px/s^2 at its core, fades out)

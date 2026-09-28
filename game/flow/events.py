@@ -64,9 +64,18 @@ class EventsMixin:
             self.start_level = (self.start_level + step) % self.selectable_levels
             self.audio.play("select")
         elif key in START_KEYS or key in MOVE_KEYS:
-            self.open_hangar(self.start_level)
+            self.open_star_map()
         elif key == pygame.K_ESCAPE:
             return False
+
+    def _keys_star_map(self, key):
+        if key in START_KEYS:
+            self.star_map_enter()
+        elif key == pygame.K_ESCAPE:
+            if self.star_map.card:
+                self.star_map.card = None
+            else:
+                self.to_title()
 
     def _keys_hangar(self, key):
         if key in LEFT_KEYS + RIGHT_KEYS:
@@ -78,7 +87,7 @@ class EventsMixin:
         elif key in START_KEYS:
             self.hangar_select()
         elif key == pygame.K_ESCAPE:
-            self.to_title()
+            self.open_star_map(self.next_launch[0])
 
     def _keys_reward(self, key):
         if key in LEFT_KEYS + RIGHT_KEYS:
@@ -143,6 +152,10 @@ class EventsMixin:
             self.after_level_clear()
         elif key == pygame.K_ESCAPE:
             self.to_title()
+
+    def _keys_warp(self, key):
+        if key in START_KEYS and self.state_time > 1.0:
+            self.finish_warp()
 
     def _keys_win(self, key):
         if key in START_KEYS and self.state_time > 1.0:

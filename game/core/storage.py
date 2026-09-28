@@ -2,7 +2,8 @@
 inventory and the upgrade tiers.
 
 Version 2 added the profile: coins in the bank, best rank per cleared level, owned items,
-shop items, claimed gifts and upgrade tiers (missing = all 0). Older files load with an empty bank; their inventory is rebuilt
+shop items, claimed gifts and upgrade tiers (missing = all 0); later fields (medals, star
+map caches) default to empty. Older files load with an empty bank; their inventory is rebuilt
 from the unlocked levels (progression.inventory). Broken values fall back to a fresh save."""
 import datetime
 import json
@@ -38,6 +39,8 @@ class SaveData:
         self.skins = {}          # skin slot (PAINT, TRAIL ...) -> equipped skin item
         self.achievements = []   # ids of earned achievements
         self.minion_kills = 0    # lifetime counter (an achievement)
+        self.medals = []         # galaxies beaten (numbers): the medal on the title / star map
+        self.caches = []         # star map data caches found (ids)
         self.load()
 
     @property
@@ -75,6 +78,8 @@ class SaveData:
             self.skins = {str(k): str(v) for k, v in dict(data.get("skins", {})).items()}
             self.achievements = _strings(data.get("achievements", []))
             self.minion_kills = max(0, int(data.get("minion_kills", 0)))
+            self.medals = [int(m) for m in data.get("medals", [])]
+            self.caches = _strings(data.get("caches", []))
         except (OSError, ValueError, TypeError, KeyError, AttributeError):
             self._reset()                               # unreadable: start fresh
 
@@ -86,6 +91,7 @@ class SaveData:
         self.wingman, self.wingmen_xp = None, {}
         self.primaries, self.secondary = None, None
         self.skins, self.achievements, self.minion_kills = {}, [], 0
+        self.medals, self.caches = [], []
 
     def save(self):
         if not self.path:
@@ -101,7 +107,8 @@ class SaveData:
                            "wingmen_xp": self.wingmen_xp, "primaries": self.primaries,
                            "secondary": self.secondary, "skins": self.skins,
                            "achievements": self.achievements,
-                           "minion_kills": self.minion_kills}, f, indent=2)
+                           "minion_kills": self.minion_kills, "medals": self.medals,
+                           "caches": self.caches}, f, indent=2)
             os.replace(tmp, self.path)
         except OSError:
             pass                                        # read-only folder: play on without saving
@@ -146,6 +153,22 @@ class SaveData:
 
     def is_cleared(self, key):
         return key in self.cleared
+
+    def add_medal(self, galaxy):
+        """A galaxy beaten. Returns True the first time."""
+        if galaxy in self.medals:
+            return False
+        self.medals.append(galaxy)
+        self.save()
+        return True
+
+    def find_cache(self, cache_id):
+        """A star map data cache opened. Returns True the first time."""
+        if cache_id in self.caches:
+            return False
+        self.caches.append(cache_id)
+        self.save()
+        return True
 
 
 def _strings(values):

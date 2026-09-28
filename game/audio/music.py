@@ -319,6 +319,60 @@ def twins():
                 beat=beat, fill=fill, lead_echo=(0.17, 0.4))
 
 
+def level10():
+    """SWARM HEART: a throbbing D minor, bass like a heartbeat, an alien wailing lead."""
+    chords = ["Dm", "Dm", "Bb", "A", "Dm", "Dm", "Gm", "A",
+              "Bb", "C", "Dm", "Dm", "Gm", "Bb", "A", "A7"]
+    melody = """D5 . . . F5 . E5 . | D5 . A4 . . . - - | Bb4 . D5 . F5 . Bb5 . | A5 . . . C#5 . E5 .
+                D5 . F5 . A5 . D6 . | C6 . A5 . F5 . D5 . | G5 . . . Bb5 . D6 . | C#6 . . . A5 . E5 .
+                F5 . . . Bb5 . D6 . | E6 . . . C6 . G5 . | A5 . . . F5 . D5 . | A5 . D6 . F6 . A6 .
+                G6 . . . D6 . Bb5 . | F6 . . . D6 . Bb5 . | A5 . C#6 . E6 . A6 . | A6 . . . - - - -"""
+    beat = "k . . k . . . . s . . . k k . h"
+    return song(118, chords, melody, lead=LEAD_SOFT, arp_pattern=(0, 2, 1, 2, 3, 2), arp_octave=4,
+                bass_rhythm="R R - - R R - -", beat=beat, lead_echo=(0.38, 0.4),
+                arp_echo=(0.25, 0.35))
+
+
+def overmind():
+    """THE OVERMIND: the galaxy's last fight. Driving A minor, a heroic hook against a
+    pounding pulse; it quotes the first level's melody in the second half."""
+    chords = ["Am", "Am", "F", "G", "Am", "Am", "Dm", "E",
+              "F", "G", "Am", "Am", "Dm", "E", "F", "E7"]
+    melody = """A4 . C5 . E5 . A5 . | G5 . E5 . C5 . E5 . | F5 . A5 . C6 . A5 . | G5 . B5 . D6 . B5 .
+                A5 . . . E5 . A5 . | C6 . . . B5 . A5 . | D6 . . . A5 . F5 . | E5 . G#5 . B5 . E6 .
+                F6 . . . C6 . A5 . | G5 . B5 . D6 . G6 . | E6 . . . C6 . A5 . | A5 . C6 . E6 . A6 .
+                F6 . D6 . A5 . F5 . | E5 . G#5 . B5 . E6 . | F6 . E6 . D6 . C6 . | B5 . G#5 . E5 . - -"""
+    beat = "k . h k s . h . k k h . s . h s"
+    fill = "k . h k s . h . s s s s s s s s"
+    return song(170, chords, melody, arp_pattern=(0, 1, 2, 3), bass_rhythm="R R O R R O R O",
+                beat=beat, fill=fill, lead_echo=(0.18, 0.35))
+
+
+def escape():
+    """ESCAPE: the hive collapses. A frantic E minor, 16th arpeggios, no time to breathe."""
+    chords = ["Em", "Em", "C", "D", "Em", "Em", "C", "B"]
+    melody = """E5 . G5 . B5 . E6 . | D6 . B5 . G5 . B5 . | C6 . E6 . G6 . E6 . | D6 . F#6 . A6 . F#6 .
+                E6 . B5 . G5 . E5 . | G5 . B5 . E6 . G6 . | E6 . C6 . G5 . C6 . | D#6 . F#6 . B6 . - -"""
+    beat = "k h s h k h s h k h s h k k s s"
+    return song(196, chords, melody, arp_pattern=(0, 1, 2, 3), arp_octave=5,
+                bass_rhythm="R O R O R O R O", beat=beat)
+
+
+def starmap():
+    """STAR MAP: wide open and curious, F lydian drifting over a slow pulse (the B natural
+    is the sense of wonder)."""
+    chords = ["Fmaj7", "G", "Em", "Am", "Fmaj7", "G", "C", "C",
+              "Dm", "G", "Em", "Am", "Fmaj7", "G", "Am", "E"]
+    melody = """A4 . . . C5 . E5 . | D5 . . . B4 . G4 . | G4 . B4 . E5 . G5 . | E5 . . . C5 . A4 .
+                A4 . C5 . F5 . A5 . | B5 . . . G5 . D5 . | E5 . . . G5 . C6 . | C6 . . . - - - -
+                D5 . F5 . A5 . D6 . | B5 . . . G5 . D5 . | E5 . G5 . B5 . E6 . | C6 . . . A5 . E5 .
+                F5 . A5 . C6 . E6 . | D6 . . . B5 . G5 . | A5 . . . E5 . C5 . | G#5 . . . - - - -"""
+    beat = "k . . . h . . . s . . . h . . ."
+    return song(96, chords, melody, lead=LEAD_SOFT, arp_pattern=(0, 1, 2, 3, 2, 1), arp_octave=5,
+                bass_rhythm="R . . . F . . .", beat=beat, lead_echo=(0.5, 0.45),
+                arp_echo=(0.33, 0.5), bass_instrument=BASS_LONG)
+
+
 # --- jingles (play once) ----------------------------------------------------------------------------
 def level_clear():
     lead = "C5 E5 G5 C6 . . G5 C6 . . . . . . . . - - - -"
@@ -352,5 +406,6 @@ SONGS = {"title": title, "level1": level1, "level2": level2, "level3": level3,
          "wraith": wraith, "level7": level7, "kaleidos": kaleidos,
          "level8": level8, "scrapjaw": scrapjaw,
          "level9": level9, "twins": twins,
+         "level10": level10, "overmind": overmind, "escape": escape, "starmap": starmap,
          "level_clear": level_clear, "game_over": game_over, "win": win}
 JINGLES = ("level_clear", "game_over", "win")      # play once instead of looping

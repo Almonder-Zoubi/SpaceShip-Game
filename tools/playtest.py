@@ -1,7 +1,7 @@
 """Headless bot playtest: a simple autopilot flies levels and reports how it went.
 
     SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 tools/playtest.py [levels] [--maxed]
-        levels   e.g. 1-4 or 2,3 (default 1-4)
+        levels   e.g. 1-4 or 2,3 or 10 (default 1-4)
         --maxed  every item, maxed upgrades, a level 5 wingman (otherwise a new player)
         --tank   refill the hull at half (every level completes; damage = difficulty)
         --seed N reproducible run
@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pygame  # noqa: E402
 
+from game.config.display import LOW_W  # noqa: E402
 from game.config.tuning import UPGRADE_TIERS, WINGMAN_XP  # noqa: E402
 from game.core.input import Keys  # noqa: E402
 from game.flow.game import Game  # noqa: E402
@@ -71,6 +72,12 @@ def bot_keys(game):
                 keys.append(pygame.K_LEFT)
             elif goal.x > ship.x + 4:
                 keys.append(pygame.K_RIGHT)
+    width = getattr(game.hazard, "width", None)            # the hive walls (level 10)
+    if width:
+        left, right = width(-1, ship.y) + ship.w, LOW_W - width(1, ship.y) - ship.w
+        if ship.x < left + 6 or ship.x > right - 6:
+            keys = [k for k in keys if k not in (pygame.K_LEFT, pygame.K_RIGHT)]
+            keys.append(pygame.K_RIGHT if ship.x < left + 6 else pygame.K_LEFT)
     if ship.y < 190:
         keys.append(pygame.K_DOWN)
     if game.ship.loadout.ultimate and game.ultimate.ready:
@@ -102,7 +109,7 @@ def play_level(game, index, report, tank=False):
             best_combo = max(best_combo, game.combo)
             if frames > 60 * 60 * 8:
                 break
-        cleared = game.state in (State.LEVEL_CLEAR, State.WIN)
+        cleared = game.state in (State.LEVEL_CLEAR, State.WIN, State.WARP)
         level = LEVELS[index]
         report.append({
             "level": level.number, "attempt": attempt, "cleared": cleared,

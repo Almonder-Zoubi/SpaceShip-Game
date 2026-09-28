@@ -15,4 +15,6 @@ skins       -- skins worn, death styles, achievements
 options     -- pause-menu options (volume, reduce shake / flashes)
 sound       -- music per state, loops
 dev         -- dev menu and hotkeys
+finale      -- the galaxy finale: WARP cut-scene, galaxy medal
+starmap     -- the STAR MAP state: flying, data caches, landing on a planet
 """

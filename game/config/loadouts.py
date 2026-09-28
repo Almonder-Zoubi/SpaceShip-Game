@@ -1,4 +1,4 @@
-"""Ship models the player flies. Each level hands out one (MK I -> MK II -> ... -> MK IX)."""
+"""Ship models the player flies. Each level hands out one (MK I -> MK II -> ... -> MK X)."""
 from dataclasses import dataclass
 
 from .tuning import GUN_DAMAGE, GUN_INTERVAL, LASER_DPS, LASER_HEAT_RATE, SHIP_MAX_HP, SHIP_MAX_SPEED
@@ -42,3 +42,5 @@ MK8 = Loadout("MK VIII", max_hp=450, max_speed=164, gun_damage=19, laser_dps=290
               laser_heat_rate=0.21, colors="mk8", blast=True, ultimate=True)
 MK9 = Loadout("MK IX", max_hp=500, max_speed=166, gun_damage=21, laser_dps=320,
               laser_heat_rate=0.2, colors="mk9", blast=True, ultimate=True)
+MK10 = Loadout("MK X", max_hp=550, max_speed=168, gun_damage=23, laser_dps=350,
+               laser_heat_rate=0.19, colors="mk10", blast=True, ultimate=True)

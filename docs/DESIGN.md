@@ -161,7 +161,8 @@ bosses, one HP bar each). They fight *with* the black hole.
 - Idea: *damage has to be balanced, and gravity is both their weapon and yours.*
 
 **OVERMIND — the Swarm heart (L10, galaxy boss).** Bigger than the screen; the camera
-scrolls up along its body.
+scrolls up along its body. *(Built in G15 without a camera scroll: the hive wall spans the
+whole top of the screen, then tears open. Boss rush: Mothership, Leviathan, Helios.)*
 - Stage A: the hive wall. Destroy 4 spore glands to open the way.
 - Stage B: the heart. 3 phases that each reuse **one attack from an earlier boss**, now in
   organic form (Gunship fan, Leviathan dive, Mothership beam). A boss-rush callback.

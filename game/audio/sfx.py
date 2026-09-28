@@ -280,6 +280,31 @@ def white_hole():
                                     for n in ("C6", "E6", "G6", "B6")))))
 
 
+def spore():
+    """A spore pod bursts: a wet pop with a rising squelch."""
+    return mix(lowpass(noise(0.25, 2500, 600, 0.6, power=1.3), 0.4),
+               tone("sine", 180, 420, 0.18, 0.4, vibrato=0.4, vibrato_rate=20))
+
+
+def heartbeat():
+    """The Overmind's heart: a double thump (lub-dub)."""
+    return mix(tone("sine", 70, 38, 0.16, 0.9, power=1.2),
+               at(0.2, tone("sine", 60, 34, 0.2, 0.7, power=1.2)))
+
+
+def warp():
+    """Jump to hyperspace: a long rising whine into a bright boom."""
+    return mix(tone("saw", 80, 1800, 1.6, 0.25, attack=0.3, power=0.8),
+               noise(1.6, 800, 12000, 0.3, attack=1.2, power=0.6),
+               at(1.5, mix(tone("sine", 140, 40, 0.8, 0.7), noise(0.8, 6000, 800, 0.4))))
+
+
+def data_cache():
+    """A data cache on the star map: a shimmering three-note chime."""
+    return seq(*(tone("triangle", freq(n), None, 0.09, 0.3) for n in ("E6", "B6", "G#6")),
+               tone("triangle", freq("E7"), None, 0.3, 0.25))
+
+
 def select():
     return tone("square", 880, None, 0.04, 0.3, duty=0.25)
 
@@ -310,6 +335,7 @@ SOUNDS = {
     "plasma": plasma, "arc": arc_loop, "rocket": rocket,
     "achievement": achievement, "magma_burst": magma_burst, "flare": flare,
     "teleport": teleport, "metal_break": metal_break,
-    "white_hole": white_hole,
+    "white_hole": white_hole, "spore": spore, "heartbeat": heartbeat, "warp": warp,
+    "data_cache": data_cache,
 }
 LOOPS = ("laser", "engine", "arc")         # played on their own channel, looping

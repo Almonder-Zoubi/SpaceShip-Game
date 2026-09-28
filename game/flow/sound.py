@@ -14,9 +14,11 @@ class SoundMixin:
         s = self.state
         if s in MENU_STATES:
             return "title"
+        if s == State.STAR_MAP:
+            return "starmap"
         if s == State.LEVEL_CLEAR:
             return "level_clear"
-        if s == State.WIN:
+        if s in (State.WIN, State.WARP):
             return "win"
         if s == State.GAME_OVER:
             return "game_over"
@@ -24,7 +26,7 @@ class SoundMixin:
             return None
         if self.phase == Phase.BOSS:
             return self.boss_entry.music
-        return self.level.music
+        return self.wave.music or self.level.music
 
     def _update_audio(self):
         audio = self.audio

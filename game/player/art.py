@@ -69,6 +69,12 @@ SHIP_PALETTES = {
             "W": (250, 250, 255), "L": (190, 196, 220), "G": (120, 128, 160), "D": (60, 64, 96),
             "Y": (255, 255, 255), "y": (170, 176, 210),
             "C": (255, 250, 200), "B": (255, 200, 60), "b": (170, 110, 20)},
+    # MK X: white armour, acid-green trim, the colour of the Swarm's bane.
+    "mk10": {**SHIP_COLORS,
+             "R": (230, 234, 240), "r": (150, 156, 170), "P": (255, 255, 255),
+             "W": (255, 255, 255), "L": (200, 206, 216), "G": (130, 138, 156), "D": (70, 76, 96),
+             "Y": (130, 240, 90), "y": (60, 150, 50),
+             "C": (220, 255, 200), "B": (120, 230, 90), "b": (40, 130, 50)},
     # --- skins (G8): paint jobs the player picks; they replace the level's MK paint ---
     # SOLAR: gold hull, red trim, orange canopy.
     "solar": {**SHIP_COLORS,
@@ -93,6 +99,12 @@ SHIP_PALETTES = {
               "W": (252, 252, 252), "L": (188, 188, 188), "G": (116, 116, 116),
               "D": (64, 64, 64), "Y": (32, 80, 236), "y": (16, 40, 140),
               "C": (164, 228, 252), "B": (60, 188, 252), "b": (0, 88, 248)},
+    # SWARMBANE (galaxy 1 medal): black chitin, acid green, gold.
+    "swarmbane": {**SHIP_COLORS,
+                  "R": (40, 36, 48), "r": (20, 18, 28), "P": (90, 84, 104),
+                  "W": (130, 240, 90), "L": (70, 170, 60), "G": (40, 100, 40), "D": (20, 50, 24),
+                  "Y": (255, 204, 64), "y": (184, 120, 36),
+                  "C": (220, 255, 190), "B": (130, 240, 90), "b": (40, 120, 40)},
     # GOLD TRIM (no-hit boss achievement): white hull, gold everywhere.
     "gold": {**SHIP_COLORS,
              "R": (255, 214, 80), "r": (196, 136, 30), "P": (255, 244, 180),

@@ -5,45 +5,47 @@ Update this file at the end of every work session: what changed, what's next, op
 ## Status
 
 **Branch:** `design` (from `682a781` "level 4 and a complete guide.md"): Phase 10 design,
-then G1–G14 (all systems + levels 5–9), one commit per milestone.
-**Current phase:** galaxy 1 levels 1–9 playable with every Phase 10 system: coins + rank,
-gifts + HANGAR 2.0, upgrades, game feel (juice, damage numbers, name cards, radio, options),
-boosts + combo / FEVER, wingmen, weapon slots + 5 new weapons, skins + achievements, and
-levels 5 SOLAR FORGE, 6 GHOST NEBULA, 7 CRYSTAL VEIL, 8 IRON GRAVEYARD, 9 EVENT HORIZON.
-G1 was playtested ("feels ok"); G3 "runs perfectly". **G2 and G4–G14 are not playtested by
-the user yet** (the G9 box stays open for that). Next: the user's playtest, then G15 (level 10
-SWARM HEART / OVERMIND). NEMESIS (Phase 9) is parked behind Phase 10.
+then G1–G15 (all systems + levels 5–10) and the STAR MAP, one commit per milestone.
+**Current phase:** galaxy 1 ORION REACH is complete — levels 1–10 playable with every Phase 10
+system: coins + rank, gifts + HANGAR 2.0, upgrades, game feel, boosts + combo / FEVER,
+wingmen, weapon slots + 5 new weapons, skins + achievements, levels 5 SOLAR FORGE ... 9 EVENT
+HORIZON, the finale 10 SWARM HEART (boss rush, THE OVERMIND, escape, warp cut-scene, galaxy
+medal) and an explorable STAR MAP between title and hangar (hidden data caches with story).
+G1 was playtested ("feels ok"); G3 "runs perfectly". **G2 and G4–G15 are not playtested by
+the user yet** (the G9 box stays open for that). Next: the user's playtest, then G16 (galaxy 2
+THE VEIL — design first). NEMESIS (Phase 9) is parked behind Phase 10.
 
 **Starting a new session?** Read this file's Snapshot + Decisions, then CLAUDE.md (module map,
 "where to look when debugging", conventions). Run the smoke test once before changing anything.
 
-## Handoff — next session: the user's playtest, then G15
+## Handoff — next session: the user's playtest, then G16 (design first)
 
-State at hand-off (2026-09-27): branch `design`, everything committed and pushed, full smoke
-test green (29 sections, extra seeds for the new sections), lint clean. Built in one long
-cloud session without a real window: **nothing since G3 was seen on macOS** — ask the user
-to look (all surfaces are SRCALPHA or `opaque_surface`; screenshots from `--shots` looked
-right).
+State at hand-off (2026-09-28): branch `design`, everything committed and pushed, full smoke
+test green (31 sections), lint clean. Built in long cloud sessions without a real window:
+**nothing since G3 was seen on macOS** — ask the user to look (all surfaces are SRCALPHA or
+`opaque_surface`; screenshots from `--shots` looked right). The star map is new ground: it
+draws its own full screen (`starmap/view.py`), so check it in a real window first.
 
 Decisions I had to make alone are marked **(ask)** in the log entries below — the main ones:
 options live in the pause menu (G4); combo coins capped at x2 (G5/G9); OVERDRIVE only drops
 once owned (G5); HUNTER / MEDIC are the level 6 / 8 gifts, MAGPIE a shop item (G6);
-secondaries never hurt bosses (G7); the Wraith's music keeps playing while it hides (G11).
+secondaries never hurt bosses (G7); the Wraith's music keeps playing while it hides (G11);
+the level 10 boss rush is Mothership, Leviathan, Helios (not the Twins, G15); the star map
+exists at all (a surprise the user asked for, G15+).
 
-Ask the user first: how levels 5–9 feel (the bot says bosses 6–7 run 1.2–1.4x their par
-time, levels take 4.5–5.5 min vs the designed 3–4), whether +3% upgrade tiers feel worth it,
-wingman strength, prices (upgrades 10,000 CR in total, levels 5–9 pay 550–900 CR).
+Ask the user first: how levels 5–10 feel (the bot needs ~5–6.5 min for level 10 vs the
+designed 3–4; the Overmind's hive phase is the slowest part for the bot), whether the star
+map is fun or should be skippable (ENTER on the title could go straight to the hangar),
+whether +3% upgrade tiers feel worth it, wingman strength, prices.
 
-G15 plan (DESIGN section 3): SWARM HEART — spore pods (telegraphed bullet rings), larvae
-(boids), a boss rush (Mothership, Leviathan, the Twins), OVERMIND (camera scroll allowed:
-hive wall with 4 glands -> heart with 3 callback phases -> 20 s ESCAPE), warp cut-scene,
-galaxy medal + SWARMBANE skin (gift after level 10). Tools that help: `tools/playtest.py`
-(bot, `--tank`, boss time vs par), `--dev` (every start point), `--shots`.
+G16 plan (DESIGN section 4): galaxy 2 THE VEIL — elite enemies, galaxy modifiers, 2nd
+wingman slot, first abilities; needs a design pass with the user first. The warp gate on the
+star map (`starmap/model.GATE`) is where galaxy 2's map would begin.
 
 Working headless (cloud): `pip install -r requirements.txt pyflakes`, then
 `SDL_VIDEODRIVER=dummy SDL_AUDIODRIVER=dummy python3 ESA3.py --smoke-test [--only a,b]
 [--shots DIR]` and `python3 -m pyflakes ESA3.py game/ tests/ tools/`. The first start renders
-the sounds into `sounds/generated/` (git-ignored, ~12 s now).
+the sounds into `sounds/generated/` (git-ignored, ~14 s now).
 
 ## Snapshot — what the game is right now
 
@@ -64,7 +66,30 @@ the sounds into `sounds/generated/` (git-ignored, ~12 s now).
   pulls everything incl. the ship (thrust escapes), curves shots, SLINGSHOT ring (x3 score +
   coins, x2 charge, gun shots +50%), WHITE HOLE flip every 25 s; comets, interceptors (front
   shield) -> THE TWINS (tether, revive in 8 s unless both go down, orbit / swap / propeller).
-  Level 9 is the last level for now (WIN -> gift -> title, CHAMPION achievement).
+- **Level 10 SWARM HEART (G15, galaxy finale, MK X 550 HP):** a living HIVE TUNNEL — flesh
+  walls on both sides that breathe (touching = 5% max HP + a push back); spore pods (swell
+  0.7 s with a closing red ring, then a ring of 8 slow bullets; shot early they just pop),
+  larva flocks (boids: cohesion, alignment, separation + hunting the rocket, leave after 9 s).
+  4 waves: field 45 s; field 30 s -> BOSS RUSH Mothership, Leviathan, Helios (1.5x each);
+  field 30 s -> THE OVERMIND 5x (`bosses/overmind.py`): P1 a hive WALL across the top with
+  4 GLANDS (only they take hits, spit + spore pods + larvae; the last one tears the wall), P2
+  the heart descends (Gunship fans, larvae, rings), P3 x1.2 the TENTACLE (lock-on crosshair,
+  lashes to that spot = the Leviathan's lunge), P4 x1.4 the BIO-BEAM (Mothership's beam,
+  tracks the rocket slowly) + spirals; a heartbeat SFX follows its rage. Then ESCAPE! (20 s,
+  own music, countdown, the walls close in, debris rains, the world rushes x1.5). Then WARP:
+  a 9 s cut-scene (streaks, the rocket jumps, "GALAXY 1 COMPLETE", the galaxy medal, "NEXT:
+  GALAXY 2 THE VEIL"; ENTER skips) -> WIN -> SWARMBANE paint (gift) -> the star map with the
+  warp gate open. CHAMPION on the win; medals saved (`save.medals`).
+- **STAR MAP (G15+, the surprise):** title ENTER -> a 720x520 map of the ORION REACH; fly the
+  rocket (arrows / mouse, drifts, rotates to its heading) along the route of 10 level planets
+  (rock / sun / black hole / hive looks, rank badges, a ring on the frontier, locked ones dark
+  with "?"); a card shows level, boss and best rank, ENTER lands = that level's hangar. Six
+  hidden DATA CACHES (Vega's log, a pirate ledger, the Hollow, a forge blueprint, the Twins'
+  story, a signal from the Veil): invisible until 46 px, a scanner ring + beep gets faster
+  nearby; each pays 100–200 CR once and shows its story; all six = EXPLORER (STARDUST trail).
+  The black hole planet pulls the rocket; the warp gate opens with the galaxy medal. Parallax
+  stars, a nebula glow per level region, own music (`starmap`, F lydian). Hangar ESC -> map,
+  map ESC -> title.
 - **Game feel (G4):** juice tiers (medium: minion / big rock kill, ship hit = shake + 0.04 s
   hit-stop + embers; large: boss phase / kill / death = 0.12 s hit-stop + 0.5 s slow-mo +
   flash), boss damage numbers, boss name cards with an epithet, radio cards (COMMANDER VEGA,
@@ -78,7 +103,7 @@ the sounds into `sounds/generated/` (git-ignored, ~12 s now).
   secondary (ROCKET POD, SIDE CANNONS: rocks + minions only). New primaries ~ gun DPS.
 - **Skins (G8):** paint jobs, engine trails, tracer / beam colours, death styles; 6
   achievements unlock some of them.
-- **Flow:** title → HANGAR (pick a hull, ENTER launches) → LEVEL 1 (asteroid field 75 s → WARNING, hull repaired → Gunship) → LEVEL 1 CLEAR
+- **Flow:** title → STAR MAP (land on a planet) → HANGAR (pick a hull, ENTER launches) → LEVEL 1 (asteroid field 75 s → WARNING, hull repaired → Gunship) → LEVEL 1 CLEAR
   screen (ship upgrade to MK II, ENTER) → LEVEL 2 "CRIMSON BELT" (rust rocks + drone formations,
   80 s → Gunship rematch 1.5x → WARNING → CARRIER 4x) → LEVEL 2 CLEAR (MK III) → LEVEL 3
   "DARK NEBULA" in 3 waves (HUD "LEVEL 3-1"): wave 1 rocks + drones 45 s; wave 2 rocks + drones
@@ -216,6 +241,32 @@ the sounds into `sounds/generated/` (git-ignored, ~12 s now).
   the key is decided then.
 
 ## Log
+
+### 2026-09-28 — G15: level 10 SWARM HEART, THE OVERMIND, the warp finale + the STAR MAP
+- `hazards/hive.HiveTunnel`: breathing flesh walls (width by row and time), contact hurts +
+  pushes back; during an `escape` wave it collapses (walls close in to 70 px by the end,
+  chitin debris, the world x1.5). `Game._world_speed()` multiplies a hazard's `world_speed`.
+- `minions/swarm.py`: `SporePod`, `Larva` (boids) + spawners; `bosses/overmind.py` (4 phases,
+  `Gland`s as `parts()` in phase 1, `Tentacle`, bio-beam, heartbeat, prebuilt wall surface).
+- Level flow: `_finish_wave()` (next wave / level clear / win), `Wave(music, escape)`,
+  `Level(finale)`; `is_final_boss()` looks at the last wave with bosses. New state WARP
+  (`flow/finale.py`: medal, cut-scene, ENTER skips) and STAR_MAP (`flow/starmap.py`,
+  `starmap/model.py` pure logic, `starmap/view.py` drawing). After a win: gift -> star map.
+- Save: `medals`, `caches` (old saves load with empty lists). Items: SWARMBANE (gift of 1-10),
+  STARDUST trail (EXPLORER achievement). MK X loadout + paint; `chitin` rocks; hive palette.
+- Audio: songs `level10` (D minor heartbeat), `overmind` (A minor, 170 bpm), `escape` (E minor,
+  196 bpm), `starmap` (F lydian); SFX `spore`, `heartbeat`, `warp`, `data_cache`.
+- Found with the bot: the wall contact test was inverted (the rocket counted as touching
+  whenever it was *inside* the tunnel) — fixed, and the smoke test now checks the middle is
+  safe. The boss rush had the Twins; at 1.5x their revive made the rush drag (270 s for the
+  bot) **(ask)**: swapped for Helios. The bot now respects the hive walls like a player.
+- Bot playtest level 10 (`--tank`): maxed 317 s, boss 136/165 s, rank B; new player 394 s,
+  boss 209/165 s, rank B. Worst frame 15 ms once (first Mothership), draw ~1.5 ms.
+- Smoke test: new sections `level10` (walls, spores, larvae, rush, all Overmind phases,
+  escape, warp, medal, CHAMPION, SWARMBANE, map with the gate open) and `starmap` (flying,
+  landing, locked planets, bounds, black hole pull, scanner, caches pay once, EXPLORER, save);
+  `level9` now ends in LEVEL_CLEAR -> ARC / SPECTER -> hangar of level 10; `menus` / `mouse`
+  go through the map.
 
 ### 2026-09-27 — G14: level 9 EVENT HORIZON (+ fixes found by the bot)
 - `hazards/blackhole.BlackHole`: drifts across the top third; pulls rocks, enemy bullets, the

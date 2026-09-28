@@ -7,7 +7,9 @@ from ..config.display import LOW_H, LOW_W
 from ..config.palette import (ACCENT, BOOST_COLORS, COIN, DANGER, EMPTY, GOOD, INK, RANK_COLORS, SPACE, TEXT,
                               TEXT_DIM, TEXT_SHADOW)
 from ..flow.states import Phase, State
-from ..levels.data import LEVELS
+from ..config.tuning import WARP_TIME
+from ..levels.data import GALAXIES, LEVELS
+from .medal import draw_medal
 
 
 class ScreensMixin:
@@ -15,10 +17,19 @@ class ScreensMixin:
 
     def draw(self):
         c = self.canvas
+        if self.state == State.STAR_MAP:          # a screen of its own (starmap/view.py)
+            self.star_map_view.draw(c, self.star_map, self.time, self.save.coins,
+                                    int(self.time * 2.5) % 2 == 0)
+            if self.flash > 0:
+                v = int(255 * min(1.0, self.flash / 0.12))
+                c.fill((v, v, v), special_flags=pygame.BLEND_ADD)
+            for popup in self.popups:
+                popup.draw(c, self.font)
+            return
         c.fill(SPACE)
         self.background.draw(c)
         hazard = self.hazard if self.state not in (State.TITLE, State.HANGAR, State.REWARD,
-                                                   State.DEV_MENU) else None
+                                                   State.DEV_MENU, State.WARP) else None
         if hazard:
             hazard.draw_back(c)
         self.smoke.draw(c)
@@ -101,6 +112,9 @@ class ScreensMixin:
             self.gift_screen.draw(c, self.gift_options, self.gift_cursor,
                                   self.gift_key.split("-")[1], self.gift_paint, self.time, blink)
             return
+        if s == State.WARP:
+            self._draw_warp(c)
+            return
         loadout = self.ship.loadout
         self.hud.draw(c, self.ship, self.score, max(self.best, self.score),
                       self.distance / self.wave.length, self.weapon, self.time, boss=self.boss,
@@ -121,6 +135,12 @@ class ScreensMixin:
         if revive and int(self.time * 4) % 2 == 0:
             text, x, y = revive
             self.font.draw(c, text, (int(x), int(y)), DANGER, shadow=TEXT_SHADOW, center=True)
+        if s == State.PLAYING and self.wave.escape and self.phase == Phase.FIELD:
+            left = max(0.0, self.wave.length - self.distance)       # the escape countdown
+            color = DANGER if int(self.time * 4) % 2 else TEXT
+            y = 62 if self.radio else 30                             # below the radio card
+            self.font.draw(c, f"ESCAPE {left:04.1f}", (LOW_W // 2, y), color, scale=2,
+                           shadow=TEXT_SHADOW, center=True)
         if s == State.PLAYING and self.phase == Phase.WARNING:
             self._draw_warning(c)
         elif s == State.PLAYING and self.alert:
@@ -144,6 +164,43 @@ class ScreensMixin:
                                DANGER, shadow=TEXT_SHADOW, center=True)
         elif s in (State.LEVEL_CLEAR, State.WIN) and self.state_time > 0.8:
             self._draw_results(c, blink, win=s == State.WIN)
+
+    def _draw_warp(self, c):
+        """Hyperspace: stars stretch into streaks, the medal, the next galaxy teased."""
+        t = self.state_time
+        k = min(1.0, t / WARP_TIME)
+        cx, cy = LOW_W // 2, LOW_H // 2
+        speed = self.warp_speed()
+        for i in range(70):                       # streaks radiating from the centre
+            a = i * 2.39996
+            r0 = ((i * 53 + t * 40 * speed) % 260)
+            length = min(80, 2 + speed * r0 * 0.02)
+            x0, y0 = cx + math.cos(a) * r0, cy + math.sin(a) * r0 * 0.8
+            x1, y1 = cx + math.cos(a) * (r0 + length), cy + math.sin(a) * (r0 + length) * 0.8
+            v = min(255, 60 + int(r0))
+            color = (v // 2, v * 3 // 4, v) if i % 3 else (v, v, v)
+            pygame.draw.line(c, color, (int(x0), int(y0)), (int(x1), int(y1)))
+        self.fire.draw(c)                         # the rocket stays in front of the streaks
+        self.ship.draw_flames(c)
+        self.ship.draw(c)
+        f = self.font
+        galaxy = self.galaxy
+        if t > 0.8:
+            f.draw(c, f"GALAXY {galaxy.number} COMPLETE", (cx, 22), TEXT, scale=2,
+                   shadow=TEXT_SHADOW, center=True)
+            f.draw(c, f"{galaxy.name} IS SAFE", (cx, 42), TEXT_DIM, shadow=TEXT_SHADOW, center=True)
+        if t > 1.8:
+            draw_medal(c, cx, 92, self.time, scale=2)
+            label = "GALAXY MEDAL!" if self.medal_new else "GALAXY MEDAL"
+            f.draw(c, label, (cx, 118), COIN[2], shadow=TEXT_SHADOW, center=True)
+        if k > 0.62:
+            nxt = next((g for g in GALAXIES if g.number == galaxy.number + 1), None)
+            name = nxt.name if nxt else "THE VEIL"
+            f.draw(c, "THE SWARM FLEES HOME.", (cx, 150), TEXT, shadow=TEXT_SHADOW, center=True)
+            f.draw(c, f"NEXT: GALAXY {galaxy.number + 1}  {name}", (cx, 162), ACCENT,
+                   shadow=TEXT_SHADOW, center=True)
+        if t > 1.0 and int(self.time * 2.5) % 2 == 0:
+            f.draw(c, "ENTER: CONTINUE", (cx, 222), TEXT_DIM, shadow=TEXT_SHADOW, center=True)
 
     def _draw_pause(self, c, blink):
         """PAUSED title and the options menu."""

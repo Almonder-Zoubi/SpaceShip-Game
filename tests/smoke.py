@@ -71,6 +71,14 @@ from game.minions.bullets import EnemyBullet
 from game.progression.results import RANKS, LevelStats, better_rank
 from game.ui.popup import DamageNumber
 from game.weapons.base import Hit
+from game.bosses.overmind import Overmind
+from game.config.display import LOW_H
+from game.config.tuning import (BOSS_ROAR_TIME, ESCAPE_SPEED, LARVA_TIME, MAP_H, MAP_W,
+                                SPORE_RIPEN, SPORE_SHOTS, SPORE_SWELL)
+from game.hazards.hive import HiveTunnel
+from game.minions.swarm import SporePod, larva_flock
+from game.progression.items import PAINT
+from game.starmap.model import BLACK_HOLE, CACHES, GATE, NODES
 
 FIRE = Keys(pygame.K_SPACE)
 JUICE_PAD = 0.8          # hit-stop + slow-mo after a big event stretch the world's time
@@ -202,7 +210,10 @@ def test_mouse(h):
     assert not game.mouse.active, "a resting / barely moved pointer doesn't take over"
     h.mouse(pygame.MOUSEBUTTONDOWN, (100, 100))
     h.mouse(pygame.MOUSEBUTTONUP, (100, 100))
-    assert game.state == State.HANGAR, "click = ENTER on the title"
+    assert game.state == State.STAR_MAP, "click = ENTER on the title"
+    h.mouse(pygame.MOUSEBUTTONDOWN, (100, 100))
+    h.mouse(pygame.MOUSEBUTTONUP, (100, 100))
+    assert game.state == State.HANGAR, "click = land on the planet the rocket is parked at"
     h.mouse(pygame.MOUSEBUTTONDOWN, (100, 100))
     h.mouse(pygame.MOUSEBUTTONUP, (100, 100))
     assert game.state == State.PLAYING and game.mouse.active and not game.mouse.firing
@@ -1025,7 +1036,7 @@ def test_level9(h):
     the event horizon hurts, the SLINGSHOT ring triples score and powers shots, the WHITE
     HOLE pushes everything out and spits swallowed bullets back; comets; interceptors block
     head-on shots; THE TWINS: the tether hurts, a twin revives unless both go down; the
-    final win gives the last gift and CHAMPION."""
+    level's gift (ARC or SPECTER) leads on to level 10."""
     game = h.game
     for level in LEVELS:                              # every radio line fits on its card
         for line in list(level.radio) + [x for wave in level.waves for x in wave.radio]:
@@ -1108,14 +1119,14 @@ def test_level9(h):
     h.shot("interceptors")
     game.enemies.clear()
 
-    # THE TWINS (the final boss of galaxy 1 so far).
+    # THE TWINS (level 9's boss).
     game.start(8, 0, 2, 0)
     game.radio = None
     game.ship.hp = 10 ** 6
     h.run(h.seconds(WARNING_TIME + Twins.ENTER_TIME + 0.3), clear_rocks=True)
     boss = game.boss
     game.ship.hp = 10 ** 6                            # (the WARNING refilled the hull)
-    assert isinstance(boss, Twins) and boss.fighting and game.is_final_boss()
+    assert isinstance(boss, Twins) and boss.fighting and not game.is_final_boss()
     assert game._music_track() == "twins" and len(boss.parts()) == 2
     h.run(h.seconds(2.0), FIRE, clear_rocks=True)
     h.shot("twins")
@@ -1142,13 +1153,11 @@ def test_level9(h):
     assert boss.state == "dying", "both went down together"
     for _ in range(h.seconds(10)):
         h.run(1, clear_rocks=True)
-        if game.state == State.WIN:
+        if game.state == State.LEVEL_CLEAR:
             break
     game.god = False
-    assert game.state == State.WIN, (game.state, game.phase, boss.state)
-    assert "CHAMPION" in game.save.achievements
+    assert game.state == State.LEVEL_CLEAR, (game.state, game.phase, boss.state)
     h.run(h.seconds(1.2))
-    h.shot("win")
     game.save.gifts = [k for k in game.save.gifts if k != "1-9"]
     game.save.owned.remove("SPECTER")
     h.post(pygame.K_RETURN)
@@ -1158,9 +1167,286 @@ def test_level9(h):
     h.shot("gift_specter")
     h.post(pygame.K_RETURN)
     assert game.inventory.owns("SPECTER") and game.hull.name == "SPECTER"
-    assert game.state in (State.TITLE, State.DEV_MENU)
+    assert game.state == State.HANGAR and game.next_launch[0] == 9, "on to level 10"
     game.choose_hull(ARROW)
     game.to_title()
+
+
+def test_level10(h):
+    """Level 10 SWARM HEART: hive walls hurt and push back, spore pods burst into a ring
+    (unless shot first), larvae flock onto the rocket and leave; the boss rush; THE OVERMIND:
+    glands take the hits while the wall stands (the heart can't be hit), the wall tears, the
+    lash locks on, the bio-beam burns; the ESCAPE run; the WARP finale with the galaxy medal,
+    CHAMPION, the SWARMBANE gift and the star map with its gate open."""
+    game = h.game
+    game.choose_hull(ARROW)
+    game.start(9)
+    game.radio = None
+    game.ship.hp = 10 ** 6
+    tunnel = game.hazard
+    assert isinstance(tunnel, HiveTunnel) and game.ship.loadout.name == "MK X"
+    assert game._music_track() == "level10" and game.level.finale
+    h.run(h.seconds(2.0))
+    h.shot("level10")
+    # The walls hurt and push the rocket back into the tunnel; the middle is safe.
+    ship = game.ship
+    ship.invulnerable_time, hp0 = 0, ship.hp
+    game.shield = 0
+    h.run(h.seconds(0.5), clear_rocks=True)
+    game.enemy_bullets.clear()
+    game.enemies.clear()
+    game.extra_timers = [99.0] * len(game.extra_timers)   # (no spores / larvae just now)
+    ship.x, ship.y = game.SHIP_START
+    ship.invulnerable_time, hp0 = 0, ship.hp
+    h.run(h.seconds(1.0), clear_rocks=True)
+    assert ship.hp == hp0, "the middle of the tunnel is safe"
+    edge = tunnel.width(-1, ship.y)
+    ship.x = edge - 2
+    game.shield = 0
+    h.run(1, clear_rocks=True)
+    assert ship.hp < hp0 and ship.x > edge, "the wall hurts and pushes back"
+    ship.x, ship.y = game.SHIP_START
+    # Spore pods: swell, then a ring of bullets; shot early, they just pop.
+    game.enemies.clear()
+    game.enemy_bullets.clear()
+    pod = SporePod(160)
+    pod.y = SPORE_RIPEN - 2
+    game.spawn_enemies([pod])
+    h.run(h.seconds(0.3), clear_rocks=True)
+    assert pod.swell >= 0
+    h.shot("spore_swell")
+    h.run(h.seconds(SPORE_SWELL + 0.3), clear_rocks=True)
+    assert pod not in game.enemies and len(game.enemy_bullets) >= SPORE_SHOTS, "the pod bursts"
+    game.enemy_bullets.clear()
+    early = SporePod(100)
+    early.y = 40
+    game.enemies = [early]
+    early.damage(early.hp + 1)
+    h.run(2, clear_rocks=True)
+    assert early not in game.enemies and not game.enemy_bullets, "shot early: no ring"
+    # Larvae flock onto the rocket, then swarm off.
+    game.enemies.clear()
+    flock = larva_flock(game, 10)
+    game.spawn_enemies(flock)
+    d0 = sum(math.hypot(l.x - ship.x, l.y - ship.y) for l in flock) / len(flock)
+    h.run(h.seconds(1.2), clear_rocks=True)
+    alive = [l for l in flock if l in game.enemies]
+    d1 = sum(math.hypot(l.x - ship.x, l.y - ship.y) for l in alive) / max(1, len(alive))
+    assert d1 < d0, "the flock hunts the rocket"
+    h.shot("larvae")
+    game.god = True
+    h.run(h.seconds(LARVA_TIME + 3), clear_rocks=True)
+    assert not any(l in game.enemies for l in flock), "the flock leaves after a while"
+    game.enemy_bullets.clear()
+
+    # The boss rush: three old enemies, one after the other.
+    rush = game.level.waves[1].bosses
+    assert [e.boss_class for e in rush] == [Mothership, Leviathan, Helios]
+    game.start(9, 0, 1, 0)
+    game.radio = None
+    h.run(h.seconds(WARNING_TIME + 0.5), clear_rocks=True)
+    assert isinstance(game.boss, Mothership)
+    while not game.boss.fighting:
+        h.run(10, clear_rocks=True)
+    h.kill(game.boss)
+    h.run(h.seconds(game.boss.DEATH_TIME + 1.5 + JUICE_PAD + 0.5), clear_rocks=True)
+    assert game.boss_index == 1 and game.phase in (Phase.WARNING, Phase.BOSS), "next in line"
+
+    # THE OVERMIND.
+    game.start(9, 0, 2, 0)
+    game.radio = None
+    h.run(h.seconds(WARNING_TIME + Overmind.ENTER_TIME + 0.3), clear_rocks=True)
+    boss = game.boss
+    assert isinstance(boss, Overmind) and boss.fighting and game.is_final_boss()
+    assert game._music_track() == "overmind" and boss.hive and len(boss.parts()) == 4
+    assert not boss.contains(boss.x, boss.y), "the heart hides behind the wall"
+    boss.hit_part(boss, boss.max_hp, source=None)
+    assert boss.hp == boss.max_hp
+    h.run(h.seconds(2.0), FIRE, clear_rocks=True)
+    h.shot("overmind_hive")
+    for gland in boss.glands[:3]:
+        boss.roar = 0
+        game._damage_boss(Hit(gland, gland.hp + 50, gland.x, gland.y, 0, -1, 0))
+    assert boss.phase == 0 and len(boss.parts()) == 1, "3 glands down, the wall holds"
+    boss.roar = 0
+    last = boss.glands[3]
+    game._damage_boss(Hit(last, last.hp + 50, last.x, last.y, 0, -1, 0))
+    assert boss.phase == 1 and boss.parts() == [boss], "the last gland tears the wall"
+    h.run(h.seconds(BOSS_ROAR_TIME + 0.4), clear_rocks=True)
+    h.shot("overmind_tear")
+    h.run(h.seconds(1.5), clear_rocks=True)
+    assert boss.tear >= 1 and abs(boss.y - boss.home_y) < 8, "the heart descends"
+    h.shot("overmind_heart")
+    boss.roar = 0
+    game._damage_boss(Hit(boss, boss.max_hp, 0, 0, 0, -1, 0))
+    assert boss.phase == 2
+    boss.roar = 0
+    locked = lashed = False
+    for _ in range(h.seconds(8)):
+        h.run(1, clear_rocks=True)
+        if boss.lock_target and not locked and boss.attack_time > 0.5:
+            h.shot("overmind_lock")
+            locked = True
+        if boss.tentacle.state >= 2:
+            lashed = True
+            assert boss.contact_damage > boss.bullet_damage
+        if locked and lashed and boss.tentacle.state >= 3:
+            break
+    assert locked and lashed, "the tentacle locks on and lashes"
+    h.shot("overmind_lash")
+    game._damage_boss(Hit(boss, boss.max_hp, 0, 0, 0, -1, 0))
+    assert boss.phase == 3
+    boss.roar = 0
+    game.god = False
+    game.ship.hp = 10 ** 6
+    hurt = False
+    for _ in range(h.seconds(8)):
+        if boss.beam == 2:
+            game.ship.x, game.ship.y = boss._mouth()[0], LOW_H - 40
+            game.ship.invulnerable_time, hp0 = 0, game.ship.hp
+            game.shield = 0
+            h.run(1, clear_rocks=True)
+            hurt = game.ship.hp < hp0
+            break
+        h.run(1, clear_rocks=True)
+    assert hurt, "the bio-beam burns"
+    h.shot("overmind_beam")
+    game.god = True
+    h.kill(boss)
+    for _ in range(h.seconds(8)):
+        h.run(1, clear_rocks=True)
+        if game.wave.escape:
+            break
+    assert game.wave.escape and game.phase == Phase.FIELD, "then: ESCAPE!"
+    assert game._music_track() == "escape"
+    h.run(h.seconds(4.0), Keys(pygame.K_UP), clear_rocks=True)
+    assert game.hazard.collapse > 0 and game.hazard.world_speed == ESCAPE_SPEED
+    h.shot("escape")
+    for _ in range(h.seconds(25)):
+        h.run(1, Keys(pygame.K_UP))
+        if game.state == State.WARP:
+            break
+    assert game.state == State.WARP, (game.state, game.phase)
+    assert game.medal_new and 1 in game.save.medals and "CHAMPION" in game.save.achievements
+    assert game.record_rank and not game.enemies and game.boss is None
+    h.run(h.seconds(3.0))
+    h.shot("warp")
+    h.run(h.seconds(3.0))
+    h.shot("warp_jump")
+    h.post(pygame.K_RETURN)
+    assert game.state == State.WIN, "ENTER skips the rest"
+    game.god = False
+    h.run(h.seconds(1.2))
+    h.shot("win")
+    game.save.gifts = [k for k in game.save.gifts if k != "1-10"]
+    game.save.owned.remove("SWARMBANE")
+    h.post(pygame.K_RETURN)
+    assert game.state == State.REWARD and [i.id for i in game.gift_options] == ["SWARMBANE"]
+    h.run(h.seconds(0.6))
+    h.shot("gift_swarmbane")
+    h.post(pygame.K_RETURN)
+    assert game.inventory.owns("SWARMBANE") and game.skin(PAINT).id == "SWARMBANE"
+    assert game.state == State.STAR_MAP and game.star_map.medal, "the gate is open"
+    h.run(10)
+    h.shot("starmap_medal")
+    game.save.skins = {}
+    game.choose_hull(ARROW)
+    game.to_title()
+
+
+def test_starmap(h):
+    """STAR MAP: fly the rocket between planets (cards), locked planets refuse a landing,
+    the black hole planet pulls, hidden data caches beep on the scanner, show up close,
+    pay once and tell a story; finding all six earns EXPLORER (STARDUST trail); saved."""
+    game = h.game
+    for cache in CACHES:                                 # every story line fits on its card
+        assert len(cache.title) <= 40 and all(len(line) <= 40 for line in cache.lines), cache.id
+        assert 0 <= cache.x <= MAP_W and 0 <= cache.y <= MAP_H
+    assert len(NODES) >= len(LEVELS)
+    game.save.caches = []
+    game.save.achievements = [a for a in game.save.achievements if a != "EXPLORER"]
+    game.save.unlock(10)
+    game.to_title()
+    game.start_level = 0
+    h.post(pygame.K_RETURN)
+    m = game.star_map
+    assert game.state == State.STAR_MAP and m.near_node() == 0
+    assert game._music_track() == "starmap"
+    h.run(10)
+    h.shot("starmap")
+    # Fly to planet 2.
+    reached = False
+    for _ in range(h.seconds(4)):
+        tx, ty = NODES[1]
+        keys = []
+        if abs(tx - m.ship.x) > 3:
+            keys.append(pygame.K_RIGHT if tx > m.ship.x else pygame.K_LEFT)
+        if abs(ty - m.ship.y) > 3:
+            keys.append(pygame.K_DOWN if ty > m.ship.y else pygame.K_UP)
+        h.run(1, Keys(*keys))
+        if m.near_node() == 1:
+            reached = True
+            break
+    assert reached and m.ship.angle != 0, "flew to planet 2, nose first"
+    h.run(5)
+    h.shot("starmap_card")
+    # A locked planet refuses a landing.
+    m.unlocked = 2
+    m.place_at(5)
+    h.post(pygame.K_RETURN)
+    assert game.state == State.STAR_MAP
+    m.unlocked = game.selectable_levels
+    # The rocket stays on the map.
+    m.ship.x, m.ship.y = 5, 5
+    h.run(20, Keys(pygame.K_LEFT, pygame.K_UP))
+    assert m.ship.x >= 8 and m.ship.y >= 8
+    # The black hole planet pulls the rocket in (it can fly away).
+    bx, by = NODES[BLACK_HOLE]
+    m.ship.x, m.ship.y, m.ship.vx, m.ship.vy = bx + 50, by, 0, 0
+    h.run(30)
+    assert m.ship.x < bx + 45, "pulled in"
+    h.run(60, Keys(pygame.K_RIGHT))
+    assert m.ship.x > bx + 50, "full thrust escapes"
+    # A hidden cache: the scanner beeps near it, it shows up close, it pays once.
+    cache = CACHES[0]
+    m.ship.x, m.ship.y, m.ship.vx, m.ship.vy = cache.x + 100, cache.y, 0, 0
+    assert m.signal() > 0 and not m.visible(cache)
+    m.ship.x = cache.x + 30
+    assert m.visible(cache)
+    coins = game.save.coins
+    h.run(5)
+    h.shot("starmap_cache_near")
+    for _ in range(h.seconds(2)):
+        h.run(1, Keys(pygame.K_LEFT))
+        if m.card:
+            break
+    assert m.card is cache and game.save.coins == coins + cache.coins
+    assert game.save.caches == [cache.id]
+    h.shot("starmap_cache")
+    h.post(pygame.K_RETURN)
+    assert m.card is None and game.state == State.STAR_MAP
+    game.open_star_map(0)
+    assert cache.id in game.star_map.found and game.star_map.hidden_caches()[0] is not cache
+    m = game.star_map
+    game._open_cache(cache)                              # (a second visit pays nothing)
+    assert game.save.coins == coins + cache.coins
+    for other in CACHES[1:]:
+        m.card = None
+        m.ship.x, m.ship.y, m.ship.vx, m.ship.vy = other.x, other.y, 0, 0
+        h.run(1)
+    assert set(game.save.caches) == {c.id for c in CACHES} and m.signal() == 0
+    assert "EXPLORER" in game.save.achievements and game.inventory.owns("STARDUST")
+    # The warp gate: sealed without the medal.
+    m.card = None
+    m.medal = False
+    m.ship.x, m.ship.y = GATE
+    h.run(5)
+    assert m.near_gate()
+    h.shot("starmap_gate")
+    saved = SaveData(h.save_path)
+    assert set(saved.caches) == {c.id for c in CACHES}
+    h.post(pygame.K_ESCAPE)
+    assert game.state == State.TITLE
 
 
 def test_save(h):
@@ -1996,7 +2282,8 @@ def test_skins(h):
 
 
 def test_title_menus(h):
-    """Title: level select with LEFT/RIGHT, scores alternate in; ENTER -> hangar -> launch."""
+    """Title: level select with LEFT/RIGHT, scores alternate in; ENTER -> star map (parked
+    at the selected level) -> ENTER lands -> hangar -> launch; ESC goes back step by step."""
     game = h.game
     game.save.unlock(3)
     game.save.add_record(1000, 1)
@@ -2009,13 +2296,19 @@ def test_title_menus(h):
     game.draw()
     h.shot("title_records")
     h.post(pygame.K_RETURN)
+    assert game.state == State.STAR_MAP and game.star_map.near_node() == 2, "parked at 3"
+    h.post(pygame.K_RETURN)                              # land: the hangar of that level
     assert game.state == State.HANGAR and game.hangar_item.id == game.hull.name
     h.post(pygame.K_DOWN)
     h.run(30)
     h.shot("hangar")
     h.post(pygame.K_ESCAPE)
-    assert game.state == State.TITLE, "ESC leaves the hangar"
-    h.post(pygame.K_UP)                                  # arrows open the hangar too
+    assert game.state == State.STAR_MAP, "ESC leaves the hangar for the map"
+    h.post(pygame.K_ESCAPE)
+    assert game.state == State.TITLE, "ESC leaves the map"
+    h.post(pygame.K_UP)                                  # arrows open the map too
+    assert game.state == State.STAR_MAP
+    h.post(pygame.K_RETURN)
     assert game.state == State.HANGAR
     while game.hangar_item.id != "WASP":
         h.post(pygame.K_DOWN)
@@ -2202,7 +2495,8 @@ SECTIONS = (
     ("damage", test_damage), ("balance", test_balance), ("pickups", test_pickups),
     ("campaign", test_campaign), ("level4", test_level4),
     ("level5", test_level5), ("level6", test_level6), ("level7", test_level7),
-    ("level8", test_level8), ("level9", test_level9), ("save", test_save), ("menus", test_title_menus),
+    ("level8", test_level8), ("level9", test_level9), ("level10", test_level10),
+    ("starmap", test_starmap), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
     ("upgrades", test_upgrades), ("feel", test_feel),
     ("boosts", test_boosts), ("wingmen", test_wingmen),

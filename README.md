@@ -20,13 +20,13 @@ from a small pure-Python synthesizer.
 | R | Switch between your 2 primary weapons (chosen in the hangar) |
 | P | Pause — the pause menu has the options (volume, reduce shake / flashes) |
 | C | Toggle CRT scanlines |
-| Enter | Start (opens the hangar) / equip or buy in the hangar (again = launch) / restart |
+| Enter | Start (opens the star map) / land on a planet (its hangar) / equip or buy in the hangar (again = launch) / restart |
 | Left / Right | Title: choose an unlocked level. Hangar: switch tab. Gift: choose. Pause: change an option |
 | Up / Down | Hangar: pick an item. Pause: pick an option |
 | Space | Hangar: launch |
 | T | Ultimate missile storm (from level 3) |
 | Enter (in flight) | Skip the radio message |
-| Esc | Back to menu / quit |
+| Esc | One screen back (hangar → star map → title) / quit |
 
 You start with the balanced ARROW and a machine gun. Destroyed rocks, drones and bosses drop
 **coins**, but they only go into your bank when you win the level. Every cleared level shows
@@ -36,10 +36,16 @@ wingmen PIP or GUARDIAN, SCATTER or the OVERDRIVE boost, ROCKET POD or HUNTER, P
 paint, SIDE CANNONS or MEDIC, ARC or the secret SPECTER hull. The **hangar** before every level is
 your base: ships, weapons (2 primaries + an automatic secondary), wingmen (they level up),
 upgrades (5 tracks, POWER %) and skins (paint, engine trail, tracers, beam, death style;
-achievements unlock some). Every ship is also upgraded between levels (MK I → MK IX). In flight,
+achievements unlock some). Every ship is also upgraded between levels (MK I → MK X). In flight,
 **boosts** fall like repair kits (OVERDRIVE, SHIELD, MAGNET, SLOW-MO, TWIN) and quick kills build a
 **combo** (up to x8) that ends in **FEVER**. Levels belong to galaxies of 10 (galaxy 1: ORION
-REACH, levels 1–9 playable).
+REACH, all 10 levels playable).
+
+Between the title and the hangar lies the **star map**: fly your rocket between the level
+planets (each shows its boss and your best rank) and land on one to launch it. Explore: six
+**data caches** are hidden in the dark — your scanner beeps faster as you get close. Each tells
+a piece of the story and pays credits once; find all six for a secret skin. Mind the black
+hole planet, it pulls. Beat the galaxy and the warp gate opens…
 
 Fly to the end of the asteroid field (progress bar at the top). Asteroids drain your health
 bar — bigger rocks hurt more and take longer to destroy; shooting them slows their fall, and big
@@ -47,8 +53,10 @@ rocks split into fragments. At the end: **WARNING** — your hull is repaired an
 boss attacks. Nine levels, each with its own twist and boss: ice rocks and the serpent LEVIATHAN
 (4), magma chain reactions and the forge HELIOS (5), fog and the stealth frigate WRAITH (6),
 crystals that split your laser and the prism queen KALEIDOS (7), a ship graveyard and the junk
-king SCRAPJAW (8), and a black hole that pulls everything — you too — where the twins ORA and
-ZEN wait (9).
+king SCRAPJAW (8), a black hole that pulls everything — you too — where the twins ORA and
+ZEN wait (9), and finally the SWARM HEART (10): a living tunnel whose walls hurt, spore pods and
+larva swarms, a boss rush of old enemies, THE OVERMIND — and a 20 second escape as the hive
+collapses, then the warp jump and the galaxy medal.
 (`python3 ESA3.py --boss` skips straight to the boss, `--dev` opens a menu of every start point.)
 
 ## Setup
@@ -82,15 +90,17 @@ game/            # the game package, one folder per area (see CLAUDE.md for the 
   player/        #   hulls (ship shapes), ship art + paint jobs, the Ship
   weapons/       #   gun, laser, scatter, plasma, arc, BLAST, ULTIMATE, rocket pod, side cannons
   obstacles/     #   asteroids (ice, magma, crystal, wreck, comet) and their spawner
-  minions/       #   drones, divers, mine layers, phantoms, prism turrets, salvagers, interceptors
-  bosses/        #   Gunship ... Leviathan, Helios, Wraith, Kaleidos, Scrapjaw, the Twins
-  hazards/       #   level-wide mechanics: fog banks, the black hole
+  minions/       #   drones, divers, mine layers, phantoms, prism turrets, salvagers, interceptors,
+                 #   spore pods, larvae
+  bosses/        #   Gunship ... Leviathan, Helios, Wraith, Kaleidos, Scrapjaw, the Twins, Overmind
+  hazards/       #   level-wide mechanics: fog banks, the black hole, the hive tunnel
   wingmen/       #   PIP, GUARDIAN, MEDIC, HUNTER, MAGPIE (+ the TWIN boost)
   pickups/       #   repair kits, power cores, coins, boosts
   levels/        #   level data, grouped into galaxies
   progression/   #   rank, coins / payout, items + gifts, inventory, upgrades, achievements
   audio/         #   synthesizer, sound effects, music, playback
-  ui/            #   HUD, hangar, gift cards, radio cards, menus and result screens
+  ui/            #   HUD, hangar, gift cards, radio cards, the medal, menus and result screens
+  starmap/       #   the explorable star map: planets, hidden data caches, the rocket
   flow/          #   the Game: main loop + one mixin per area (combat, juice, boosts, wingmen ...)
 tests/smoke.py   # headless smoke test
 tools/           # build_audio.py: render sounds and music; playtest.py: bot plays levels

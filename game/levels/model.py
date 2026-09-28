@@ -40,6 +40,8 @@ class Wave:
     bosses: tuple = ()           # BossEntry, fought in order after the field
     name: str = ""               # subtitle of the "WAVE n" announcement
     radio: tuple = ()            # radio card lines when the wave starts (ui/radio.py)
+    music: str = None            # its own field track (else the level's)
+    escape: bool = False         # a timed escape run (the level's hazard collapses)
 
 
 @dataclass(frozen=True)
@@ -55,6 +57,7 @@ class Level:
     radio: tuple = ()            # radio card lines when the level starts (ui/radio.py)
     event: type = None           # background event layer (background/events.py)
     hazard: type = None          # level-wide mechanic (hazards/)
+    finale: bool = False         # the galaxy's last level: warp cut-scene + medal after it
 
 
 @dataclass(frozen=True)

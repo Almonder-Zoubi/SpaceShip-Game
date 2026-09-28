@@ -216,15 +216,17 @@ class HangarMixin:
             self.open_hangar(self.level_index + 1, self.score)
 
     def after_win(self):
-        """ENTER on the win screen: the last level's gift (if any), then the title."""
+        """ENTER on the win screen: the last level's gift (if any), then the star map
+        (a galaxy medal opens its warp gate)."""
         if self.inventory.gift_options(self.level_key):
-            self.offer_gift(self.level_key, ("title",))
+            self.offer_gift(self.level_key, ("map",))
         else:
-            self.to_title()
+            self.new_run(self.level_index)
+            self.open_star_map(self.level_index)
 
     def offer_gift(self, key, then):
         """REWARD screen for a level's gift; then = ("hangar", level_index, score) or
-        ("title",)."""
+        ("map",)."""
         self.gift_key, self.gift_then = key, then
         self.gift_options = [ITEMS[i] for i in self.inventory.gift_options(key)]
         self.gift_cursor = 0
@@ -252,8 +254,9 @@ class HangarMixin:
                 self.choose_hull(self.hull)
         elif item.slot:
             self.equip_new_weapon(item)
-        if self.gift_then[0] == "title":
-            self.to_title()
+        if self.gift_then[0] == "map":
+            self.new_run(self.level_index)
+            self.open_star_map(self.level_index)
         else:
             _, level_index, score = self.gift_then
             self.open_hangar(level_index, score, focus=item.id,

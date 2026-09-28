@@ -65,6 +65,8 @@ ITEMS = {item.id: item for item in (
          slot=PAINT, look="neon", hint="ACHIEVEMENT: RANK S"),
     Item("GOLD TRIM", "GOLD TRIM", SKIN, ("PURE GOLD. EARNED,", "NEVER BOUGHT."), 0,
          slot=PAINT, look="gold", hint="ACHIEVEMENT: NO-HIT BOSS"),
+    Item("SWARMBANE", "SWARMBANE PAINT", SKIN, ("BLACK CHITIN, ACID", "GREEN. THE MEDAL."), 0,
+         slot=PAINT, look="swarmbane"),
     Item("CLASSIC TRAIL", "CLASSIC TRAIL", SKIN, ("ORANGE ROCKET", "FLAMES."), 0, slot=TRAIL,
          look="CLASSIC"),
     Item("PLASMA BLUE", "PLASMA TRAIL", SKIN, ("BLUE-HOT ENGINE", "FLAMES."), 200, slot=TRAIL,
@@ -75,6 +77,8 @@ ITEMS = {item.id: item for item in (
          look="RAINBOW", hint="ACHIEVEMENT: REACH FEVER"),
     Item("HEARTS", "HEARTS TRAIL", SKIN, ("A SECRET FOR THE", "GENTLE PILOT."), 0, slot=TRAIL,
          look="HEARTS", hint="ACHIEVEMENT: ???"),
+    Item("STARDUST", "STARDUST TRAIL", SKIN, ("A WAKE OF STARS", "AND MOONDUST."), 0,
+         slot=TRAIL, look="STARDUST", hint="ACHIEVEMENT: EXPLORER"),
     Item("GOLD TRACERS", "GOLD TRACERS", SKIN, ("CLASSIC GOLDEN GUN", "TRACERS."), 0,
          slot=TRACER, look="GOLD"),
     Item("CYAN TRACERS", "CYAN TRACERS", SKIN, ("ICE-BLUE GUN", "TRACERS."), 150, slot=TRACER,
@@ -114,6 +118,7 @@ GIFTS = {
     "1-7": ("PLASMA", "SOLAR"),
     "1-8": ("SIDE CANNONS", "MEDIC"),
     "1-9": ("ARC", "SPECTER"),
+    "1-10": ("SWARMBANE",),             # the galaxy medal's paint job
 }
 
 

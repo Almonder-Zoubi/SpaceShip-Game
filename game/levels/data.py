@@ -6,21 +6,25 @@ from ..bosses.helios import Helios
 from ..bosses.kaleidos import Kaleidos
 from ..bosses.leviathan import Leviathan
 from ..bosses.mothership import Mothership
+from ..bosses.overmind import Overmind
 from ..bosses.scrapjaw import Scrapjaw
 from ..bosses.spec import BossSpec
 from ..bosses.twins import Twins
 from ..bosses.wraith import Wraith
-from ..config.loadouts import MK1, MK2, MK3, MK4, MK5, MK6, MK7, MK8, MK9
+from ..config.loadouts import MK1, MK2, MK3, MK4, MK5, MK6, MK7, MK8, MK9, MK10
 from ..config.palette import (NEBULA, NEBULA_ABYSS, NEBULA_CRIMSON, NEBULA_CRYSTAL, NEBULA_FORGE,
-                              NEBULA_FROST, NEBULA_GHOST, NEBULA_HORIZON, NEBULA_RUST)
+                              NEBULA_FROST, NEBULA_GHOST, NEBULA_HIVE, NEBULA_HORIZON,
+                              NEBULA_RUST)
 from ..hazards.blackhole import BlackHole
 from ..hazards.fog import FogBanks
+from ..hazards.hive import HiveTunnel
 from ..config.tuning import LEVEL_LENGTH
 from ..minions.interceptor import interceptor_pair
 from ..minions.minelayer import minelayer_squad
 from ..minions.phantom import phantom_pair
 from ..minions.prism import prism_turret
 from ..minions.salvager import salvager
+from ..minions.swarm import larva_flock, spore_cluster
 from .model import BossEntry, Difficulty, Galaxy, Level, Wave
 
 DEFAULT_DIFFICULTY = Difficulty(
@@ -216,6 +220,39 @@ GALAXY_1_LEVELS = (
                  "WHEN THE DISC TURNS WHITE, IT SPITS IT OUT!"),
           upgrade_notes=("THE BLACK HOLE PULLS YOU",
                          "INTERCEPTORS: HIT THEM FROM THE SIDE")),
+    # The galaxy finale: inside the hive. Living walls, spore pods, larva swarms, a boss rush
+    # of old enemies, THE OVERMIND, then the escape run as the hive collapses.
+    Level(10, "SWARM HEART", MK10,
+          Difficulty(spawn_interval=0.62, speed_min=58, speed_max=110, radius_min=4,
+                     radius_max=12, drift=12, palettes=("chitin", "slate"),
+                     extras=((spore_cluster, 7), (larva_flock, 11)),
+                     rock_hp=2.6, enemy_hp=2.5),
+          tuple(NEBULA_HIVE),
+          (Wave(45, name="INTO THE HIVE"),
+           Wave(30, (BossEntry(Mothership, BossSpec("MOTHERSHIP", strength=1.5, fight_time=25,
+                                                    player=MK10)),
+                     BossEntry(Leviathan, BossSpec("LEVIATHAN", strength=1.5, fight_time=25,
+                                                   player=MK10), music="leviathan"),
+                     BossEntry(Helios, BossSpec("HELIOS", strength=1.5, fight_time=25,
+                                                player=MK10), music="helios")),
+                name="THE HIVE REMEMBERS",
+                radio=("THE HIVE GREW COPIES OF EVERYTHING",
+                       "YOU EVER KILLED. DO IT AGAIN.")),
+           Wave(30, (BossEntry(Overmind, BossSpec("THE OVERMIND", strength=5.0, fight_time=90,
+                                                  player=MK10), music="overmind"),),
+                name="HEART OF THE SWARM",
+                radio=("THAT'S IT - THE OVERMIND. THE HEART.",
+                       "BURST THE GLANDS TO TEAR THE WALL OPEN.",
+                       "THEN END THIS, SCOUT. FOR THE REACH.")),
+           Wave(20, name="ESCAPE!", music="escape", escape=True,
+                radio=("THE HIVE IS COLLAPSING! FULL THROTTLE!",
+                       "DON'T TOUCH THE WALLS. GO, GO, GO!"))),
+          music="level10", hazard=HiveTunnel, finale=True,
+          radio=("THIS IS IT: THE SWARM'S HIVE WORLD.",
+                 "THE WALLS ARE ALIVE - DON'T TOUCH THEM.",
+                 "SHOOT SPORE PODS BEFORE THEY BURST."),
+          upgrade_notes=("THE HIVE WALLS HURT",
+                         "SPORE PODS BURST - SHOOT THEM EARLY")),
 )
 
 GALAXIES = (

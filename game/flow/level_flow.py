@@ -82,6 +82,7 @@ class LevelFlowMixin:
             self.distance = self.wave.length
             self.boss_index = boss_index
         self.record_rank = None
+        self.medal_new = False                 # the finale awarded a new galaxy medal
         self.set_state(State.PLAYING)
 
     def loadout_for(self, level):
@@ -137,7 +138,7 @@ class LevelFlowMixin:
                 if self.wave.bosses:
                     self._begin_warning()
                 else:
-                    self._next_wave()
+                    self._finish_wave()
         elif self.phase == Phase.WARNING and self.phase_time >= WARNING_TIME:
             self.boss = self.boss_entry.create()
             self.boss_hurt = False
@@ -154,17 +155,26 @@ class LevelFlowMixin:
             if self.boss_index + 1 < len(self.wave.bosses):
                 self.boss_index += 1                 # boss rush: next boss
                 self._begin_warning()
-            elif self.wave_index + 1 < len(self.level.waves):
-                self._next_wave()
-            elif self.level_index + 1 < len(LEVELS):
-                self._bank_level()
-                self.save.unlock(self.level_index + 2)
-                self.set_state(State.LEVEL_CLEAR)
             else:
-                self._bank_level()
-                self.record_rank = self.save.add_record(self.score, self.level.number)
+                self._finish_wave()
+
+    def _finish_wave(self):
+        """The wave is done: the next wave, level clear, or (after the last level) the win —
+        a galaxy finale plays the warp cut-scene first."""
+        if self.wave_index + 1 < len(self.level.waves):
+            self._next_wave()
+        elif self.level_index + 1 < len(LEVELS):
+            self._bank_level()
+            self.save.unlock(self.level_index + 2)
+            self.set_state(State.LEVEL_CLEAR)
+        else:
+            self._bank_level()
+            self.record_rank = self.save.add_record(self.score, self.level.number)
+            self.achieve("CHAMPION")
+            if self.level.finale:
+                self.begin_warp()
+            else:
                 self.set_state(State.WIN)
-                self.achieve("CHAMPION")
 
     def _next_wave(self):
         self.wave_index += 1
@@ -182,9 +192,10 @@ class LevelFlowMixin:
         self.audio.play("warning")
 
     def is_final_boss(self):
-        """True for the very last boss of the game."""
+        """True for the very last boss of the game (an escape wave may still follow it)."""
         level = self.level
-        return (self.level_index == len(LEVELS) - 1 and self.wave_index == len(level.waves) - 1
+        last = max(i for i, wave in enumerate(level.waves) if wave.bosses)
+        return (self.level_index == len(LEVELS) - 1 and self.wave_index == last
                 and self.boss_index == len(self.wave.bosses) - 1)
 
     def _spawn_field_extras(self, dt):
