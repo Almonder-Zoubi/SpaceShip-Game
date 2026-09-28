@@ -4,7 +4,7 @@ import random
 
 from ..config.palette import INK
 from ..core.pixelart import sprite_from_rows
-from ..story.dialog import UNKNOWN, VANTA, VEGA
+from ..story.dialog import NYX, UNKNOWN, UNMASKED, VANTA, VEGA
 
 VEGA_ROWS = (
     "........KKKKKKKK........",
@@ -68,12 +68,51 @@ VANTA_ROWS = (
 VANTA_COLORS = {"K": (0, 0, 0), "V": (110, 60, 170), "v": (50, 24, 80), "W": (255, 255, 255)}
 
 
+# NYX: a white mask with two slits in a violet hood.
+NYX_ROWS = (
+    "........................",
+    "........vvvvvvvv........",
+    "......vvVVVVVVVVvv......",
+    ".....vVVKKKKKKKKVVv.....",
+    "....vVKKKKKKKKKKKKVv....",
+    "....VKKWWWWWWWWWWKKV....",
+    "...vVKWWWWWWWWWWWWKVv...",
+    "...VKWWWWWWWWWWWWWWKV...",
+    "...VKWWKKKWWWWKKKWWKV...",
+    "...VKWWWKKWWWWKKWWWKV...",
+    "...VKWWWWWWWWWWWWWWKV...",
+    "...VKWWWWWWggWWWWWWKV...",
+    "...VKKWWWWWggWWWWWKKV...",
+    "...vVKWWWWWWWWWWWWKVv...",
+    "....VKKWWWRRRRWWWKKV....",
+    "....vVKKWWWWWWWWKKVv....",
+    ".....VVKKWWWWWWKKVV.....",
+    "....vVVVKKKKKKKKVVVv....",
+    "...vVVVVVKKKKKKVVVVVv...",
+    "..vVVVVVVVKKKKVVVVVVVv..",
+    ".vVVVVVVVVVKKVVVVVVVVVv.",
+    "vVVVVVVVVVVVVVVVVVVVVVVv",
+    "VVVVVVVVVVVVVVVVVVVVVVVV",
+    "KKKKKKKKKKKKKKKKKKKKKKKK",
+)
+NYX_COLORS = {"K": (0, 0, 0), "W": (236, 236, 240), "g": (170, 170, 180),
+              "V": (70, 30, 100), "v": (35, 14, 50), "R": (200, 40, 60)}
+
+# VANTA unmasked: the same fleet helmet and collar as Vega's (look at the gold marks),
+# worn out, with a black visor and two white points where the eyes were.
+UNMASKED_ROWS = tuple(row.translate(str.maketrans("SsBR", "KKKK")) for row in VEGA_ROWS)
+UNMASKED_COLORS = {"K": (0, 0, 0), "G": (64, 64, 76), "L": (96, 96, 110), "C": (110, 60, 170),
+                   "W": (255, 255, 255), "D": (30, 30, 44), "Y": (255, 204, 64)}
+
+
 class Portraits:
     """Portrait surfaces by speaker; UNKNOWN is fresh static every frame."""
 
     def __init__(self):
         self._faces = {VEGA: sprite_from_rows(VEGA_ROWS, VEGA_COLORS),
-                       VANTA: sprite_from_rows(VANTA_ROWS, VANTA_COLORS)}
+                       VANTA: sprite_from_rows(VANTA_ROWS, VANTA_COLORS),
+                       NYX: sprite_from_rows(NYX_ROWS, NYX_COLORS),
+                       UNMASKED: sprite_from_rows(UNMASKED_ROWS, UNMASKED_COLORS)}
         self._eyes = sprite_from_rows(VANTA_ROWS, {**VANTA_COLORS, "W": (0, 0, 0)})
 
     def draw(self, surf, speaker, pos, time):

@@ -269,7 +269,7 @@ class ScreensMixin:
                                                     (x + offset + 12, y + 6), (x + offset + 4, y + 6)])
             self.font.draw(c, "WARNING", (LOW_W // 2, 88), DANGER, scale=4, shadow=TEXT_SHADOW,
                            center=True)
-        level, bosses = self.level, self.wave.bosses
+        level, bosses = self.level, self.wave_bosses
         name = self.boss_entry.spec.name
         last = self.wave_index == len(level.waves) - 1 and self.boss_index == len(bosses) - 1
         if self.is_final_boss():

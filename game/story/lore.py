@@ -4,14 +4,15 @@ the hidden message in Vega's radio and the transmissions. Pure data, no pygame.
 How the mystery fits together (the answer, revealed in galaxy 5): the Dawn Key saves the
 stars, but the pilot who uses it is hollowed and becomes VANTA. VANTA was the scout before
 you, with the same callsign ARROW-01; Vega was its wingmate and turned back. Vega needs a new
-scout for every turn of the cycle. Every clue below points there and none contradicts it:
+scout for every turn of the cycle. The heralds are what is left of the wingmates who did NOT
+turn back (NYX was one). Every clue below points there and none contradicts it:
 the first letters of Vega's opening lines, the margin notes in this logbook (written by the
 previous owner of the callsign), the ARROW-01 plate in Scrapjaw's jaw, the impossible record
 on the title screen, and the ECHO mosaics.
 """
 from dataclasses import dataclass
 
-from .dialog import UNKNOWN, VANTA, VEGA, Line
+from .dialog import UNKNOWN, UNMASKED, VANTA, VEGA, Line
 
 CALLSIGN = "ARROW-01"
 TEXT_WIDTH = 32                   # characters that fit a journal panel line
@@ -19,6 +20,9 @@ TEXT_WIDTH = 32                   # characters that fit a journal panel line
 # The first letters of the first radio line of levels 1..10 (levels/data.py) spell this.
 ACROSTIC = "YOUARENEXT"
 DECODED = "YOU ARE NEXT"
+# ... and in galaxy 2 (levels 11..20):
+ACROSTIC_2 = "LOOKBEHIND"
+DECODED_2 = "LOOK BEHIND"
 
 
 @dataclass(frozen=True)
@@ -64,6 +68,15 @@ DOSSIERS = (
     Dossier("THE OVERMIND", ("THE HEART OF THE SWARM.", "IT GUARDED SHARD 1."),
             ("IT WAS NOT INVADING.", "IT WAS RUNNING FROM VANTA."),
             "IT WASN'T THE ENEMY. RUN."),
+    Dossier("GRINDER", ("A MINING CRAWLER, OVERGROWN.", "IT DIGS THE MAZE DEEPER."),
+            ("IT DIGS UP OLD SHIP HULLS.", "THE REEF'S BONES COME FROM IT."),
+            "IT KEPT MY LEFT WING."),
+    Dossier("SPINNER", ("A TURRET ON THE BLUE ROAD.", "IT NEVER SLEEPS."),
+            ("IT TURNS ON THE CORE'S CLOCK.", "TEMPO SETS ITS PACE."),
+            "BLUE WAS THE EASY ROAD. LIAR."),
+    Dossier("NYX", ("THE FIRST HERALD. A MASK", "OVER A HOLLOW SHIP."),
+            ("NYX WAS A WINGMATE ONCE.", "IT DID NOT TURN BACK."),
+            "VEGA TURNED BACK. NYX DIDN'T."),
     Dossier("LEECH MAW", ("A REEF-EEL AS BIG AS A MOON.", "IT HUNTS WHAT RUNS."),
             ("IT FOLLOWS SHARD-LIGHT.", "IT WAS BRED TO FOLLOW MINE."),
             "DON'T LOOK BACK. JUST BOOST."),
@@ -115,6 +128,10 @@ VANTA_FILE = (
     ("medal1", "DAWN KEY. YOU CARRY ONE."),
     ("decoder", "VEGA KNEW. READ VEGA'S FIRST"),
     ("decoder", "WORDS, LEVEL BY LEVEL."),
+    ("medal2", "IT SPEAKS THROUGH ITS HERALDS."),
+    ("medal2", "IT KNOWS HOW YOU FLY. ALL OF IT."),
+    ("decoder2", "LOOK BEHIND YOU: EVERY HULL IN"),
+    ("decoder2", "THE REEF READS " + CALLSIGN + "."),
     ("never", "WHO IT WAS: " + redact(CALLSIGN, 0)),
 )
 
@@ -125,6 +142,7 @@ class Echo:
     cache: str                    # starmap.model.CACHES id
     tile: int                     # position in the galaxy's mosaic (reading order)
     text: str
+    galaxy: int = 1
 
 
 ECHOES = (
@@ -135,8 +153,19 @@ ECHOES = (
     Echo("HORIZON", 4, "MY WINGMATE TURNS BACK."),
     Echo("HOLLOW", 5, "THE LIGHT GOES OUT IN ME."),
 )
-ECHO_BY_CACHE = {e.cache: e for e in ECHOES}
+ECHOES_2 = (
+    Echo("FLAGSHIP", 0, "MY WINGMATE'S LIGHTS TURN AWAY.", 2),
+    Echo("REEF", 1, "I FLY ON INTO THE DARK, ALONE.", 2),
+    Echo("MIRROR", 2, "MY REFLECTION HAS NO FACE.", 2),
+    Echo("PULSE", 3, "THE CORE COUNTS: FOUR. FIVE.", 2),
+    Echo("COURT", 4, "SOMEONE ELSE HAS MY CALLSIGN.", 2),
+    Echo("THRONE", 5, "I WAIT FOR THE NEXT SCOUT.", 2),
+)
+ALL_ECHOES = ECHOES + ECHOES_2
+ECHO_BY_CACHE = {e.cache: e for e in ALL_ECHOES}
 MOSAIC = "TWO SHIPS, SIDE BY SIDE"    # what galaxy 1's finished mosaic shows
+MOSAIC_2 = "ONE SHIP TURNS BACK"      # ... and galaxy 2's
+MOSAICS = {1: MOSAIC, 2: MOSAIC_2}
 
 # Story beats that play once (their ids are saved in SaveData.story).
 TRANSMISSIONS = {
@@ -147,6 +176,14 @@ TRANSMISSIONS = {
         Line(VANTA, "WE HAVE DONE THIS BEFORE."),
         Line(VEGA, "IGNORE IT. THAT SIGNAL IS A LIE."),
         Line(VEGA, "JUMP. NOW."),
+    ),
+    "G2_WARP": (
+        Line(UNKNOWN, "...CARRIER WAVE... LOCKED ON..."),
+        Line(UNMASKED, "TWO SHARDS NOW. YOU FLY WELL."),
+        Line(UNMASKED, "I FLEW WELL TOO. ASK VEGA."),
+        Line(UNMASKED, "ASK VEGA WHO TURNED BACK."),
+        Line(VEGA, "...CUT THAT CHANNEL. NOW."),
+        Line(VEGA, "BLOOM IS NEXT. DON'T LOOK BACK."),
     ),
 }
 

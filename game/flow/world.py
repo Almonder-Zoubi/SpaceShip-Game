@@ -38,8 +38,11 @@ class WorldMixin:
     def _update_boss(self, dt):
         if not self.boss:
             return
-        if self.boss.update(dt, self) == "defeated":
+        result = self.boss.update(dt, self)
+        if result == "defeated":
             self._boss_destroyed()
+        elif result == "escaped":                   # it left the fight (NYX in its court)
+            self._boss_escaped()
         if not self.boss.targetable:
             self._clear_bullets()                 # a dying boss's bullets fizzle out
             for enemy in list(self.enemies):      # and its drones blow up

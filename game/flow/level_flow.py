@@ -163,7 +163,7 @@ class LevelFlowMixin:
                 self.pickups.append(RepairKit(random.uniform(30, LOW_W - 30), -8))
         elif self.phase == Phase.CLEARED and self.phase_time >= 1.5:
             self.best = max(self.best, self.score)
-            if self.boss_index + 1 < len(self.wave.bosses):
+            if self.boss_index + 1 < len(self.wave_bosses):
                 self.boss_index += 1                 # boss rush: next boss
                 self._begin_warning()
             else:
@@ -213,6 +213,8 @@ class LevelFlowMixin:
         self.set_phase(Phase.FIELD)
         self.alert = [f"WAVE {self.wave_index + 1}", self.wave.name, ACCENT, 3.0]
         self.radio_say(self.wave.radio)
+        if self.wave.reroll and self.level.shifts:
+            self.roll_shift()                    # a new arena, a new rule
 
     def _begin_warning(self):
         """Repair for the boss fight: full in galaxy 1, part of the hull later (the field's
@@ -226,9 +228,9 @@ class LevelFlowMixin:
     def is_final_boss(self):
         """True for a galaxy's last boss (an escape wave may still follow it)."""
         level = self.level
-        last = max(i for i, wave in enumerate(level.waves) if wave.bosses)
+        last = max((i for i, wave in enumerate(level.waves) if wave.bosses), default=-1)
         return (level.finale and self.wave_index == last
-                and self.boss_index == len(self.wave.bosses) - 1)
+                and self.boss_index == len(self.wave_bosses) - 1)
 
     def _spawn_field_extras(self, dt):
         """Repair kits, drone formations (from level 2) and diver squads (level 4)."""

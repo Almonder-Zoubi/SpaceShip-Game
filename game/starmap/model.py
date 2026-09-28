@@ -63,6 +63,41 @@ CACHES = (
 )
 
 
+# Galaxy 2's caches: the Veil keeps what the last turn of the cycle left behind.
+CACHES_2 = (
+    Cache("FLAGSHIP", 40, 300, "VEGA'S FLIGHT RECORDER",
+          ("LOG 7040: ARROW-01 HAS SHARD 1.",
+           "WE REACH THE CORE TOMORROW.",
+           "LOG 7041: I TURNED BACK.",
+           "I COULD NOT WATCH IT AGAIN."), 220),
+    Cache("REEF", 330, 500, "BONE ARCHIVE",
+          ("THE REEF IS MADE OF OLD SHIPS.",
+           "SCOUT HULLS. DOZENS OF THEM.",
+           "EVERY PLATE READS THE SAME:",
+           "ARROW-01."), 200),
+    Cache("MIRROR", 90, 110, "THE MIRROR SEA",
+          ("THE SEA SHOWS WHO YOU WILL BE.",
+           "IT SHOWED ME A BLACK SHIP",
+           "WITH MY PAINT UNDER THE DARK.",
+           "I HAVE NOT LOOKED SINCE."), 200),
+    Cache("PULSE", 440, 300, "METRONOME LOG",
+          ("TEMPO COUNTS THE TURNS.",
+           "TURN 3: A SCOUT, A KEY, A KING.",
+           "TURN 4: A SCOUT, A KEY, A...",
+           "THE NEXT WORD IS SCRATCHED OUT."), 220),
+    Cache("COURT", 690, 40, "NYX'S LEDGER",
+          ("HERALDS ARE NOT BORN.",
+           "THEY ARE THE WINGMATES",
+           "WHO DID NOT TURN BACK.",
+           "I WAS ONE. ASK YOUR COMMANDER."), 250),
+    Cache("THRONE", 700, 470, "A NOTE UNDER THE THRONE",
+          ("IF YOU READ THIS, YOU CAME BACK.",
+           "THE KEY WORKS. IT SAVES THEM.",
+           "IT JUST DOES NOT SAVE YOU.",
+           "- A.01"), 300),
+)
+
+
 @dataclass(frozen=True)
 class GalaxyMap:
     """One galaxy's map: planet positions (NODES order = level order), caches, the gate."""
@@ -191,5 +226,5 @@ class StarMap:
 
 MAPS = {
     1: GalaxyMap(1, NODES, CACHES, GATE, 2, ((4, "sun"), (BLACK_HOLE, "hole"), (9, "hive"))),
-    2: GalaxyMap(2, NODES_2, (), GATE_2, 1),
+    2: GalaxyMap(2, NODES_2, CACHES_2, GATE_2, 1),
 }

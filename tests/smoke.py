@@ -105,7 +105,19 @@ from game.bosses.tempo import Tempo
 from game.config.tuning import (DECOY_TIME, MARROW_REGROW, PHASE_DASH, PHASE_TIME, POD_SAVED_COINS,
                                 REAPER_BREAK, REPAIR_SHARE, REPAIR_TIME, TIME_SLIP_SCALE,
                                 TIME_SLIP_TIME)
+from game.bosses.grinder import Grinder
+from game.bosses.nyx import Nyx, NyxCourt
+from game.bosses.spinner import Spinner
+from game.config.tuning import EGG_HATCH, FORK_AT, WARP_TIME
+from game.hazards.court import CourtOfNyx
 from game.hazards.darkness import Darkness
+from game.hazards.maze import HollowMaze
+from game.hazards.siege import Siege
+from game.hazards.throne import HollowThrone
+from game.minions.egg import EggCluster
+from game.minions.leader import leader_squad
+from game.story.dialog import UNMASKED
+from game.story.lore import ACROSTIC_2, DECODED_2, ECHOES_2
 from game.hazards.escort import BroodEscort
 from game.hazards.mirror import MirrorSea
 from game.hazards.pulse import PulseField
@@ -1807,6 +1819,8 @@ def test_veil(h):
     ship.x, ship.y = 300, 220
     h.run(h.seconds(SPLIT_TIME + 0.1), clear_rocks=True)
     assert sum(type(b) is VeilBullet for b in game.enemy_bullets) == 3, "burst into three"
+    game.hazard.rifts.clear()                            # (a rift would carry it off)
+    game.hazard.timer = 99.0
     boom = Boomerang(160, 40, 0, 120, 5)
     game.enemy_bullets = [boom]
     h.run(h.seconds(BOOMERANG_TIME * 0.5), clear_rocks=True)
@@ -3282,6 +3296,234 @@ def test_veil_levels(h):
     game.to_title()
 
 
+def test_veil_finale(h):
+    """Galaxy 2 levels 7-10: HOLLOW MAZE (void holes eat bullets, eggs hatch, the fork's gates
+    pick GRINDER or SPINNER), LAST LIGHT (the flagship takes hits and shoots back, a leader's
+    death breaks its squad, the flagship's bonus, losing it loses the level), THE COURT OF NYX
+    (chained rocks, a new rule per arena, NYX retreats), THE HOLLOW THRONE (the rush, NYX's
+    five phases: dark, the void closes, VANTA speaks; escape, warp, shard 2, medal 2, the NYX
+    paint) and the galaxy 2 story (LOOKBEHIND, caches, mosaic 2, decoder 2, VANTA's face)."""
+    game = h.game
+    game.choose_hull(ARROW)
+    g2 = GALAXIES[1]
+
+    # HOLLOW MAZE ------------------------------------------------------------------------
+    level = g2.levels[6]
+    index = LEVELS.index(level)
+    game.save.unlock(index + 1)
+    game.start(index)
+    game.radio = None
+    game.god = True
+    maze = game.hazard
+    assert isinstance(maze, HollowMaze) and game.ship.loadout.name == "MK XVII"
+    hole = maze.holes[0]
+    hole.y, hole.x = 120, 160
+    game.enemy_bullets = [EnemyBullet(160, 120, 0, 0, 10), EnemyBullet(20, 230, 0, 0, 10)]
+    h.run(1)
+    assert len(game.enemy_bullets) <= 1 and maze.erased >= 1, "the void hole ate it"
+    eggs = [EggCluster(250, 60)]
+    game.spawn_enemies(eggs)
+    h.run(h.seconds(EGG_HATCH + 0.2), clear_rocks=True)
+    assert eggs[0].hatched and any(type(e).__name__ == "Larva" for e in game.enemies)
+    game.enemies.clear()
+    game.distance = game.wave.length * FORK_AT
+    h.run(h.seconds(2.5), clear_rocks=True)
+    assert maze.gates_y is not None and maze.route is None
+    h.shot("maze_fork")
+    game.ship.x, game.ship.y = 240, maze.gates_y
+    h.run(2, clear_rocks=True)
+    assert maze.route == 1, "the BLUE gate"
+    game.distance = game.wave.length
+    h.run(2, clear_rocks=True)
+    assert game.wave.route and game.wave_index == 1
+    game.distance = game.wave.length                     # (skip the road's field)
+    h.run(h.seconds(WARNING_TIME + 3.5), clear_rocks=True)
+    assert isinstance(game.boss, Spinner), game.boss
+    _boss_rounds(h, game.boss, "spinner")
+    _win_level(h, game.boss)
+    game.start(index, 0, 1, 0)                            # no gate taken: route 0 = GRINDER
+    game.radio = None
+    h.run(h.seconds(WARNING_TIME + 3.5), clear_rocks=True)
+    assert isinstance(game.boss, Grinder)
+    boss = game.boss
+    boss.attack, boss.attack_time, boss.ram, boss.ram_y = "ram", 0.0, 1, 180
+    h.run(h.seconds(1.2), clear_rocks=True)
+    assert boss.ram == 2 and boss.contact_damage > boss.bullet_damage, "it rams"
+    h.shot("grinder_ram")
+    h.run(h.seconds(2.5), clear_rocks=True)
+    _boss_rounds(h, boss, "grinder")
+    _win_level(h, boss)
+
+    # LAST LIGHT -------------------------------------------------------------------------
+    index = LEVELS.index(g2.levels[7])
+    game.start(index)
+    game.radio = None
+    siege = game.hazard
+    flag = siege.flagship
+    assert isinstance(siege, Siege) and not any(w.bosses for w in game.level.waves)
+    game.extra_timers = [99.0] * len(game.extra_timers)
+    game.enemies.clear()
+    hp = flag.hp
+    game.enemy_bullets = [EnemyBullet(flag.x, flag.top + 4, 0, 0, 50)]
+    h.run(1, clear_rocks=True)
+    assert flag.hp == hp - 30, "a stray shot hits the flagship"
+    squad = leader_squad(game)
+    game.spawn_enemies(squad)
+    for e in squad:
+        e.y = 80 + e.y
+    h.run(h.seconds(1.0), clear_rocks=True)
+    h.shot("siege_squad")
+    leader = squad[0]
+    game._damage_enemy(Hit(leader, 10 ** 6, leader.x, leader.y, 0, -1, 0))
+    game._damage_enemy(Hit(leader, 10 ** 6, leader.x, leader.y, 0, -1, 0))
+    assert leader not in game.enemies and leader.squad.orphaned
+    target = squad[1]
+    target.hp = target.max_hp = 10 ** 5
+    siege.gun_timer = 0
+    h.run(2, clear_rocks=True)
+    assert target.hp < 10 ** 5 or siege.tracers, "the flagship's guns fire"
+    game.enemies.clear()
+    game.wave_index = len(game.level.waves) - 1
+    game.distance = game.wave.length
+    game.save.story = [b for b in game.save.story if b != "FLAGSHIP_HELD"]
+    h.run(h.seconds(1), clear_rocks=True)
+    assert game.state == State.LEVEL_CLEAR and "FLAGSHIP_HELD" in game.save.story
+    game.start(index)                                    # lose the flagship: lose the level
+    game.radio = None
+    game.god = False
+    game.ship.hp = 10 ** 6
+    game.hazard.flagship.hp = 1
+    game.hazard.flagship.hurt(5)
+    for _ in range(h.seconds(2.5)):
+        h.run(1, clear_rocks=True)
+    assert game.state in (State.DYING, State.GAME_OVER), game.state
+    game.god = True
+
+    # THE COURT OF NYX -------------------------------------------------------------------
+    index = LEVELS.index(g2.levels[8])
+    game.start(index)
+    game.radio = None
+    game.god = True
+    court = game.hazard
+    assert isinstance(court, CourtOfNyx)
+    court._spawn(game)
+    chain = court.chains[-1]
+    chain.cy = 120
+    h.run(2)
+    (ax, ay), (bx, by) = chain.ends()
+    assert abs(chain.a.x - ax) < 1 and abs(chain.b.y - by) < 1, "the rocks ride the chain"
+    game.god = False
+    ship = game.ship
+    ship.hp, ship.invulnerable_time, game.shield = 10 ** 6, 0, 0
+    ship.x, ship.y = chain.cx, chain.cy
+    hp = ship.hp
+    h.run(1)
+    assert ship.hp < hp, "the tether hurts"
+    game.god = True
+    h.shot("court_chain")
+    game._destroy_rock(chain.a, scored=True)
+    h.run(1)
+    assert chain not in court.chains and chain.b.vy > 0, "the other rock flies free"
+    game.distance = game.wave.length
+    h.run(2, clear_rocks=True)
+    assert game.wave_index == 1 and game.shift is not None, "a new arena, a new rule"
+    game.distance = game.wave.length                     # (skip ARENA II's field)
+    h.run(h.seconds(WARNING_TIME + 3.5), clear_rocks=True)
+    nyx = game.boss
+    assert isinstance(nyx, NyxCourt) and nyx.fighting
+    h.run(h.seconds(1), clear_rocks=True)
+    assert nyx.greeted
+    while nyx.state == "fight":
+        nyx.roar = 0
+        game._damage_boss(Hit(nyx, nyx.max_hp * 0.1, 0, 0, 0, -1, 0))
+    assert nyx.state == "leaving" and nyx.hp > 0
+    for _ in range(h.seconds(6)):                        # (phase slow-mo stretches it)
+        h.run(1, clear_rocks=True)
+        if game.phase == Phase.CLEARED:
+            break
+    assert game.phase == Phase.CLEARED and "NYX" not in game.save.bosses, (
+        "it only retreated", game.phase, nyx.state, game.save.bosses)
+    h.shot("court_retreat")
+
+    # THE HOLLOW THRONE ------------------------------------------------------------------
+    index = LEVELS.index(g2.levels[9])
+    game.save.unlock(index + 1)
+    game.start(index, 0, 0, 1)                           # the rush's ECLIPSE: the dark
+    game.radio = None
+    throne = game.hazard
+    assert isinstance(throne, HollowThrone)
+    h.run(h.seconds(WARNING_TIME + 3.5), clear_rocks=True)
+    assert isinstance(game.boss, Eclipse) and throne.dark_on
+    h.shot("throne_eclipse")
+    game.start(index, 0, 1, 0)
+    game.radio = None
+    throne = game.hazard                                 # (start() builds a new one)
+    h.run(h.seconds(WARNING_TIME + 3.5), clear_rocks=True)
+    nyx = game.boss
+    assert isinstance(nyx, Nyx) and not isinstance(nyx, NyxCourt) and game.is_final_boss()
+    _boss_rounds(h, nyx, "nyx")
+    assert nyx.phase == 4 and throne.close > 0.3, ("the void closed in", nyx.phase, throne.close, nyx.state)
+    assert 4 in nyx.said
+    nyx.said.discard(4)                                  # (say phase 5's words once more)
+    nyx._pending_taunt = 4
+    nyx._taunt(game)
+    speakers = [c.speaker for c in [game.radio] + game.radio_queue if c]
+    assert VANTA in speakers, ("VANTA speaks through it", speakers)
+    game.save.medals = [m for m in game.save.medals if m != 2]
+    game.save.shards = [s for s in game.save.shards if s != 2]
+    game.save.story = [b for b in game.save.story if b != "G2_WARP"]
+    nyx.roar = 0
+    h.kill(nyx)
+    for _ in range(h.seconds(8)):
+        h.run(1, clear_rocks=True)
+        if game.wave.escape:
+            break
+    assert game.wave.escape and "NYX" in game.save.bosses
+    h.run(h.seconds(3), clear_rocks=True)
+    assert throne.world_speed > 1 and throne.close > 0.3
+    h.shot("throne_escape")
+    game.distance = game.wave.length
+    h.run(2, clear_rocks=True)
+    assert game.state == State.WARP and 2 in game.save.medals and 2 in game.save.shards
+    assert "G2_WARP" in game.save.story
+    h.run(h.seconds(WARP_TIME + 0.5))
+    assert game.state == State.WIN
+    game.save.gifts = [k for k in game.save.gifts if k != "2-10"]
+    if "NYX" in game.save.owned:
+        game.save.owned.remove("NYX")
+    h.run(h.seconds(1.2))
+    h.post(pygame.K_RETURN)
+    assert game.state == State.REWARD and [i.id for i in game.gift_options] == ["NYX"]
+    h.run(h.seconds(0.6))
+    h.post(pygame.K_RETURN)
+    assert game.state == State.STAR_MAP and game.star_map.gmap.galaxy == 2
+    game.save.skins = {}
+    game.choose_hull(ARROW)
+
+    # The galaxy 2 story -----------------------------------------------------------------
+    assert "".join(lv.radio[0][0] for lv in g2.levels) == ACROSTIC_2
+    assert {e.cache for e in ECHOES_2} == {c.id for c in MAPS[2].caches}
+    assert sorted(e.tile for e in ECHOES_2) == list(range(6))
+    assert all(len(line) <= 43 for line in (ln.text for ln in TRANSMISSIONS["G2_WARP"]))
+    assert any(ln.speaker == UNMASKED for ln in TRANSMISSIONS["G2_WARP"])
+    caches = list(game.save.caches)
+    game.save.caches = caches + [e.cache for e in ECHOES_2]
+    assert game.decoder2
+    log = [text for kind, text, _ in game._journal_log() if kind == "decoded"]
+    assert any(DECODED_2 in text for text in log)
+    files = {f.name: f for f in game._boss_files()}
+    assert any("REEF READS" in line for line in files["VANTA"].lines)
+    game.open_journal()
+    game.journal_tab = 2
+    game.journal_cursor["ECHOES"] = len(ECHOES) + 2      # a galaxy 2 echo: mosaic 2
+    h.run(3)
+    h.shot("journal_mosaic2")
+    game.close_journal()
+    game.save.caches = caches
+    game.god = False
+    game.to_title()
+
+
 SECTIONS = (
     ("title", test_title), ("controls", test_controls), ("mouse", test_mouse),
     ("weapons", test_weapons),
@@ -3291,7 +3533,7 @@ SECTIONS = (
     ("level8", test_level8), ("level9", test_level9), ("level10", test_level10),
     ("starmap", test_starmap), ("journal", test_journal),
     ("brains", test_brains), ("veil", test_veil), ("abilities", test_abilities),
-    ("veil2", test_veil_levels), ("save", test_save), ("menus", test_title_menus),
+    ("veil2", test_veil_levels), ("veil3", test_veil_finale), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
     ("upgrades", test_upgrades), ("feel", test_feel),
     ("boosts", test_boosts), ("wingmen", test_wingmen),

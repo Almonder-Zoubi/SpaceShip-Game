@@ -4,7 +4,9 @@ from dataclasses import dataclass
 VEGA = "COMMANDER VEGA"
 VANTA = "VANTA"
 UNKNOWN = "???"
-HIJACKERS = (VANTA, UNKNOWN)      # these break into Vega's channel (the card glitches)
+NYX = "NYX"
+UNMASKED = "VANTA, UNMASKED"      # galaxy 2's warp: the first time it shows a face
+HIJACKERS = (VANTA, UNKNOWN, NYX, UNMASKED)   # these break into Vega's channel (the card glitches)
 CARD_LINES = 3                    # lines per radio card
 
 

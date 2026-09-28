@@ -8,7 +8,7 @@ import pygame
 
 from ..config.display import LOW_H, LOW_W
 from ..config.palette import DANGER, GOOD, HEAL, HIVE_VEIN, TEXT, TEXT_SHADOW
-from ..config.tuning import ALLY_DAMAGE, ALLY_INTERVAL, ALLY_RANGE, POD_HP, POD_SPEED
+from ..config.tuning import ALLY_DAMAGE, ALLY_INTERVAL, ALLY_RANGE, POD_HP, POD_SAVED_COINS, POD_SPEED
 from ..weapons.base import Hit
 from .base import Hazard
 
@@ -91,6 +91,11 @@ class BroodEscort(Hazard):
             target = min(near, key=lambda e: math.hypot(e.x - ax, e.y - ay))
             self.zaps.append((ax, ay, target.x, target.y, 0.12))
             game._damage_enemy(Hit(target, ALLY_DAMAGE, target.x, target.y, 0, -1, 0))
+
+    def bonus(self):
+        """Level won with the pod alive: the brood pays you back (and remembers)."""
+        pod = self.pod
+        return (POD_SAVED_COINS, "BROOD_SAVED", "BROOD SAVED", pod.x, pod.y - 16) if pod.alive else None
 
     def draw_mid(self, surf):
         pod = self.pod

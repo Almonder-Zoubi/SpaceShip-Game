@@ -84,6 +84,18 @@ ITEMS = {item.id: item for item in (
          slot=PAINT, look="nyx"),
     Item("VEIL", "VEIL PAINT", SKIN, ("VOID BLACK, VIOLET", "TRIM. BLEND IN."), 0,
          slot=PAINT, look="veil"),
+    Item("BONE", "BONE PAINT", SKIN, ("REEF BONE WHITE,", "MARROW RED TRIM."), 0,
+         slot=PAINT, look="bone"),
+    Item("VEGA", "VEGA'S COLOURS", SKIN, ("FLAGSHIP GREY AND", "THE GOLD CREST."), 0,
+         slot=PAINT, look="vega"),
+    Item("HOLLOW", "HOLLOW PAINT", SKIN, ("WHAT THEY WEAR.", "DON'T GET USED TO IT."), 0,
+         slot=PAINT, look="hollow"),
+    Item("ECHO TRAIL", "ECHO TRAIL", SKIN, ("A SILVER WAKE THAT", "LINGERS."), 0, slot=TRAIL,
+         look="ECHO"),
+    Item("RIFT TRACERS", "RIFT TRACERS", SKIN, ("VIOLET GUN TRACERS", "FROM THE VEIL."), 0,
+         slot=TRACER, look="RIFT"),
+    Item("TEAL BEAM", "TEAL BEAM", SKIN, ("A COLD TEAL LASER", "BEAM."), 0, slot=BEAM,
+         look="TEAL"),
     Item("CLASSIC TRAIL", "CLASSIC TRAIL", SKIN, ("ORANGE ROCKET", "FLAMES."), 0, slot=TRAIL,
          look="CLASSIC"),
     Item("PLASMA BLUE", "PLASMA TRAIL", SKIN, ("BLUE-HOT ENGINE", "FLAMES."), 200, slot=TRAIL,
@@ -141,6 +153,11 @@ GIFTS = {
     "2-3": ("WING BAY", "REPAIR DRONE"),
     "2-4": ("FLARE", "DECOY"),
     "2-5": ("TIME SLIP", "MIRROR"),
+    "2-6": ("BONE", "ECHO TRAIL"),
+    "2-7": ("RIFT TRACERS", "TEAL BEAM"),
+    "2-8": ("VEGA",),                    # the flagship held
+    "2-9": ("HOLLOW",),
+    "2-10": ("NYX",),                    # the galaxy medal's paint job
 }
 
 

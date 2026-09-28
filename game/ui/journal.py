@@ -1,5 +1,6 @@
 """The JOURNAL screen: the logbook of scout ARROW-01, in four pages (PILOT, BOSSES, ECHOES,
 LOG). The data comes from flow/journal.py as a JournalPage; this only draws."""
+import math
 import random
 
 import pygame
@@ -9,7 +10,7 @@ from ..config.palette import (ACCENT, COIN, DANGER, GOOD, INK, TEXT, TEXT_DIM, T
 from ..config.tuning import UPGRADE_TIERS
 from ..player.art import SHIP_PALETTES, build_ship_frames
 from ..player.hulls import ARROW
-from ..story.lore import MOSAIC
+from ..story.lore import MOSAICS
 from .medal import draw_medal
 from .portraits import Portraits
 
@@ -26,7 +27,7 @@ class JournalView:
         self.font, self.art = font, item_art
         self.portraits = Portraits()
         self._pictures = {}
-        self.mosaic = self._build_mosaic()
+        self.mosaics = {1: self._build_mosaic(), 2: self._build_mosaic_2()}
 
     # --- pictures -------------------------------------------------------------------------
     def _picture(self, entry, known):
@@ -62,6 +63,28 @@ class JournalView:
                                                    image.get_height() * 2 // 3))
             surf.blit(small, (x, 6))
             surf.fill((255, 200, 90), (x + small.get_width() // 2 - 1, 6 + small.get_height(), 2, 3))
+        return surf
+
+    @staticmethod
+    def _build_mosaic_2():
+        """Galaxy 2's echo picture: the Veil at night, one rocket turned round, flying back,
+        and next to it an empty place where the other one should be (48x32)."""
+        surf = pygame.Surface((48, 32), pygame.SRCALPHA)
+        for y in range(32):
+            k = y / 31
+            surf.fill((int(30 - 20 * k), int(12 - 8 * k), int(50 - 30 * k)), (0, y, 48, 1))
+        rng = random.Random(7)
+        for _ in range(22):
+            surf.set_at((rng.randrange(48), rng.randrange(32)), (190, 170, 255))
+        for x in range(48):                                   # the Veil's ragged edge
+            h = 3 + int(2 * math.sin(x * 0.7)) + rng.randrange(2)
+            surf.fill((110, 60, 170), (x, 0, 1, h))
+        ship = build_ship_frames(ARROW.rows, SHIP_PALETTES["mk2"])[0]
+        small = pygame.transform.scale(ship, (ship.get_width() * 2 // 3, ship.get_height() * 2 // 3))
+        small = pygame.transform.flip(small, False, True)     # turned back
+        surf.blit(small, (27, 10))
+        surf.fill((255, 200, 90), (27 + small.get_width() // 2 - 1, 7, 2, 3))
+        pygame.draw.rect(surf, (80, 70, 110), (11, 11, 8, 13), 1)   # where the other ship was
         return surf
 
     # --- frame ----------------------------------------------------------------------------
@@ -189,30 +212,36 @@ class JournalView:
     # --- ECHOES ---------------------------------------------------------------------------
     def _draw_echoes(self, surf, page, time):
         f = self.font
-        found = {echo.tile for echo, got in page.echoes if got}
+        if not page.echoes:
+            return
+        galaxy = page.echoes[min(page.cursor, len(page.echoes) - 1)][0].galaxy
+        shown = [(i, echo, got) for i, (echo, got) in enumerate(page.echoes) if echo.galaxy == galaxy]
+        found = {echo.tile for _, echo, got in shown if got}
+        decoder = page.decoder if galaxy == 1 else page.decoder2
+        mosaic = self.mosaics[galaxy]
         frame = pygame.Rect(10, 34, 100, 68)
         surf.fill(INK, frame)
         for tile in range(6):
             tx, ty = tile % 3, tile // 3
             dest = (frame.x + 2 + tx * 32, frame.y + 2 + ty * 32)
             if tile in found:
-                part = self.mosaic.subsurface((tx * 16, ty * 16, 16, 16))
+                part = mosaic.subsurface((tx * 16, ty * 16, 16, 16))
                 surf.blit(pygame.transform.scale(part, (32, 32)), dest)
             else:
                 surf.fill((8, 6, 14), (*dest, 31, 31))
                 f.draw(surf, "?", (dest[0] + 16, dest[1] + 13), (50, 46, 70), center=True)
         pygame.draw.rect(surf, GOOD if len(found) == 6 else TEXT_DIM, frame, 1)
-        caption = MOSAIC if len(found) == 6 else f"MOSAIC {len(found)}/6"
+        caption = MOSAICS[galaxy] if len(found) == 6 else f"MOSAIC {galaxy}: {len(found)}/6"
         for i, part in enumerate(_wrap(caption, 16)):
             f.draw(surf, part, (10, 108 + i * 9), GOOD if len(found) == 6 else TEXT_DIM)
         f.draw(surf, "DECODER", (10, 134), TEXT_DIM)
-        f.draw(surf, "ONLINE" if page.decoder else "FIND ALL 6", (10, 144),
-               GOOD if page.decoder else DANGER)
-        if page.decoder:
+        f.draw(surf, "ONLINE" if decoder else "FIND ALL 6", (10, 144),
+               GOOD if decoder else DANGER)
+        if decoder:
             f.draw(surf, "SEE THE LOG.", (10, 154), TEXT)
         self._draw_key(surf, page.shards, (10, 172), stacked=True)
-        for i, (echo, got) in enumerate(page.echoes):
-            y = 34 + i * 26
+        for row, (i, echo, got) in enumerate(shown):
+            y = 34 + row * 26
             if i == page.cursor:
                 surf.fill(INK, (118, y - 2, 196, 23))
                 pygame.draw.rect(surf, ACCENT, (118, y - 2, 196, 23), 1)

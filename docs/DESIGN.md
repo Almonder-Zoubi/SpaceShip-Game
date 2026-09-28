@@ -414,6 +414,18 @@ obstacle, one flow, one boss (or none), one gift.
   Veil as it tears apart, then the warp to galaxy 3, BLOOM. For the first time VANTA shows
   its face on the radio.
 
+**Built in G21–G29 (2026-09-28): all ten levels.** As in the table, with these choices:
+the maw's jaws rise while you idle and UP pushes them back (a bite drops them 30 px); a saved
+brood / a flagship held above half pays a bonus and is remembered as a story beat; the
+MIRROR level uses phase rocks (chrome) and echo ghosts; PULSE moves the whole enemy side on
+a 120 bpm beat (0.25x between beats, 2.25x on them); CROSSROADS gates open at 55% of the
+first field (no choice = the maze picks); LAST LIGHT is 3 x 30 s, and losing the flagship
+loses the attempt; the COURT's NYX leaves at half its hull; the finale's darkness and void
+walls come from its hazard (`hazards/throne.py`), switched on by the boss. The story adds:
+heralds are the wingmates who did **not** turn back (NYX was one); galaxy 2's first radio
+lines spell LOOK BEHIND; its caches say every hull in the Bone Reef reads ARROW-01; the
+warp transmission shows VANTA's face - Vega's fleet helmet, darkened.
+
 **Gifts (one per level, choose 1 of 2 as before):** the 2nd wingman slot (level 1), the
 first **ABILITY** (level 2, see 4.7), RAIL (primary), MINE TRAIL (secondary), new hull
 **VESPER** (a thin, dark scout), wingman **LUMEN** (lights up the dark, marks lurkers),

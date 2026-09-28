@@ -190,7 +190,16 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
     @property
     def boss_entry(self):
         """The BossEntry being fought (or announced) in the current wave."""
-        return self.wave.bosses[self.boss_index]
+        return self.wave_bosses[self.boss_index]
+
+    @property
+    def wave_bosses(self):
+        """The bosses this wave fights: all of them, or on a route wave the chosen one."""
+        wave = self.wave
+        if wave.route:
+            route = getattr(self.hazard, "route", None) or 0
+            return (wave.bosses[min(route, len(wave.bosses) - 1)],)
+        return wave.bosses
 
     def set_state(self, state):
         self.state = state

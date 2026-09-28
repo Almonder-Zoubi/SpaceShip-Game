@@ -9,8 +9,8 @@ from ..progression.items import ITEMS, SHIP, SKIN, WEAPON, WINGMAN, items_of
 from ..progression.upgrades import TRACKS, power_ratio
 from ..brains.insight import insights
 from ..story.dialog import VEGA, as_line
-from ..story.lore import (CALLSIGN, DECODED, DOSSIER_BY_BOSS, ECHOES, HERALDS,
-                          TRANSMISSIONS, VANTA_FILE, redact)
+from ..story.lore import (CALLSIGN, DECODED, DECODED_2, DOSSIER_BY_BOSS, ECHOES, ECHOES_2,
+                          HERALDS, TRANSMISSIONS, VANTA_FILE, redact)
 from .states import State
 
 TABS = ("PILOT", "BOSSES", "ECHOES", "LOG", "KNOWN")
@@ -48,6 +48,7 @@ class JournalPage:
     decoder: bool
     log: tuple                    # (kind, text, highlight): kind "head" / "line" / "speaker"
     known: dict = None            # KNOWN: what the enemy's player model says about you
+    decoder2: bool = False        # galaxy 2's echoes all found
 
 
 class JournalMixin:
@@ -71,7 +72,7 @@ class JournalMixin:
     def journal_move(self, step):
         tab = TABS[self.journal_tab]
         size = {"PILOT": len(ACHIEVEMENTS), "BOSSES": len(self._boss_files()),
-                "ECHOES": len(ECHOES), "LOG": len(self._journal_log()), "KNOWN": 1}[tab]
+                "ECHOES": len(self._echoes()), "LOG": len(self._journal_log()), "KNOWN": 1}[tab]
         self.journal_cursor[tab] = max(0, min(size - 1, self.journal_cursor[tab] + step))
         self.audio.play("select")
 
@@ -110,6 +111,16 @@ class JournalMixin:
     def decoder(self):
         """Every galaxy 1 echo found: the journal can read the hidden layer."""
         return all(e.cache in self.save.caches for e in ECHOES)
+
+    @property
+    def decoder2(self):
+        """Every galaxy 2 echo found: the second hidden layer."""
+        return all(e.cache in self.save.caches for e in ECHOES_2)
+
+    def _echoes(self):
+        """The echoes the journal lists: galaxy 1's, and galaxy 2's once it is open."""
+        open2 = 1 in self.save.medals or any(e.cache in self.save.caches for e in ECHOES_2)
+        return ECHOES + (ECHOES_2 if open2 else ())
 
     def boss_defeated(self, name):
         if name in self.save.bosses:
@@ -156,19 +167,23 @@ class JournalMixin:
 
     def _story_flag(self, cond):
         return {"medal1": 1 in self.save.medals, "decoder": self.decoder,
+                "medal2": 2 in self.save.medals, "decoder2": self.decoder2,
                 "never": False}[cond]
 
     def _journal_log(self):
         """Every radio line of the levels reached, then the intercepted transmissions."""
         out = []
+        decoded = {1: self.decoder, 2: self.decoder2}
         if self.decoder:
             out.append(("decoded", f"FIRST LETTERS: {DECODED}", False))
+        if self.decoder2:
+            out.append(("decoded", f"GALAXY 2 FIRST LETTERS: {DECODED_2}", False))
         reached = max(self.save.unlocked, self.start_level + 1)
         for level in LEVELS[:reached]:
             out.append(("head", f"{level_title(level)}  {level.name}", False))
-            first = galaxy_of(level).number == 1
+            lit = decoded.get(galaxy_of(level).number, False)
             for i, entry in enumerate(level.radio):
-                out.append(self._log_line(entry, i == 0 and first and self.decoder))
+                out.append(self._log_line(entry, i == 0 and lit))
             for wave in level.waves:
                 for entry in wave.radio:
                     out.append(self._log_line(entry, False))
@@ -206,6 +221,6 @@ class JournalMixin:
             round(power_ratio(tiers) * 100), {t.id: tiers.get(t.id, 0) for t in TRACKS}, gear,
             achievements, tuple(self.save.medals), tuple(self.save.shards),
             tuple(self._boss_files()),
-            tuple((e, e.cache in self.save.caches) for e in ECHOES), self.decoder,
-            tuple(self._journal_log()), self._known())
+            tuple((e, e.cache in self.save.caches) for e in self._echoes()), self.decoder,
+            tuple(self._journal_log()), self._known(), self.decoder2)
 

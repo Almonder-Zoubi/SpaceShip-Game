@@ -45,6 +45,9 @@ class Wave:
     escape: bool = False         # a timed escape run (the level's hazard collapses)
     ambush: float = 0.0          # > 0: the boss arrives unannounced at this share of the field
     pursuit: bool = False        # something hunts the rocket through the field (hazards/pursuit)
+    fork: bool = False           # two gates open in this field; flying into one picks a route
+    route: bool = False          # the bosses are alternatives: only the chosen route's one fights
+    reroll: bool = False         # a new VEIL SHIFT is rolled when this wave starts (arenas)
 
 
 @dataclass(frozen=True)

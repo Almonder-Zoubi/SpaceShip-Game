@@ -455,3 +455,39 @@ PULSE_LOW = 0.25                 # speed between beats ...
 PULSE_HIGH = 2.25                # ... and on the beat (cos^2 pulse: averages 1)
 CAGE_SPEED = 55                  # px/s the cage walls close in
 CAGE_GAP = 46                    # px: the gap in each wall
+
+# --- G2 L7 HOLLOW MAZE (CROSSROADS) ------------------------------------------------------
+VOID_HOLES = 3                   # drifting patches that erase every bullet inside them
+VOID_RADIUS = (14, 22)
+VOID_SPEED = 22                  # px/s they drift down
+EGG_HP = 26
+EGG_HATCH = 6.0                  # an egg cluster hatches larvae after this long
+EGG_LARVAE = 4
+POINTS_EGG = 160
+FORK_AT = 0.55                   # share of the fork field when the two gates open
+FORK_GATE = 20                   # px: a gate's radius
+
+# --- G2 L8 LAST LIGHT (SIEGE) --------------------------------------------------------------
+FLAGSHIP_HULL = 1600             # Vega's flagship; lose it and the level is lost
+FLAGSHIP_GUN = 1.0               # its guns fire this often (at the nearest minion) ...
+FLAGSHIP_GUN_DAMAGE = 34         # ... for this much
+FLAGSHIP_RAM = 60                # a minion that reaches it crashes into it for this much
+FLAGSHIP_ROCK = 28               # a rock that reaches it
+LEADER_HP = 42
+FOLLOWER_HP = 12
+LEADER_FIRE = 1.5                # the squad fires on the leader's order this often
+SQUAD_PANIC = 3.0                # a squad whose leader dies scatters and holds fire this long
+POINTS_LEADER = 600
+POINTS_FOLLOWER = 150
+FLAGSHIP_SAVED_COINS = 500       # bonus when the flagship lives with more than half its hull
+
+# --- G2 L9 THE COURT OF NYX (GAUNTLET + DUEL) --------------------------------------------
+CHAIN_INTERVAL = 7.0             # seconds between chained rock pairs
+CHAIN_LENGTH = 44                # px between the two rocks
+CHAIN_SPIN = 1.5                 # rad/s the pair swings round
+CHAIN_DAMAGE = 0.06              # share of max hull the tether takes when it sweeps the rocket
+NYX_RETREAT = 0.5                # NYX leaves the court arenas at this share of its hull
+
+# --- G2 L10 THE HOLLOW THRONE (finale) -----------------------------------------------------
+UNMAKING_WALL = 64               # px: how far the void closes in from each side (NYX phase 4)
+UNMAKING_DAMAGE = 0.08           # share of max hull for touching the void

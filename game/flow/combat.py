@@ -8,6 +8,7 @@ from ..config.tuning import (MAGMA_BLAST, MAGMA_BLAST_DAMAGE, REFRACT_BEAMS, REF
                              DRONE_KIT_CHANCE, MARROW_MIN_RADIUS, POINTS_BOSS, POINTS_PER_RADIUS,
                              ROCK_KIT_CHANCE,
                              ULT_CHARGE_PER_BOSS_THIRD, ULT_CHARGE_PER_DAMAGE, ULT_CHARGE_PER_KILL)
+from ..config.display import LOW_W
 from ..core.particles import Shockwave
 from ..minions.base import Enemy
 from ..obstacles.asteroid import Asteroid, MarrowCore
@@ -240,6 +241,18 @@ class CombatMixin:
             self._record_boss_time(b)
             if not self.dev:
                 self.save.remember("bosses", b.spec.name)     # opens its journal file
+            self._drop_boss_coins(b)
+            self.set_phase(Phase.CLEARED)
+
+    def _boss_escaped(self):
+        """A boss that retreats instead of dying: the wave is won, no journal file yet."""
+        b = self.boss
+        self.shockwaves.append(Shockwave(b.x, max(0.0, b.y), max_radius=70, duration=0.6,
+                                         color=(180, 120, 255)))
+        self.audio.play("teleport")
+        if self.state == State.PLAYING:
+            self.score += POINTS_BOSS // 2
+            self.popups.append(Popup("IT RETREATS", LOW_W / 2, 60, ACCENT))
             self._drop_boss_coins(b)
             self.set_phase(Phase.CLEARED)
 

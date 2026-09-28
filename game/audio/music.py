@@ -505,6 +505,84 @@ def tempo():
                 beat=beat)
 
 
+# --- galaxy 2, levels 7-10 ---------------------------------------------------------------------
+def maze():
+    """HOLLOW MAZE: B locrian-ish unease, turns that go nowhere - a lead that keeps doubling back."""
+    chords = ["Bm", "C", "Bm", "Am", "Bm", "C", "G", "F#"]
+    melody = """B4 . D5 . F#5 . . . | E5 . C5 . G4 . . . | B4 . D5 . F#5 . B5 . | A5 . E5 . C5 . A4 .
+                B4 . F#5 . B5 . D6 . | C6 . G5 . E5 . C5 . | B5 . G5 . D5 . B4 . | A#4 . C#5 . F#5 . - -"""
+    beat = "k . . h s . . h k . k . s . h h"
+    return song(128, chords, melody, lead=LEAD_SOFT, arp_pattern=(0, 2, 1, 2), arp_octave=4,
+                bass_rhythm="R . R O R . F .", beat=beat, lead_echo=(0.35, 0.4),
+                arp_echo=(0.23, 0.35))
+
+
+def grinder():
+    """GRINDER: E minor power chords at full throttle, a grinding low lead."""
+    chords = ["Em", "Em", "C", "D", "Em", "Em", "A", "B"]
+    melody = """E4 . E4 . G4 . E4 . | B4 . A4 . G4 . E4 . | C5 . E5 . G5 . E5 . | D5 . F#5 . A5 . F#5 .
+                E5 . B4 . G4 . E4 . | G4 . B4 . E5 . G5 . | A5 . E5 . C#5 . A4 . | B4 . D#5 . F#5 . - -"""
+    beat = "k k s h k k s h k k s h k s s s"
+    return song(172, chords, melody, arp_pattern=(0, 1, 0, 2), arp_octave=3,
+                bass_rhythm="R R R O R R R O", beat=beat)
+
+
+def spinner():
+    """SPINNER: a whirling 16th arpeggio in G minor that never stops turning."""
+    chords = ["Gm", "Eb", "Bb", "F", "Gm", "Eb", "Cm", "D"]
+    melody = """G5 . . . D5 . Bb4 . | G5 . . . Eb5 . Bb4 . | F5 . D5 . Bb4 . D5 . | F5 . A5 . C6 . A5 .
+                G5 . Bb5 . D6 . G6 . | G6 . Eb6 . Bb5 . G5 . | C6 . Eb6 . G6 . Eb6 . | D6 . F#5 . A5 . - -"""
+    beat = "k h h s h h k h k h h s h s h h"
+    return song(156, chords, melody, arp_pattern=(0, 1, 2, 3, 2, 1, 0, 2), arp_octave=5,
+                bass_rhythm="R O R O R O R O", beat=beat, lead_echo=(0.19, 0.3))
+
+
+def siege():
+    """LAST LIGHT: a heroic D major march for a hopeless stand, snare rolls under it."""
+    chords = ["D", "D", "Bm", "G", "D", "A", "G", "A"]
+    melody = """D5 . . . F#5 . A5 . | D6 . . . C#6 . A5 . | B5 . . . F#5 . D5 . | G5 . B5 . D6 . B5 .
+                A5 . F#5 . D5 . F#5 . | A5 . C#6 . E6 . A6 . | G6 . D6 . B5 . G5 . | A5 . . . C#6 . E6 ."""
+    beat = "k . s s k . s . k . s s k s s s"
+    return song(138, chords, melody, arp_pattern=(0, 1, 2, 1), bass_rhythm="R . R . O . R .",
+                beat=beat, lead_echo=(0.22, 0.3))
+
+
+def court():
+    """THE COURT OF NYX: a courtly waltz gone wrong - 3/4 feel in F minor, too slow, too sure."""
+    chords = ["Fm", "C7", "Fm", "Db", "Bbm", "Fm", "C", "C7"]
+    melody = """F5 . . . . . C5 . | E5 . . . G5 . . . | F5 . Ab5 . C6 . . . | Db6 . . . Ab5 . F5 .
+                Bb5 . . . Db6 . F6 . | C6 . . . Ab5 . F5 . | E5 . G5 . C6 . E6 . | G6 . . . - - - -"""
+    beat = "k . . . h . h . k . . . h . h ."
+    return song(108, chords, melody, lead=LEAD_SOFT, arp_pattern=(0, 1, 2, 1, 2, 1), arp_octave=4,
+                bass_rhythm="R . . . F . F .", beat=beat, lead_echo=(0.42, 0.45),
+                arp_echo=(0.28, 0.4), bass_instrument=BASS_LONG)
+
+
+def nyx():
+    """NYX, THE FIRST HERALD: the court waltz sped into a duel - F minor, relentless."""
+    chords = ["Fm", "Fm", "Db", "C", "Fm", "Fm", "Bbm", "C7",
+              "Db", "Eb", "Fm", "Fm", "Bbm", "Db", "C", "C7"]
+    melody = """F5 . C5 . Ab5 . F5 . | C6 . Ab5 . F5 . C5 . | Db6 . Ab5 . F5 . Db5 . | E5 . G5 . C6 . E6 .
+                F6 . C6 . Ab5 . F5 . | Ab5 . C6 . F6 . Ab6 . | Bb5 . Db6 . F6 . Bb6 . | G6 . E6 . C6 . G5 .
+                Ab5 . F5 . Db5 . F5 . | G5 . Eb5 . Bb4 . Eb5 . | F5 . Ab5 . C6 . F6 . | E6 . F6 . Ab6 . F6 .
+                Db6 . Bb5 . F5 . Bb5 . | Ab5 . F5 . Db5 . Ab5 . | G5 . C6 . E6 . G6 . | C6 . . . - - - -"""
+    beat = "k h s h k k s h k h s h k k s s"
+    fill = "k h s h k k s h s s s s s s s s"
+    return song(176, chords, melody, arp_pattern=(0, 1, 2, 3), bass_rhythm="R R O R R O R O",
+                beat=beat, fill=fill, lead_echo=(0.17, 0.35))
+
+
+def throne():
+    """THE HOLLOW THRONE: the Veil's theme (E phrygian) at its darkest and slowest."""
+    chords = ["Em", "F", "Em", "Dm", "Em", "F", "C", "B"]
+    melody = """E5 . . . . . G5 . | F5 . . . . . C5 . | B4 . . . E5 . G5 . | F5 . . . D5 . . .
+                E5 . G5 . B5 . . . | C6 . . . A5 . F5 . | E5 . . . G5 . C6 . | B5 . . . D#6 . - -"""
+    beat = "k . . . s . . . k . . h s . . ."
+    return song(96, chords, melody, lead=LEAD_SOFT, arp_pattern=(0, 2, 1, 2), arp_octave=4,
+                bass_rhythm="R . . . R . O .", beat=beat, lead_echo=(0.55, 0.5),
+                arp_echo=(0.4, 0.45), bass_instrument=BASS_LONG)
+
+
 # --- jingles (play once) ----------------------------------------------------------------------------
 def level_clear():
     lead = "C5 E5 G5 C6 . . G5 C6 . . . . . . . . - - - -"
@@ -542,5 +620,7 @@ SONGS = {"title": title, "level1": level1, "level2": level2, "level3": level3,
          "veil": veil, "warden": warden,
          "reef": reef, "maw": maw, "sanctuary": sanctuary, "reaper": reaper, "dark": dark,
          "eclipse": eclipse, "mirror": mirror, "mimic": mimic, "pulse": pulse, "tempo": tempo,
+         "maze": maze, "grinder": grinder, "spinner": spinner, "siege": siege, "court": court,
+         "nyx": nyx, "throne": throne,
          "level_clear": level_clear, "game_over": game_over, "win": win}
 JINGLES = ("level_clear", "game_over", "win")      # play once instead of looping

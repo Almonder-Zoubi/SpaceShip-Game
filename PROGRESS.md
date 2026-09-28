@@ -6,19 +6,21 @@ Update this file at the end of every work session: what changed, what's next, op
 
 **Branch:** `design` (from `682a781` "level 4 and a complete guide.md"): Phase 10 design,
 then G1–G15 (all systems + levels 5–10) and the STAR MAP, one commit per milestone.
-**Current phase:** galaxy 1 ORION REACH is complete — levels 1–10 playable with every Phase 10
-system: coins + rank, gifts + HANGAR 2.0, upgrades, game feel, boosts + combo / FEVER,
-wingmen, weapon slots + 5 new weapons, skins + achievements, levels 5 SOLAR FORGE ... 9 EVENT
-HORIZON, the finale 10 SWARM HEART (boss rush, THE OVERMIND, escape, warp cut-scene, galaxy
-medal) and an explorable STAR MAP between title and hangar (hidden data caches with story).
-G1 was playtested ("feels ok"); G3 "runs perfectly". **G2 and G4–G15 are not playtested by
-the user yet** (the G9 box stays open for that). Next: the user's playtest, then G16 (galaxy 2
-THE VEIL — design first). NEMESIS (Phase 9) is parked behind Phase 10.
+**Current phase:** galaxies 1 ORION REACH and 2 THE VEIL are complete — 20 levels. Galaxy 2
+(G16–G29): story engine + JOURNAL, the enemy's brains, VEIL SHIFTS, elites, abilities on
+SHIFT / right click, the WING BAY, upgrade tiers 6–10, and ten levels with their own flow
+(ambush, pursuit, escort, darkness, mirror, rhythm, crossroads, siege, gauntlet, finale), ending
+with NYX, the warp, shard 2 and VANTA's face. The user played galaxy 1 L10 ("perfect") and
+G2 L1 ("good, not that hard, many weak shots" -> fewer, harder shots). **G2 L2–L10 are not
+playtested yet.** Next: the user's playtest of galaxy 2; galaxy 3 BLOOM is designed only as a
+herald (MORROW). NEMESIS (Phase 9) is parked.
 
 **Starting a new session?** Read this file's Snapshot + Decisions, then CLAUDE.md (module map,
 "where to look when debugging", conventions). Run the smoke test once before changing anything.
 
-## Handoff — next session: G19 (ability key + PHASE, 2nd wingman slot), then G21 (level 2 BONE REEF, PURSUIT)
+## Handoff — next session: the user's galaxy 2 playtest, then galaxy 3 design
+
+(The notes below were written before G19; the log entries above them are current.)
 
 State at hand-off (2026-09-28): branch `design`, everything committed and pushed, full smoke
 test green (31 sections), lint clean. Built in long cloud sessions without a real window:
@@ -246,6 +248,40 @@ the sounds into `sounds/generated/` (git-ignored, ~14 s now).
   the key is decided then.
 
 ## Log
+
+### 2026-09-28 — G26–G29: galaxy 2 levels 7–10 and its story (THE VEIL is complete)
+- Flow plumbing: `Wave.fork` / `Wave.route` (the bosses are alternatives; `Game.wave_bosses`
+  picks the hazard's `route`), `Wave.reroll` (a new VEIL SHIFT per arena), bosses may
+  retreat (`update()` returns "escaped" -> `_boss_escaped()`: the wave is won, no journal
+  file), hazards may pay on a won level (`bonus()` -> coins + story beat; the brood uses it).
+- L7 HOLLOW MAZE (`hazards/maze.py`, `minions/egg.py`, `bosses/grinder.py`,
+  `bosses/spinner.py`): void holes erase bullets of both sides; the gates open at 55% of the
+  first field; no choice = the maze picks. **(ask: is a fork of two bosses fun, or should
+  both be fought?)**
+- L8 LAST LIGHT (`hazards/siege.py`, `minions/leader.py`): 3 x 30 s, no boss. Flagship hull
+  1600, its turrets shoot minions; losing it destroys the rocket (the attempt is lost);
+  above half its hull = +500 CR and `FLAGSHIP_HELD`.
+- L9 THE COURT OF NYX (`hazards/court.py`, `bosses/nyx.NyxCourt`): four arenas, a new
+  shift each, chained rocks (tether hurts, break one rock to free the other), NYX at 3x / 4x
+  leaves at half its hull.
+- L10 THE HOLLOW THRONE (`hazards/throne.py`, `bosses/nyx.Nyx`): the rush at 2x, NYX 7x /
+  90 s in 5 phases; the hazard switches its darkness on for Eclipse and NYX phase 3, closes
+  the void walls for NYX phase 4+ and the escape; then the warp (medal 2, shard 2,
+  `G2_WARP`), the NYX paint, the Veil's map.
+- Story: galaxy 2's first radio lines spell LOOK BEHIND (`ACROSTIC_2`); 6 caches on the
+  Veil's map = mosaic 2 ("ONE SHIP TURNS BACK") and decoder 2; VANTA's file adds lines for
+  medal 2 / decoder 2; the warp transmission shows VANTA UNMASKED (its portrait is Vega's
+  helmet and collar, darkened - a clue); NYX (new speaker + portrait) greets you with what the
+  enemy's player model learned and taunts every phase; heralds = the wingmates who did not
+  turn back (added to the answer in `story/lore.py`). Dossiers: GRINDER, SPINNER, NYX.
+- Gifts 2-6..2-10 are skins (BONE / ECHO TRAIL, RIFT TRACERS / TEAL BEAM, VEGA, HOLLOW,
+  NYX). The design's RAIL / MINE TRAIL / VESPER / LUMEN are not built **(ask)**.
+- 7 new tracks (maze, grinder, spinner, siege, court, nyx, throne).
+- Bot (maxed, tank): L7 146 s A, L8 97 s S, L9 168 s A, L10 307 s B (rush + NYX 171 s vs
+  par 150). The siege is about the flagship, not the rocket: the maxed bot (which never
+  hunts leaders) ends with 300–500 of 1600 hull, a tier-5 bot lost it once in 3 runs
+  **(ask: siege too hard / too easy?)**.
+- Smoke: new section `veil3`; the `veil` boomerang check no longer flakes (rifts closed).
 
 ### 2026-09-28 — G19 + G21–G25: abilities, WING BAY, tiers 6–10, levels 2–6 of THE VEIL
 - User feedback on G2 L1: "not that hard, but so many shots" -> galaxy 2 bosses fire

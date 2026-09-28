@@ -44,6 +44,7 @@ class Eclipse(Learner, Boss):
     """
 
     EPITHET = "THE LIGHT THAT BURNS"
+    wants_dark = True                    # the finale switches its darkness on for it
     PHASES = 4
     RAGE = (1.0, 1.15, 1.3, 1.45)
     OPTIONS = (("extinguish", "shadowring", "fans"),

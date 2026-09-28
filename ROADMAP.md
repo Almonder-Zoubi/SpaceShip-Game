@@ -268,8 +268,19 @@ edge, ~+30%), `hp * firepower == 1` for hulls, all art + audio in code.
       ECLIPSE
 - [x] G24 Level 5 MIRROR SEA (MIRROR): your reflection, echo ghosts, phase rocks, THE MIMIC
 - [x] G25 Level 6 PULSE NEBULA (RHYTHM): the enemy side moves on a 120 bpm beat, cages, TEMPO
-- [ ] G26–G29 Levels 7–10 (CROSSROADS, SIEGE, GAUNTLET + DUEL, the NYX finale) + galaxy 2
-      story (echoes / mosaic 2, G2 warp transmission, shard 2, reactive taunts)
+- [x] G26 Level 7 HOLLOW MAZE (CROSSROADS): void holes eat bullets, egg clusters, the fork's
+      RED / BLUE gates choose GRINDER or SPINNER
+- [x] G27 Level 8 LAST LIGHT (SIEGE): no boss; Vega's flagship (its guns help, lose it = lose
+      the level), HOLLOW LEADER squads (kill the leader: they panic, then dive)
+- [x] G28 Level 9 THE COURT OF NYX (GAUNTLET + DUEL): 4 arenas with a new VEIL SHIFT each,
+      chained rocks, NYX tests you twice and retreats
+- [x] G29 Level 10 THE HOLLOW THRONE: rush (Warden, Eclipse, Mimic at 2x) -> NYX 7x in 5
+      phases (duel, rifts, eclipse, the void closes, VANTA speaks) -> escape -> warp; shard 2,
+      medal 2, NYX paint
+- [x] Galaxy 2 story: LOOKBEHIND acrostic, 6 caches + mosaic 2 + decoder 2, VANTA's file,
+      the G2 warp transmission (VANTA unmasked), NYX's reactive taunts (it quotes what the
+      enemy learned), 3 new dossiers; gifts 2-6..2-10 (skins)
+- [ ] Later: RAIL / MINE TRAIL / VESPER / LUMEN (DESIGN 4.6 gift ideas not built yet)
 
 ## Later / nice to have
 

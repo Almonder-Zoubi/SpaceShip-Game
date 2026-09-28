@@ -12,26 +12,34 @@ from ..bosses.spec import BossSpec
 from ..bosses.twins import Twins
 from ..bosses.warden import Warden
 from ..bosses.eclipse import Eclipse
+from ..bosses.grinder import Grinder
+from ..bosses.nyx import Nyx, NyxCourt
+from ..bosses.spinner import Spinner
 from ..bosses.leechmaw import LeechMaw
 from ..bosses.mimic import Mimic
 from ..bosses.reaper import Reaper
 from ..bosses.tempo import Tempo
 from ..bosses.wraith import Wraith
 from ..config.loadouts import (MK1, MK2, MK3, MK4, MK5, MK6, MK7, MK8, MK9, MK10, MK11, MK12,
-                               MK13, MK14, MK15, MK16)
+                               MK13, MK14, MK15, MK16, MK17, MK18, MK19, MK20)
 from ..config.palette import (NEBULA, NEBULA_ABYSS, NEBULA_CRIMSON, NEBULA_CRYSTAL, NEBULA_FORGE,
                               NEBULA_FROST, NEBULA_GHOST, NEBULA_HIVE, NEBULA_HORIZON,
                               NEBULA_RUST, NEBULA_VEIL, NEBULA_REEF, NEBULA_SANCTUARY,
-                              NEBULA_DARK, NEBULA_MIRROR, NEBULA_PULSE)
+                              NEBULA_DARK, NEBULA_MIRROR, NEBULA_PULSE, NEBULA_MAZE,
+                              NEBULA_SIEGE, NEBULA_COURT, NEBULA_THRONE)
 from ..hazards.blackhole import BlackHole
 from ..hazards.fog import FogBanks
 from ..hazards.hive import HiveTunnel
 from ..hazards.rifts import RiftPortals
+from ..hazards.court import CourtOfNyx
 from ..hazards.darkness import Darkness
 from ..hazards.escort import BroodEscort
+from ..hazards.maze import HollowMaze
 from ..hazards.mirror import MirrorSea
 from ..hazards.pulse import PulseField
 from ..hazards.pursuit import MawPursuit
+from ..hazards.siege import Siege
+from ..hazards.throne import HollowThrone
 from ..config.tuning import BOSS_REPAIR_G2, LEVEL_LENGTH
 from ..minions.interceptor import interceptor_pair
 from ..minions.minelayer import minelayer_squad
@@ -40,7 +48,9 @@ from ..minions.prism import prism_turret
 from ..minions.salvager import salvager
 from ..minions.swarm import larva_flock, spore_cluster
 from ..minions.wisp import wisp_pair
+from ..minions.egg import egg_cluster
 from ..minions.latcher import latcher_trio
+from ..minions.leader import leader_squad
 from ..minions.lurker import lurker_pair
 from ..minions.mirror import echo_ghost
 from ..minions.stalker import stalker_pair
@@ -382,6 +392,94 @@ GALAXY_2_LEVELS = (
                  "FLY IN THE GAPS BETWEEN THE BEATS."),
           upgrade_notes=("THE ENEMY MOVES ON THE BEAT",
                          "CAGES: FIND THE GAP IN EACH WALL")),
+    # CROSSROADS: pick a gate, and with it the boss at the end of the road.
+    Level(7, "HOLLOW MAZE", MK17,
+          Difficulty(spawn_interval=0.55, speed_min=64, speed_max=124, radius_min=4,
+                     radius_max=13, drift=14, palettes=("void", "shade"),
+                     extras=((egg_cluster, 9), (wisp_pair, 11)), rock_hp=3.5, enemy_hp=3.4,
+                     elite_chance=0.15),
+          tuple(NEBULA_MAZE),
+          (Wave(55, name="THE FORK", fork=True),
+           Wave(25, (BossEntry(Grinder, BossSpec("GRINDER", strength=6.5, fight_time=50,
+                                                 player=MK17), music="grinder"),
+                     BossEntry(Spinner, BossSpec("SPINNER", strength=6.5, fight_time=50,
+                                                 player=MK17), music="spinner")),
+                name="THE ROAD YOU CHOSE", route=True,
+                radio=("WHATEVER WAITS AT THE END - IT'S YOURS.",))),
+          music="maze", hazard=HollowMaze, director=True, shifts=True,
+          radio=("HOLLOW MAZE. RED OR BLUE - PICK A ROAD.",
+                 "VOID HOLES EAT EVERY SHOT. YOURS TOO.",
+                 "BREAK THE EGGS BEFORE THEY HATCH."),
+          upgrade_notes=("RED = GRINDER, BLUE = SPINNER",
+                         "VOID HOLES: SAFE SPOTS, BLIND SPOTS")),
+    # SIEGE: no boss. Hold the line round Vega's flagship for three waves.
+    Level(8, "LAST LIGHT", MK18,
+          Difficulty(spawn_interval=0.54, speed_min=62, speed_max=120, radius_min=4,
+                     radius_max=13, drift=12, palettes=("veil", "bone"),
+                     extras=((leader_squad, 7), (wisp_pair, 10), (stalker_pair, 12)),
+                     rock_hp=3.6, enemy_hp=3.5, elite_chance=0.25),
+          tuple(NEBULA_SIEGE),
+          (Wave(30, name="THEY'RE COMING"),
+           Wave(30, name="THE SECOND WAVE",
+                radio=("KILL THE LEADERS. THE REST FALL APART.",)),
+           Wave(30, name="HOLD THE LINE",
+                radio=("HULL AT... NEVER MIND. JUST HOLD ON!",))),
+          music="siege", hazard=Siege, director=True, shifts=True,
+          radio=("I NEED YOU AT MY FLAGSHIP. NOW, SCOUT.",
+                 "WE'RE CRIPPLED. THEY THROW EVERYTHING.",
+                 "MY GUNS WILL HELP. KEEP THEM OFF MY HULL."),
+          upgrade_notes=("NO BOSS: SAVE VEGA'S FLAGSHIP",
+                         "LOSE THE FLAGSHIP, LOSE THE LEVEL")),
+    # GAUNTLET + DUEL: four arenas, a new rule in each; NYX tests you twice, then leaves.
+    Level(9, "THE COURT OF NYX", MK19,
+          Difficulty(spawn_interval=0.56, speed_min=64, speed_max=124, radius_min=4,
+                     radius_max=13, drift=14, palettes=("veil", "chrome", "shade"),
+                     extras=((wisp_pair, 9), (lurker_pair, 13)), rock_hp=3.7, enemy_hp=3.5,
+                     elite_chance=0.16),
+          tuple(NEBULA_COURT),
+          (Wave(30, name="ARENA I", reroll=True),
+           Wave(20, (BossEntry(NyxCourt, BossSpec("NYX", strength=3.0, fight_time=25,
+                                                  player=MK19), music="nyx"),),
+                name="ARENA II", reroll=True,
+                radio=("THAT'S NYX. THE FIRST HERALD. CAREFUL.",)),
+           Wave(30, name="ARENA III", reroll=True),
+           Wave(20, (BossEntry(NyxCourt, BossSpec("NYX", strength=4.0, fight_time=25,
+                                                  player=MK19), music="nyx"),),
+                name="ARENA IV", reroll=True,
+                radio=("IT'S BACK. IT WAS ONLY WATCHING BEFORE.",))),
+          music="court", hazard=CourtOfNyx, director=True, shifts=True,
+          radio=("NYX'S COURT. IT WILL NOT FIGHT FAIR.",
+                 "EVERY ARENA HAS ITS OWN RULE.",
+                 "CHAINED ROCKS: BREAK ONE, THE OTHER FLIES."),
+          upgrade_notes=("A NEW VEIL SHIFT IN EVERY ARENA",
+                         "THE CHAIN HURTS - BREAK A ROCK")),
+    # The finale: a boss rush of the Veil's guards, NYX, then the Veil tears apart.
+    Level(10, "THE HOLLOW THRONE", MK20,
+          Difficulty(spawn_interval=0.56, speed_min=64, speed_max=126, radius_min=4,
+                     radius_max=13, drift=14, palettes=("void", "veil", "bone"),
+                     extras=((wisp_pair, 9), (leader_squad, 14), (lurker_pair, 16)),
+                     rock_hp=3.8, enemy_hp=3.6, elite_chance=0.18),
+          tuple(NEBULA_THRONE),
+          (Wave(30, (BossEntry(Warden, BossSpec("THE WARDEN", strength=2.0, fight_time=20,
+                                                player=MK20), music="warden"),
+                     BossEntry(Eclipse, BossSpec("ECLIPSE", strength=2.0, fight_time=20,
+                                                 player=MK20), music="eclipse"),
+                     BossEntry(Mimic, BossSpec("THE MIMIC", strength=2.0, fight_time=20,
+                                               player=MK20), music="mimic")),
+                name="THE GUARDS RETURN"),
+           Wave(25, (BossEntry(Nyx, BossSpec("NYX", strength=7.0, fight_time=90,
+                                             player=MK20), music="nyx"),),
+                name="THE FIRST HERALD",
+                radio=("THIS IS IT. NYX HOLDS THE SECOND SHARD.",
+                       "WHATEVER IT SAYS - DON'T LISTEN.")),
+           Wave(20, name="ESCAPE!", music="escape", escape=True,
+                radio=("THE VEIL IS TEARING! GET OUT OF THERE!",))),
+          music="throne", hazard=HollowThrone, finale=True, director=True, shifts=True,
+          radio=("DON'T LOOK BACK. THE THRONE IS AHEAD.",
+                 "ITS GUARDS ARE BACK. SO ARE YOU.",
+                 "BRING THE SHARD HOME, SCOUT."),
+          upgrade_notes=("THE FIRST HERALD: 5 PHASES",
+                         "THEN RUN - THE VEIL COLLAPSES")),
 )
 
 GALAXIES = (
