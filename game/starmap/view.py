@@ -12,10 +12,8 @@ from ..config.palette import (ACCENT, COIN, DANGER, FLAME, GOOD, HIVE_FLESH, HIV
 from ..config.tuning import MAP_CACHE_SEEN, MAP_H, MAP_W
 from ..core.pixelart import make_glow, shaded_sphere
 from ..ui.medal import draw_medal
-from .model import BLACK_HOLE, CACHES, GATE, NODES
 
 PARALLAX = (0.25, 0.5, 1.0)              # star layers, far to near
-SUN, HIVE = 4, 9                          # special planets (levels 5 and 10)
 LOCKED = [(10, 10, 18), (22, 22, 34), (34, 34, 50), (46, 46, 66)]
 SUN_COLORS = [(170, 60, 20), (230, 120, 30), (255, 190, 70), (255, 240, 170), (255, 255, 230)]
 ANGLES = 32                               # rotated rocket frames
@@ -30,21 +28,23 @@ def boss_name(level):
 class StarMapView:
     """Built once (sprites are pre-rendered); draw(surf, starmap, ...) every frame."""
 
-    def __init__(self, font, levels):
-        self.font = font
-        rng = random.Random(7)
+    def __init__(self, font, gmap, levels, name):
+        self.font, self.gmap, self.name = font, gmap, name
+        self.special = dict(gmap.specials)            # level index -> "sun" / "hole" / "hive"
+        rng = random.Random(7 + gmap.galaxy)
         self.layers = [self._star_layer(rng, p, 70 + i * 60) for i, p in enumerate(PARALLAX)]
         self.glows = []                   # (x, y, surface) at parallax 0.6
-        for level, (x, y) in zip(levels, NODES):
+        for level, (x, y) in zip(levels, gmap.nodes):
             color = level.nebula[-1]
             bright = tuple(min(255, c * 3) for c in color)
             self.glows.append((x, y, make_glow(70, bright, 0.55)))
         self.planets, self.locked = [], []
         for i, level in enumerate(levels):
-            r = 7 if i < 4 else 8 + (i == HIVE) * 3
-            if i == SUN:
+            kind = self.special.get(i)
+            r = 7 if i < 4 else 8 + (kind == "hive") * 3
+            if kind == "sun":
                 palette = SUN_COLORS
-            elif i == HIVE:
+            elif kind == "hive":
                 palette = HIVE_FLESH
             else:
                 palette = ROCK_PALETTES[level.difficulty.palettes[0]][1:]
@@ -109,7 +109,7 @@ class StarMapView:
     def _draw_route(self, surf, starmap, cam, time):
         """Dotted lines from planet to planet: lit where the route is open."""
         for i in range(len(self.planets) - 1):
-            (x0, y0), (x1, y1) = NODES[i], NODES[i + 1]
+            (x0, y0), (x1, y1) = self.gmap.nodes[i], self.gmap.nodes[i + 1]
             n = int(math.hypot(x1 - x0, y1 - y0) / 6)
             lit = starmap.is_open(i + 1)
             for j in range(1, n):
@@ -122,15 +122,16 @@ class StarMapView:
                 surf.fill(color, (int(x), int(y), 1, 1))
 
     def _draw_planet(self, surf, starmap, i, cam, time):
-        x, y = NODES[i][0] - cam[0], NODES[i][1] - cam[1]
+        x, y = self.gmap.nodes[i][0] - cam[0], self.gmap.nodes[i][1] - cam[1]
+        kind = self.special.get(i)
         if not (-40 < x < LOW_W + 40 and -40 < y < LOW_H + 40):
             return
         open_ = starmap.is_open(i)
         image = self.planets[i] if open_ else self.locked[i]
         r = image.get_width() // 2
-        if open_ and i == SUN:
+        if open_ and kind == "sun":
             surf.blit(self.sun_glow, (int(x) - 28, int(y) - 28), special_flags=pygame.BLEND_ADD)
-        if i == BLACK_HOLE and open_:                        # the black hole: a spinning disk
+        if kind == "hole" and open_:                        # the black hole: a spinning disk
             for k in range(28):
                 a = time * 1.6 + k * math.tau / 28
                 d = 10 + (k % 3) * 2
@@ -140,7 +141,7 @@ class StarMapView:
             pygame.draw.circle(surf, (120, 170, 255), (int(x), int(y)), 7, 1)
         else:
             surf.blit(image, (int(x) - r, int(y) - r))
-        if i == HIVE and open_ and int(time * 2) % 2 == 0:  # the hive's veins pulse
+        if kind == "hive" and open_ and int(time * 2) % 2 == 0:  # the hive's veins pulse
             pygame.draw.circle(surf, HIVE_VEIN, (int(x), int(y)), r + 2, 1)
         f = self.font
         label = str(i + 1) if open_ else "?"
@@ -154,18 +155,18 @@ class StarMapView:
             pygame.draw.circle(surf, ACCENT, (int(x), int(y)), r + 5, 1)
 
     def _draw_gate(self, surf, starmap, cam, time):
-        x, y = GATE[0] - cam[0], GATE[1] - cam[1]
-        if starmap.medal:
+        x, y = self.gmap.gate[0] - cam[0], self.gmap.gate[1] - cam[1]
+        if starmap.gate_open:
             surf.blit(self.gate_glow, (int(x) - 30, int(y) - 30), special_flags=pygame.BLEND_ADD)
         for k in range(20):
-            a = (time * (1.2 if starmap.medal else 0.2)) + k * math.tau / 20
-            color = (190, 140, 255) if starmap.medal else (60, 50, 90)
+            a = (time * (1.2 if starmap.gate_open else 0.2)) + k * math.tau / 20
+            color = (190, 140, 255) if starmap.gate_open else (60, 50, 90)
             if k % 5 == 0:
-                color = (255, 255, 255) if starmap.medal else (90, 80, 120)
+                color = (255, 255, 255) if starmap.gate_open else (90, 80, 120)
             surf.fill(color, (int(x + math.cos(a) * 12), int(y + math.sin(a) * 12), 2, 2))
 
     def _draw_caches(self, surf, starmap, cam, time):
-        for cache in CACHES:
+        for cache in self.gmap.caches:
             x, y = cache.x - cam[0], cache.y - cam[1]
             if cache.id in starmap.found:
                 surf.fill((70, 90, 110), (int(x), int(y), 1, 1))
@@ -206,10 +207,12 @@ class StarMapView:
 
     def _draw_hud(self, surf, starmap, time, coins, blink):
         f = self.font
-        f.draw(surf, "STAR MAP  ORION REACH", (6, 6), TEXT, shadow=TEXT_SHADOW)
-        found = len(starmap.found)
-        f.draw(surf, f"DATA CACHES {found}/{len(CACHES)}", (6, 16),
-               GOOD if found == len(CACHES) else TEXT_DIM, shadow=TEXT_SHADOW)
+        f.draw(surf, f"STAR MAP  {self.name}", (6, 6), TEXT, shadow=TEXT_SHADOW)
+        caches = self.gmap.caches
+        found = sum(c.id in starmap.found for c in caches)
+        if caches:
+            f.draw(surf, f"DATA CACHES {found}/{len(caches)}", (6, 16),
+                   GOOD if found == len(caches) else TEXT_DIM, shadow=TEXT_SHADOW)
         text = f"CR {coins}"
         f.draw(surf, text, (LOW_W - 6 - f.size(text)[0], 6), COIN[2], shadow=TEXT_SHADOW)
         if starmap.medal:
@@ -223,11 +226,13 @@ class StarMapView:
         elif starmap.near_gate():
             rect = pygame.Rect(40, LOW_H - 44, LOW_W - 80, 38)
             self._panel(surf, rect)
-            if starmap.medal:
-                f.draw(surf, "THE VEIL GATE IS OPEN", (LOW_W // 2, rect.y + 6), (190, 140, 255),
-                       shadow=TEXT_SHADOW, center=True)
-                f.draw(surf, "GALAXY 2 IS BEING CHARTED...", (LOW_W // 2, rect.y + 18), TEXT_DIM,
-                       shadow=TEXT_SHADOW, center=True)
+            if starmap.gate_open:
+                back = self.gmap.gate_to < self.gmap.galaxy
+                f.draw(surf, "THE WAY BACK" if back else "THE VEIL GATE IS OPEN",
+                       (LOW_W // 2, rect.y + 6), (190, 140, 255), shadow=TEXT_SHADOW, center=True)
+                if blink:
+                    f.draw(surf, f"ENTER: WARP TO GALAXY {self.gmap.gate_to}",
+                           (LOW_W // 2, rect.y + 18), GOOD, shadow=TEXT_SHADOW, center=True)
             else:
                 f.draw(surf, "A SEALED WARP GATE", (LOW_W // 2, rect.y + 6), TEXT_DIM,
                        shadow=TEXT_SHADOW, center=True)
@@ -246,7 +251,9 @@ class StarMapView:
         if not starmap.is_open(i):
             f.draw(surf, f"LEVEL {level.number}  ???", (mid, rect.y + 6), TEXT_DIM,
                    shadow=TEXT_SHADOW, center=True)
-            f.draw(surf, f"CLEAR LEVEL {level.number - 1} TO OPEN THE ROUTE", (mid, rect.y + 18),
+            need = (f"CLEAR LEVEL {level.number - 1} TO OPEN THE ROUTE" if level.number > 1
+                    else f"BEAT GALAXY {self.gmap.galaxy - 1} FIRST")
+            f.draw(surf, need, (mid, rect.y + 18),
                    DANGER, shadow=TEXT_SHADOW, center=True)
             return
         f.draw(surf, f"LEVEL {level.number}  {level.name}", (mid, rect.y + 5), ACCENT,

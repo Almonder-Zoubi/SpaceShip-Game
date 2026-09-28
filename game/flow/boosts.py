@@ -152,7 +152,8 @@ class BoostsMixin:
 
     @property
     def coin_mult(self):
-        return min(COMBO_COIN_CAP, self.combo_mult) * (SLINGSHOT_SCORE if self.slingshot else 1)
+        return (min(COMBO_COIN_CAP, self.combo_mult) * (SLINGSHOT_SCORE if self.slingshot else 1)
+                * self.shift_coins)
 
     @property
     def slingshot(self):

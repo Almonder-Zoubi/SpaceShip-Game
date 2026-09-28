@@ -1,6 +1,6 @@
 """World update: moving rocks, minions, the boss, enemy bullets and pickups; hazards to the ship."""
 from ..config.palette import FLAME, SMOKE, SPARK
-from ..config.tuning import (BULLET_KNOCKBACK, POINTS_DODGE, ROCK_DAMAGE_BASE,
+from ..config.tuning import (AMBUSH_ROCKS, BULLET_KNOCKBACK, POINTS_DODGE, ROCK_DAMAGE_BASE,
                              ROCK_DAMAGE_PER_RADIUS)
 from ..core.particles import Shockwave
 from ..ui.popup import Popup
@@ -12,9 +12,11 @@ class WorldMixin:
 
     def _update_asteroids(self, dt, world_speed):
         # Rocks spawn in the asteroid field (and on the title screen as ambience).
+        ambush = self.phase == Phase.BOSS and self.wave.ambush    # the field goes on
         if self.state in MENU_STATES or (self.state == State.PLAYING
-                                         and self.phase == Phase.FIELD):
-            self.asteroids += self.spawner.update(dt * self.pressure, world_speed)
+                                         and (self.phase == Phase.FIELD or ambush)):
+            rate = self.pressure * (AMBUSH_ROCKS if ambush else 1.0)
+            self.asteroids += self.spawner.update(dt * rate, world_speed)
         for rock in self.asteroids:
             rock.update(dt, world_speed)
         kept = []
@@ -59,10 +61,17 @@ class WorldMixin:
 
     def _update_enemy_bullets(self, dt):
         ship = self.ship
-        kept = []
+        kept, born = [], []
         for b in self.enemy_bullets:
             b.update(dt)
+            burst = getattr(b, "burst", None)            # splitters, runes (minions/veil_bullets)
+            children = burst() if burst else None
+            if children:
+                born += children
             if b.offscreen:
+                continue
+            if not getattr(b, "solid", True):            # a rune mark can't hurt
+                kept.append(b)
                 continue
             if self.state == State.PLAYING and self.wingman_block(b):
                 continue
@@ -75,7 +84,7 @@ class WorldMixin:
                     self.hurt_ship(b.damage, b.x, b.y, knockback=BULLET_KNOCKBACK)
                     continue
             kept.append(b)
-        self.enemy_bullets = kept
+        self.enemy_bullets = kept + born
 
     def _clear_bullets(self):
         for b in self.enemy_bullets:
@@ -112,6 +121,7 @@ class WorldMixin:
             return
         if self.absorb_hit(from_x, from_y):          # SHIELD boost
             return
+        damage *= self.glass                         # VEIL SHIFT "GLASS CANNON"
         self.break_combo()
         hp = self.ship.hp
         died = self.ship.take_hit(damage, from_x, from_y, **kwargs)
@@ -147,5 +157,5 @@ class WorldMixin:
         self.audio.play("ship_explode")
         self._bank_wingman_xp()
         self.best = max(self.best, self.score)
-        self.record_rank = self.save.add_record(self.score, self.level.number)
+        self.record_rank = self.save.add_record(self.score, self.level_index + 1)
         self.set_state(State.DYING)

@@ -16,7 +16,7 @@ from ..core.particles import ParticleSystem, ScreenShake
 from ..core.pixelart import opaque_surface, window_icon
 from ..core.pixelfont import PixelFont
 from ..core.storage import SaveData
-from ..levels.data import LEVEL_KEYS, LEVELS
+from ..levels.data import GALAXIES, LEVEL_KEYS, LEVELS
 from ..minions.diver import Diver
 from ..obstacles.art import AsteroidLibrary
 from ..player.hulls import ARROW, hull_named
@@ -29,6 +29,7 @@ from ..ui.journal import JournalView
 from ..ui.radio import RadioView
 from ..ui.hud import Hud
 from ..ui.screens import ScreensMixin
+from ..starmap.model import MAPS
 from ..starmap.view import StarMapView
 from ..weapons.gun import MachineGun
 from ..weapons.arc import Arc
@@ -50,6 +51,7 @@ from .level_flow import LevelFlowMixin
 from .options import OptionsMixin
 from .progression import ProgressionMixin
 from .skins import SkinsMixin
+from .shifts import ShiftsMixin
 from .sound import SoundMixin
 from .starmap import StarMapMixin
 from .states import MENU_STATES, State
@@ -63,13 +65,15 @@ SIGNATURE_RADII = (9, 11, 13)   # big rocks prebuilt for every later colour (mag
 
 class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixin, HangarMixin,
            JuiceMixin, BoostsMixin, WingmenMixin, SkinsMixin, OptionsMixin, SoundMixin,
-           DevMixin, FinaleMixin, StarMapMixin, JournalMixin, BrainsMixin, ScreensMixin):
+           DevMixin, FinaleMixin, StarMapMixin, JournalMixin, BrainsMixin, ShiftsMixin,
+           ScreensMixin):
     """Owns the window, the world objects and the state machine.
 
     Mixins (one file each in flow/ and ui/) add: key handling, level flow, world update,
     combat, progression (coins, rank, payout), hangar + gifts, game feel (juice, damage
     numbers, radio), boosts + combo, wingmen, skins + achievements, options, sound, dev tools,
-    the galaxy finale, the star map, the journal, the enemy's brains and drawing. They all work on the attributes
+    the galaxy finale, the star map, the journal, the enemy's brains, VEIL SHIFTS and
+    drawing. They all work on the attributes
     created here.
     """
 
@@ -121,7 +125,8 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
         self.audio.load()
         self.load_options()
         self.radio_view = RadioView(self.font)
-        self.star_map_view = StarMapView(self.font, LEVELS)
+        self.star_map_views = {g.number: StarMapView(self.font, MAPS[g.number], g.levels, g.name)
+                               for g in GALAXIES}
         self.journal_view = JournalView(self.font, art)
         self._sound_state = {}                    # weapon states last frame (see SoundMixin)
         self.level_index = self.start_level
@@ -243,6 +248,7 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
         self._update_enemy_bullets(edt)
         self._update_pickups(dt)
         self._update_boosts(dt)
+        self._update_shift(edt, real_dt)
         if self.state == State.PLAYING:
             self._check_ship_collisions()
             self._update_phase(dt, world_speed)

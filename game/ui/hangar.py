@@ -11,6 +11,7 @@ from ..config.tuning import (ARC_JUMP, ARC_JUMPS, ARC_SHARE, BLAST_DPS, BLAST_TI
                              GUN_INTERVAL, PLASMA_INTERVAL, PLASMA_PIERCE, SCATTER_INTERVAL,
                              SCATTER_PELLETS, SECONDARY_SHARE, ULT_INTERVAL, ULT_TIME,
                              UPGRADE_TIERS, WINGMAN_XP)
+from ..levels.data import level_title
 from ..player.hulls import HULLS, hull_named
 from ..progression import upgrades
 from ..progression.inventory import LOCKED, OWNED, SHOP
@@ -126,7 +127,7 @@ class HangarScreen:
             text, color = view.message
             f.draw(surf, text, (LOW_W // 2, 186), color, shadow=TEXT_SHADOW, center=True)
         level = view.level
-        f.draw(surf, f"NEXT: LEVEL {level.number} {level.name} - {level.loadout.name}",
+        f.draw(surf, f"NEXT: {level_title(level)} {level.name} - {level.loadout.name}",
                (LOW_W // 2, 202), TEXT_DIM, shadow=TEXT_SHADOW, center=True)
         if blink:
             enter = "ENTER BUY" if view.tab == UPGRADE else "ENTER EQUIP/BUY"

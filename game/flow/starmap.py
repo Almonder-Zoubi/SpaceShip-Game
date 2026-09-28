@@ -5,27 +5,43 @@ import math
 import pygame
 
 from ..core.input import pressed
-from ..levels.data import GALAXIES, LEVEL_KEYS
-from ..starmap.model import CACHES, StarMap
+from ..levels.data import GALAXIES, LEVELS, galaxy_of
+from ..starmap.model import CACHES, MAPS, StarMap
 from .states import State
 
 
 class StarMapMixin:
     """Game mixin: open the map, move the rocket, cache rewards, landing."""
 
-    def open_star_map(self, index=None):
-        """The map of the current galaxy, the rocket parked at a planet (default: the level
-        the title has selected)."""
+    def open_star_map(self, index=None, at_gate=False):
+        """The map of the galaxy that holds level `index` (default: the level the title has
+        selected), the rocket parked at that planet (or at the gate after a warp)."""
         index = self.start_level if index is None else index
-        galaxy = GALAXIES[0]
-        ranks = {i: self.save.cleared[key] for i, key in enumerate(LEVEL_KEYS)
-                 if key in self.save.cleared}
-        self.star_map = StarMap(galaxy.levels, self.selectable_levels, self.save.caches,
-                                galaxy.number in self.save.medals, ranks)
-        self.star_map.place_at(min(index, len(galaxy.levels) - 1))
+        galaxy = galaxy_of(LEVELS[min(index, len(LEVELS) - 1)])
+        offset = LEVELS.index(galaxy.levels[0])
+        ranks = {i: self.save.cleared[galaxy.key(level)] for i, level in enumerate(galaxy.levels)
+                 if galaxy.key(level) in self.save.cleared}
+        gmap = MAPS[galaxy.number]
+        target = next((g for g in GALAXIES if g.number == gmap.gate_to), None)
+        if gmap.gate_to > galaxy.number:                  # forward: the galaxy's medal opens it
+            gate_open = galaxy.number in self.save.medals and target is not None
+        else:
+            gate_open = target is not None                # the way back is always open
+        self.star_map = StarMap(galaxy.levels, max(0, self.selectable_levels - offset),
+                                self.save.caches, galaxy.number in self.save.medals, ranks,
+                                gmap, gate_open)
+        self.star_map_offset = offset
+        if at_gate:
+            self.star_map.place_at_gate()
+        else:
+            self.star_map.place_at(min(max(0, index - offset), len(galaxy.levels) - 1))
         self.star_map_view.set_rocket(self.ship.frames[0])
         self.map_ping = 0.0
         self.set_state(State.STAR_MAP)
+
+    @property
+    def star_map_view(self):
+        return self.star_map_views[self.star_map.gmap.galaxy]
 
     def _update_star_map(self, dt, keys, mouse):
         m = self.star_map
@@ -66,10 +82,15 @@ class StarMapMixin:
             return
         node = m.near_node()
         if node is None:
+            if m.near_gate() and m.gate_open:            # warp to the other galaxy's map
+                target = next(g for g in GALAXIES if g.number == m.gmap.gate_to)
+                self.audio.play("warp")
+                self.screen_flash(0.15)
+                self.open_star_map(LEVELS.index(target.levels[0]), at_gate=True)
             return
         if not m.is_open(node):
             self.audio.play("denied")
             return
         self.audio.play("confirm")
-        self.start_level = node
-        self.open_hangar(node)
+        self.start_level = self.star_map_offset + node
+        self.open_hangar(self.start_level)

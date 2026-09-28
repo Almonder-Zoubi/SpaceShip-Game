@@ -9,7 +9,7 @@ from ..config.palette import (ACCENT, BOOST_COLORS, COIN, DANGER, EMPTY, GOOD, I
                               TEXT_DIM, TEXT_SHADOW)
 from ..flow.states import Phase, State
 from ..config.tuning import WARP_TIME
-from ..levels.data import GALAXIES, LEVELS
+from ..levels.data import GALAXIES, LEVELS, level_title
 from ..story.lore import GHOST_RECORD
 from .medal import draw_medal
 
@@ -48,6 +48,8 @@ class ScreensMixin:
             pickup.draw(c)
         if hazard:
             hazard.draw_mid(c)
+        if self.overlay and self.state in (State.PLAYING, State.PAUSED, State.DYING):
+            self.overlay.draw_mid(c)                 # BLIND SPOTS
         if self.state == State.PLAYING and self.ship.alive and self.mouse.aim:
             self._draw_reticle(c, *self.mouse.aim)
         if self.ship.alive and self.state not in (State.DEV_MENU, State.HANGAR, State.REWARD):
@@ -146,6 +148,16 @@ class ScreensMixin:
             y = 62 if self.radio else 30                             # below the radio card
             self.font.draw(c, f"ESCAPE {left:04.1f}", (LOW_W // 2, y), color, scale=2,
                            shadow=TEXT_SHADOW, center=True)
+        if self.shift and s == State.PLAYING:        # this attempt's VEIL SHIFT
+            self.font.draw(c, f"SHIFT: {self.shift.name}", (6, LOW_H - 30), (200, 140, 255),
+                           shadow=TEXT_SHADOW)
+            if self.shift_card > 0 and not self.alert:             # the start card
+                self.font.draw(c, "VEIL SHIFT", (LOW_W // 2, 104), (200, 140, 255), scale=2,
+                               shadow=TEXT_SHADOW, center=True)
+                self.font.draw(c, self.shift.name, (LOW_W // 2, 124), TEXT, shadow=TEXT_SHADOW,
+                               center=True)
+                self.font.draw(c, self.shift.text, (LOW_W // 2, 134), TEXT_DIM,
+                               shadow=TEXT_SHADOW, center=True)
         if s == State.PLAYING and self.phase == Phase.WARNING:
             self._draw_warning(c)
         elif s == State.PLAYING and self.alert:
@@ -159,7 +171,7 @@ class ScreensMixin:
             c.blit(shade, (0, 0))
             self._draw_pause(c, blink)
         elif s == State.GAME_OVER:
-            self.hud.banner(c, "GAME OVER", f"R: RETRY LEVEL {self.level.number}",
+            self.hud.banner(c, "GAME OVER", f"R: RETRY {level_title(self.level)}",
                             title_color=DANGER, blink_on=blink)
             self.font.draw(c, f"SCORE {self.score}", (LOW_W // 2, LOW_H // 2 + 40),
                            TEXT_DIM, shadow=TEXT_SHADOW, center=True)
@@ -292,7 +304,7 @@ class ScreensMixin:
         c.blit(shade, panel)
         pygame.draw.rect(c, TEXT_DIM, panel, 1)
         left, right, mid = panel.left + 10, panel.right - 10, LOW_W // 2
-        title = "YOU WIN!" if win else f"LEVEL {self.level.number} CLEAR"
+        title = "YOU WIN!" if win and self.level.finale else f"{level_title(self.level)} CLEAR"
         f.draw(c, title, (mid, 14), GOOD, scale=2, shadow=TEXT_SHADOW, center=True)
         f.draw(c, f"SCORE {self.score}", (mid, 34), TEXT_DIM, shadow=TEXT_SHADOW, center=True)
 
@@ -344,7 +356,7 @@ class ScreensMixin:
             for i, note in enumerate(self._upgrade_notes(nxt)):
                 f.draw(c, note, (mid, 166 + i * 10), TEXT, shadow=TEXT_SHADOW, center=True)
         if blink and self.state_time > 1.0:
-            f.draw(c, f"ENTER: LEVEL {nxt.number}", (mid, 214), TEXT, shadow=TEXT_SHADOW,
+            f.draw(c, f"ENTER: {level_title(nxt)}", (mid, 214), TEXT, shadow=TEXT_SHADOW,
                    center=True)
 
     def _upgrade_notes(self, nxt):
@@ -375,7 +387,7 @@ class ScreensMixin:
             f.draw(c, "PRESS ENTER", (LOW_W // 2, 100), TEXT, scale=2, shadow=TEXT_SHADOW, center=True)
         if self.selectable_levels > 1:                  # unlocked levels: choose with LEFT/RIGHT
             level = LEVELS[self.start_level]
-            f.draw(c, f"<  LEVEL {level.number}: {level.name}  >", (LOW_W // 2, 119), ACCENT,
+            f.draw(c, f"<  {level_title(level)}: {level.name}  >", (LOW_W // 2, 119), ACCENT,
                    shadow=TEXT_SHADOW, center=True)
         records = self.save.records
         if records and int(self.time / 6) % 2 == 1:     # attract mode: alternate with controls

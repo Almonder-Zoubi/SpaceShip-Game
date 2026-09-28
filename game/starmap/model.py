@@ -12,6 +12,11 @@ NODES = ((90, 440), (190, 400), (262, 318), (170, 236), (238, 138), (372, 104), 
 GATE = (676, 78)                         # the warp gate to galaxy 2 (open with the medal)
 BLACK_HOLE = 8                           # the node that pulls the rocket (level 9)
 
+# Galaxy 2, THE VEIL: you arrive through the gate in the lower left; the route climbs.
+NODES_2 = ((120, 420), (220, 452), (318, 396), (262, 300), (150, 220), (236, 118),
+           (372, 80), (470, 170), (590, 120), (640, 300))
+GATE_2 = (54, 470)                       # the way back to the ORION REACH
+
 
 @dataclass(frozen=True)
 class Cache:
@@ -58,6 +63,17 @@ CACHES = (
 )
 
 
+@dataclass(frozen=True)
+class GalaxyMap:
+    """One galaxy's map: planet positions (NODES order = level order), caches, the gate."""
+    galaxy: int
+    nodes: tuple
+    caches: tuple
+    gate: tuple
+    gate_to: int                         # the galaxy the gate leads to
+    specials: tuple = ()                 # (level index, "sun" / "hole" / "hive") planet looks
+
+
 class MapShip:
     """The rocket on the map: steers towards a wanted direction, drifts to a stop."""
 
@@ -92,39 +108,47 @@ class MapShip:
 class StarMap:
     """Which planets are open, what the rocket is near, which caches are found."""
 
-    def __init__(self, levels, unlocked, found, medal, ranks=None):
+    def __init__(self, levels, unlocked, found, medal, ranks=None, gmap=None, gate_open=None):
+        self.gmap = gmap or MAPS[1]
         self.levels = levels             # the galaxy's Level entries (NODES order)
-        self.unlocked = unlocked         # levels the player may start (count)
-        self.ranks = ranks or {}         # level index -> best rank (cleared levels)
+        self.unlocked = unlocked         # levels of this galaxy the player may start (count)
+        self.ranks = ranks or {}         # level index (in the galaxy) -> best rank
         self.found = set(found)          # cache ids already opened
-        self.medal = medal               # the galaxy is beaten: the gate is open
+        self.medal = medal               # this galaxy is beaten (its medal is shown)
+        self.gate_open = medal if gate_open is None else gate_open
         self.ship = MapShip(0, 0)
         self.time = 0.0
         self.card = None                 # the Cache whose story is on screen
 
     def place_at(self, index):
-        x, y = NODES[index]
+        x, y = self.gmap.nodes[index]
         self.ship.x, self.ship.y = x, y + MAP_REACH * 0.6
+        self.ship.vx = self.ship.vy = 0.0
+
+    def place_at_gate(self):
+        x, y = self.gmap.gate
+        self.ship.x, self.ship.y = x + 8, y - MAP_REACH * 0.6
         self.ship.vx = self.ship.vy = 0.0
 
     # --- where the rocket is --------------------------------------------------------------
     def near_node(self):
         """Index of the level planet within reach of the rocket (or None)."""
         best = None
-        for i, (x, y) in enumerate(NODES[:len(self.levels)]):
+        for i, (x, y) in enumerate(self.gmap.nodes[:len(self.levels)]):
             d = math.hypot(self.ship.x - x, self.ship.y - y)
             if d < MAP_REACH and (best is None or d < best[0]):
                 best = (d, i)
         return best[1] if best else None
 
     def near_gate(self):
-        return math.hypot(self.ship.x - GATE[0], self.ship.y - GATE[1]) < MAP_REACH
+        gx, gy = self.gmap.gate
+        return math.hypot(self.ship.x - gx, self.ship.y - gy) < MAP_REACH
 
     def is_open(self, index):
         return index < self.unlocked
 
     def hidden_caches(self):
-        return [c for c in CACHES if c.id not in self.found]
+        return [c for c in self.gmap.caches if c.id not in self.found]
 
     def signal(self):
         """0..1: how close the nearest hidden cache is (the scanner's beeping)."""
@@ -139,9 +163,10 @@ class StarMap:
 
     def pull(self):
         """The black hole planet tugs at the rocket (it can always fly away)."""
-        if not self.levels[BLACK_HOLE:]:
+        hole = dict((kind, i) for i, kind in self.gmap.specials).get("hole")
+        if hole is None or not self.levels[hole:]:
             return 0.0, 0.0
-        x, y = NODES[BLACK_HOLE]
+        x, y = self.gmap.nodes[hole]
         dx, dy = x - self.ship.x, y - self.ship.y
         d = math.hypot(dx, dy)
         if d < 6 or d > 110:
@@ -162,3 +187,9 @@ class StarMap:
                 self.card = cache
                 return cache
         return None
+
+
+MAPS = {
+    1: GalaxyMap(1, NODES, CACHES, GATE, 2, ((4, "sun"), (BLACK_HOLE, "hole"), (9, "hive"))),
+    2: GalaxyMap(2, NODES_2, (), GATE_2, 1),
+}

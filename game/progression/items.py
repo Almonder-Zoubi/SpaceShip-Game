@@ -67,6 +67,8 @@ ITEMS = {item.id: item for item in (
          slot=PAINT, look="gold", hint="ACHIEVEMENT: NO-HIT BOSS"),
     Item("SWARMBANE", "SWARMBANE PAINT", SKIN, ("BLACK CHITIN, ACID", "GREEN. THE MEDAL."), 0,
          slot=PAINT, look="swarmbane"),
+    Item("VEIL", "VEIL PAINT", SKIN, ("VOID BLACK, VIOLET", "TRIM. BLEND IN."), 0,
+         slot=PAINT, look="veil"),
     Item("CLASSIC TRAIL", "CLASSIC TRAIL", SKIN, ("ORANGE ROCKET", "FLAMES."), 0, slot=TRAIL,
          look="CLASSIC"),
     Item("PLASMA BLUE", "PLASMA TRAIL", SKIN, ("BLUE-HOT ENGINE", "FLAMES."), 200, slot=TRAIL,
@@ -119,6 +121,7 @@ GIFTS = {
     "1-8": ("SIDE CANNONS", "MEDIC"),
     "1-9": ("ARC", "SPECTER"),
     "1-10": ("SWARMBANE",),             # the galaxy medal's paint job
+    "2-1": ("VEIL",),
 }
 
 

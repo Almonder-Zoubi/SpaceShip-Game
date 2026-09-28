@@ -111,6 +111,7 @@ loop. Its behaviour is split into **mixins**, one file each, all working on the 
 | `DevMixin` | `flow/dev.py` | dev menu items, god mode, hotkeys |
 | `FinaleMixin` | `flow/finale.py` | the galaxy finale: WARP cut-scene, medal, then the win results |
 | `BrainsMixin` | `flow/brains.py` | the enemy's brains: player model per frame, DIRECTOR pressure, bandits per boss, saved |
+| `ShiftsMixin` | `flow/shifts.py` | VEIL SHIFTS: roll one per attempt of a `shifts` level, apply its effect (spawns, kits, coins, elites, damage, blind spots) |
 | `JournalMixin` | `flow/journal.py` | the JOURNAL (J): builds a `JournalPage` (pilot, boss files, echoes, radio log) for `ui/journal.py` |
 | `StarMapMixin` | `flow/starmap.py` | the STAR MAP: fly between planets, data caches (coins once, EXPLORER), landing opens the hangar |
 | `ScreensMixin` | `ui/screens.py` | drawing every frame and every state's overlay |
@@ -305,6 +306,16 @@ colours shared by several things go in `config/palette.py`.
 - **A puzzle piece:** read the answer in the `story/lore.py` docstring first. A clue must agree
   with it (a player who reads everything must find no contradiction). Kinds so far: ECHOES
   (mosaic tiles in caches), margin notes, the radio ACROSTIC, the ghost record, dossier lines.
+
+### A galaxy 2 level
+
+Like any level, plus: `director=True` (the DIRECTOR paces the field), `shifts=True` (a VEIL
+SHIFT per attempt), `Difficulty(elite_chance=...)`, and one FLOW per level (DESIGN 4.3). Built
+flows: AMBUSH (`Wave(ambush=0.3)`: the boss arrives at 30% of the field, no warning, no
+repair, rocks keep falling). Galaxy 2 levels go into `GALAXY_2_LEVELS` and get a planet in
+`starmap/model.NODES_2`; their bosses need a `Dossier` in `story/lore.py` (tested).
+New bullet types live in `minions/veil_bullets.py`; a bullet that should turn into others
+implements `burst()`; one that can't hurt sets `solid = False`.
 
 ### A boss that learns (galaxy 2)
 

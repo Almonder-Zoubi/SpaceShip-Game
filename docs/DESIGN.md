@@ -332,6 +332,18 @@ a heatmap of where you fly, dodge directions, weapon shares, reaction time, thei
 BACKSPACE twice to make them forget). A death in a thinking level shows "IT LEARNED: ...".
 The model already watches galaxy 1 play, so galaxy 2 starts out knowing the player.
 
+**Built in G18 (2026-09-28): galaxy 2 plumbing + level 1 VEIL GATE.** Galaxy 2 has its own
+star map (the warp gate joins the two maps; the way back is always open), MK XI, ELITES
+(golden, x3 hull, faster, the shell bounces a hit every 2.5 s, x3 coins), VEIL SHIFTS
+(ROCKS FAST, DOUBLE MINIONS, NO KITS + COINS X2, ELITE SQUAD, GLASS CANNON, BLIND SPOTS;
+x1.2 coins when cleared), the bullet types (splitter, boomerang, rune, lead shot, shadow,
+twinned), 50% repair before bosses. VEIL GATE (AMBUSH flow): WISPS side-step lined-up
+shots, RIFT PORTALS carry rocks, bullets and your own shots, and THE WARDEN strikes
+mid-field: a learning boss behind shield rings (a ring hit does 25%, the gap 100%), the gap
+turns away from your favourite side, an inner ring swings across it in phase 2, the rings
+spin and spray in phase 3, the outer ring saws loose in phase 4. The level-1 gift is the
+VEIL paint (the 2nd wingman slot moves to G19 with the ability key).
+
 ### 4.5 New minions, obstacles and boss shots
 
 **Minions (the HOLLOW, VANTA's army, plus Swarm remnants):**
@@ -376,7 +388,7 @@ obstacle, one flow, one boss (or none), one gift.
 
 | # | Level | Flow | New thing | Boss | Idea |
 |---|---|---|---|---|---|
-| 1 | VEIL GATE | AMBUSH | WISP (dodges), RIFT PORTALS | THE WARDEN: a rotating shield ring; shots only pass through its gap, and it turns the gap away from your favourite side | "the door knows you're coming" |
+| 1 | VEIL GATE | AMBUSH | WISP (dodges), RIFT PORTALS | THE WARDEN: a rotating shield ring; the gap takes full damage (the ring 25%), and it turns the gap away from your favourite side | "the door knows you're coming" (built) |
 | 2 | BONE REEF | PURSUIT | BONE ROCKS, STALKER pairs | LEECH MAW: chases you up the screen, then turns and fights in the reef | "you are the prey" |
 | 3 | BROOD SANCTUARY | ESCORT | SWARM ALLIES, THIEF | HOLLOW REAPER: hunts the brood pod, not you; keep it busy | "the enemy of my enemy" |
 | 4 | THE DARK VEIL | DARKNESS | LURKER, SHADOW BULLETS | ECLIPSE: puts out the light; only the rim of its body glows | "fight what you can't see" |

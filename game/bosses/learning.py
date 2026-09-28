@@ -20,8 +20,7 @@ class Learner:
     def begin_attack(self, world, options):
         """Close the last attack (reward = its damage per second) and choose the next."""
         self._learner()
-        if self._bandit is None:
-            self._bandit = world.bandit_for(self.spec.name)
+        self._bandit = world.bandit_for(self.spec.name)     # (fresh: the brain may reload)
         if self._attack and self._elapsed > 0.2:
             self._bandit.reward(self._attack, self._dealt / self._elapsed)
         self._attack = self._bandit.choose(options, random)

@@ -373,6 +373,34 @@ def starmap():
                 arp_echo=(0.33, 0.5), bass_instrument=BASS_LONG)
 
 
+def veil():
+    """THE VEIL: a strange, wide E phrygian (the F is the unease), a lead that echoes into
+    the distance over a pulse that never quite resolves."""
+    chords = ["Em", "F", "Em", "Dm", "Em", "F", "Am", "B",
+              "C", "F", "Em", "Em", "Am", "F", "B", "B7"]
+    melody = """E5 . . . G5 . B5 . | A5 . . . F5 . C5 . | B4 . E5 . G5 . B5 . | A5 . . . F5 . D5 .
+                E5 . G5 . B5 . E6 . | F6 . . . C6 . A5 . | A5 . C6 . E6 . A6 . | F#6 . . . D#6 . B5 .
+                G5 . . . C6 . E6 . | F6 . . . A5 . F5 . | E5 . G5 . B5 . E6 . | B5 . . . G5 . E5 .
+                A5 . C6 . E6 . A6 . | F6 . . . C6 . A5 . | B5 . D#6 . F#6 . B6 . | A6 . . . - - - -"""
+    beat = "k . . h . . s . k . h . . . s h"
+    return song(124, chords, melody, lead=LEAD_SOFT, arp_pattern=(0, 2, 1, 3, 2, 1), arp_octave=5,
+                bass_rhythm="R . R . R . O .", beat=beat, lead_echo=(0.36, 0.45),
+                arp_echo=(0.24, 0.4), bass_instrument=BASS_LONG)
+
+
+def warden():
+    """THE WARDEN: a machine that waits. D minor with a tritone stab, clockwork 16ths."""
+    chords = ["Dm", "Dm", "G#", "A", "Dm", "Dm", "Bb", "A",
+              "Gm", "G#", "Dm", "Dm", "Bb", "G#", "A", "A7"]
+    melody = """D5 . F5 . A5 . G#5 . | A5 . . . F5 . D5 . | G#5 . C6 . D#6 . C6 . | A5 . C#6 . E6 . A6 .
+                D6 . A5 . F5 . D5 . | F5 . A5 . D6 . F6 . | F6 . D6 . Bb5 . F5 . | E5 . A5 . C#6 . E6 .
+                G5 . Bb5 . D6 . G6 . | G#6 . . . D#6 . C6 . | A5 . D6 . F6 . A6 . | G#6 . A6 . F6 . D6 .
+                F6 . D6 . Bb5 . F5 . | G#5 . C6 . D#6 . G#6 . | A6 . E6 . C#6 . A5 . | A5 . . . - - - -"""
+    beat = "k h h k s h k h k h h k s h s s"
+    return song(152, chords, melody, arp_pattern=(0, 1, 2, 1), bass_rhythm="R R O R R O R R",
+                beat=beat, lead_echo=(0.2, 0.3))
+
+
 # --- jingles (play once) ----------------------------------------------------------------------------
 def level_clear():
     lead = "C5 E5 G5 C6 . . G5 C6 . . . . . . . . - - - -"
@@ -407,5 +435,6 @@ SONGS = {"title": title, "level1": level1, "level2": level2, "level3": level3,
          "level8": level8, "scrapjaw": scrapjaw,
          "level9": level9, "twins": twins,
          "level10": level10, "overmind": overmind, "escape": escape, "starmap": starmap,
+         "veil": veil, "warden": warden,
          "level_clear": level_clear, "game_over": game_over, "win": win}
 JINGLES = ("level_clear", "game_over", "win")      # play once instead of looping

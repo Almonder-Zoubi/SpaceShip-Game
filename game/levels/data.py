@@ -10,21 +10,24 @@ from ..bosses.overmind import Overmind
 from ..bosses.scrapjaw import Scrapjaw
 from ..bosses.spec import BossSpec
 from ..bosses.twins import Twins
+from ..bosses.warden import Warden
 from ..bosses.wraith import Wraith
-from ..config.loadouts import MK1, MK2, MK3, MK4, MK5, MK6, MK7, MK8, MK9, MK10
+from ..config.loadouts import MK1, MK2, MK3, MK4, MK5, MK6, MK7, MK8, MK9, MK10, MK11
 from ..config.palette import (NEBULA, NEBULA_ABYSS, NEBULA_CRIMSON, NEBULA_CRYSTAL, NEBULA_FORGE,
                               NEBULA_FROST, NEBULA_GHOST, NEBULA_HIVE, NEBULA_HORIZON,
-                              NEBULA_RUST)
+                              NEBULA_RUST, NEBULA_VEIL)
 from ..hazards.blackhole import BlackHole
 from ..hazards.fog import FogBanks
 from ..hazards.hive import HiveTunnel
-from ..config.tuning import LEVEL_LENGTH
+from ..hazards.rifts import RiftPortals
+from ..config.tuning import BOSS_REPAIR_G2, LEVEL_LENGTH
 from ..minions.interceptor import interceptor_pair
 from ..minions.minelayer import minelayer_squad
 from ..minions.phantom import phantom_pair
 from ..minions.prism import prism_turret
 from ..minions.salvager import salvager
 from ..minions.swarm import larva_flock, spore_cluster
+from ..minions.wisp import wisp_pair
 from .model import BossEntry, Difficulty, Galaxy, Level, Wave
 
 DEFAULT_DIFFICULTY = Difficulty(
@@ -255,8 +258,31 @@ GALAXY_1_LEVELS = (
                          "SPORE PODS BURST - SHOOT THEM EARLY")),
 )
 
+# Galaxy 2, THE VEIL: every level has its own flow (docs/DESIGN.md section 4), the DIRECTOR
+# paces the fields, every attempt rolls a VEIL SHIFT, elites appear, bosses learn.
+GALAXY_2_LEVELS = (
+    # AMBUSH: no warning. The Warden waits behind the gate and strikes mid-field.
+    Level(1, "VEIL GATE", MK11,
+          Difficulty(spawn_interval=0.56, speed_min=62, speed_max=120, radius_min=4,
+                     radius_max=13, drift=16, palettes=("veil", "bone"),
+                     extras=((wisp_pair, 8),), rock_hp=2.9, enemy_hp=2.8, elite_chance=0.12),
+          tuple(NEBULA_VEIL),
+          (Wave(45, name="THROUGH THE GATE"),
+           Wave(70, (BossEntry(Warden, BossSpec("THE WARDEN", strength=5.5, fight_time=45,
+                                                player=MK11), music="warden"),),
+                name="THE GATE IS QUIET", ambush=0.3,
+                radio=("QUIET HERE. TOO QUIET. KEEP MOVING.",))),
+          music="veil", hazard=RiftPortals, director=True, shifts=True,
+          radio=("WELCOME TO THE VEIL. STAY SHARP, SCOUT.",
+                 "RIFTS CARRY EVERYTHING - YOUR SHOTS TOO.",
+                 "GOLDEN ONES ARE ELITES. WORTH THE TROUBLE."),
+          upgrade_notes=("THE VEIL: ELITES, SHIFTS, RIFTS",
+                         "BOSS REPAIR ONLY 50% FROM NOW")),
+)
+
 GALAXIES = (
     Galaxy(1, "ORION REACH", GALAXY_1_LEVELS),
+    Galaxy(2, "THE VEIL", GALAXY_2_LEVELS, boss_repair=BOSS_REPAIR_G2),
 )
 
 # Every level of every galaxy in play order; the game indexes this (Game.level_index).
@@ -270,3 +296,9 @@ def galaxy_of(level):
 
 # Save-file keys of every level in play order ("1-1", "1-2", ...).
 LEVEL_KEYS = tuple(galaxy_of(level).key(level) for level in LEVELS)
+
+
+def level_title(level):
+    """'LEVEL 4' in galaxy 1, 'G2 LEVEL 1' later (levels are numbered inside their galaxy)."""
+    number = galaxy_of(level).number
+    return f"LEVEL {level.number}" if number == 1 else f"G{number} LEVEL {level.number}"

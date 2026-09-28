@@ -18,7 +18,7 @@ THE VEIL — design first). NEMESIS (Phase 9) is parked behind Phase 10.
 **Starting a new session?** Read this file's Snapshot + Decisions, then CLAUDE.md (module map,
 "where to look when debugging", conventions). Run the smoke test once before changing anything.
 
-## Handoff — next session: G18 (galaxy 2 plumbing: map, MK XI+, elites, VEIL SHIFT, bullets)
+## Handoff — next session: G19 (ability key + PHASE, 2nd wingman slot), then G21 (level 2 BONE REEF, PURSUIT)
 
 State at hand-off (2026-09-28): branch `design`, everything committed and pushed, full smoke
 test green (31 sections), lint clean. Built in long cloud sessions without a real window:
@@ -246,6 +246,24 @@ the sounds into `sounds/generated/` (git-ignored, ~14 s now).
   the key is decided then.
 
 ## Log
+
+### 2026-09-28 — G18 + G20: galaxy 2 plumbing and level 1 VEIL GATE
+- Multi-galaxy: `GALAXIES` has THE VEIL (`boss_repair=0.5`); `level_title()` ("G2 LEVEL 1");
+  records / coins / unlocks use the global level index; a `finale` level warps even when
+  more levels follow; after galaxy 1: WARP -> WIN -> gift -> the Veil's star map (arriving
+  at its gate). Star map per galaxy (`MAPS`, `GalaxyMap`), warp gates both ways.
+- ELITES (`Enemy.make_elite`), VEIL SHIFTS (`levels/shifts.py`, `flow/shifts.py`; start card
+  + HUD label), the Veil's bullets (`minions/veil_bullets.py`; the world swaps in `burst()`
+  children and skips non-solid marks), AMBUSH waves (`Wave.ambush`).
+- VEIL GATE: MK XI, bone + veil rocks, WISPS (`minions/wisp.py`), RIFT PORTALS
+  (`hazards/rifts.py`), THE WARDEN (`bosses/warden.py`, `Learner`), music `veil` + `warden`,
+  gift VEIL paint, THE WARDEN's journal file.
+- Bot tuning: the ring first blocked everything (bot 229 s vs par 60) -> wider gaps, the
+  default gap faces the rocket, the inner ring swings across the outer gap (a rhythm), a
+  ring hit passes 25%, fewer rocks during an ambush fight; now maxed 43–74 s vs par 45.
+  A zero-upgrade pilot needs ~200 s **(ask: is galaxy 2 hard enough / too hard?)**.
+- Fix: a learning boss now fetches its bandit fresh (a reloaded brain left it stale).
+- Smoke: new `veil` section (+ 5 seeds); level 10 now ends on the Veil's map.
 
 ### 2026-09-28 — G17: the enemy's brains (player model, bandit, DIRECTOR)
 - `game/brains/` (pure Python, saved in `save.brain`): `PlayerModel` (8x6 heatmap of

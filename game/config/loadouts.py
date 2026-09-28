@@ -44,3 +44,6 @@ MK9 = Loadout("MK IX", max_hp=500, max_speed=166, gun_damage=21, laser_dps=320,
               laser_heat_rate=0.2, colors="mk9", blast=True, ultimate=True)
 MK10 = Loadout("MK X", max_hp=550, max_speed=168, gun_damage=23, laser_dps=350,
                laser_heat_rate=0.19, colors="mk10", blast=True, ultimate=True)
+# Galaxy 2: +30 HP / +2 gun per level (galaxy 1 grew +50 / +2): the enemy grows faster.
+MK11 = Loadout("MK XI", max_hp=580, max_speed=170, gun_damage=25, laser_dps=375,
+               laser_heat_rate=0.19, colors="mk11", blast=True, ultimate=True)

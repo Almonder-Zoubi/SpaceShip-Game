@@ -5,12 +5,13 @@ from dataclasses import replace
 from ..config.display import LOW_W
 from ..config.palette import ACCENT
 from ..config.tuning import BOSS_KIT_INTERVAL, FULL_KIT_CHANCE, KIT_INTERVAL, WARNING_TIME
-from ..levels.data import LEVELS
+from ..levels.data import LEVELS, galaxy_of, level_title
 from ..minions.diver import diver_squad
 from ..minions.drone import drone_formation
 from ..obstacles.spawner import AsteroidSpawner
 from ..pickups.types import FullRepair, RepairKit
 from ..progression import upgrades
+from ..story.dialog import UNKNOWN, Line
 from .states import Phase, State
 
 
@@ -30,6 +31,7 @@ class LevelFlowMixin:
         self._reset_wingmen()
         self._reset_achievements()
         self._reset_brains()
+        self._reset_shift()
         self.background.set_nebula(level.nebula)
         self.background.set_event(level.event)
         self.hazard = level.hazard() if level.hazard else None
@@ -53,7 +55,7 @@ class LevelFlowMixin:
         self.formation_timer = level.difficulty.formation_interval
         self.diver_timer = level.difficulty.diver_interval
         self.boss_kit_timer = BOSS_KIT_INTERVAL
-        self.alert = [f"LEVEL {level.number}", level.name, ACCENT, 3.0]   # title, sub, colour, time
+        self.alert = [level_title(level), level.name, ACCENT, 3.0]   # title, sub, colour, time
         for weapon in self.weapons + list(self.secondaries.values()):
             weapon.reset()
             weapon.equip(loadout)
@@ -71,6 +73,7 @@ class LevelFlowMixin:
         """Start a level; optionally at a later wave, or straight at one of its bosses."""
         self.new_run(level_index, score)
         self.begin_learning()
+        self.roll_shift()
         if boss_index is None and self.skip_to_boss:
             wave_index = len(self.level.waves) - 1
             boss_index = len(self.level.waves[wave_index].bosses) - 1
@@ -137,21 +140,20 @@ class LevelFlowMixin:
         if self.phase == Phase.FIELD:
             self.distance += dt * world_speed
             self._spawn_field_extras(dt)
-            if self.distance >= self.wave.length:
+            wave = self.wave
+            if wave.ambush and wave.bosses and self.distance >= wave.ambush * wave.length:
+                self._ambush()
+            elif self.distance >= self.wave.length:
                 self.track_field_done()
                 if self.wave.bosses:
                     self._begin_warning()
                 else:
                     self._finish_wave()
         elif self.phase == Phase.WARNING and self.phase_time >= WARNING_TIME:
-            self.boss = self.boss_entry.create()
-            self.boss_hurt = False
-            self.boss_thirds = 0
-            self.boss_kit_timer = BOSS_KIT_INTERVAL
-            self.set_phase(Phase.BOSS)
+            self._spawn_boss()
         elif self.phase == Phase.BOSS and self.boss.fighting:
             self.boss_kit_timer -= dt                # a repair kit now and then during the fight
-            if self.boss_kit_timer <= 0:
+            if self.boss_kit_timer <= 0 and self.kits_allowed:
                 self.boss_kit_timer = BOSS_KIT_INTERVAL
                 self.pickups.append(RepairKit(random.uniform(30, LOW_W - 30), -8))
         elif self.phase == Phase.CLEARED and self.phase_time >= 1.5:
@@ -167,18 +169,36 @@ class LevelFlowMixin:
         a galaxy finale plays the warp cut-scene first."""
         if self.wave_index + 1 < len(self.level.waves):
             self._next_wave()
-        elif self.level_index + 1 < len(LEVELS):
+        elif self.level_index + 1 < len(LEVELS) and not self.level.finale:
             self._bank_level()
             self.save.unlock(self.level_index + 2)
             self.set_state(State.LEVEL_CLEAR)
-        else:
+        else:                                        # a galaxy's end (or the game's)
             self._bank_level()
-            self.record_rank = self.save.add_record(self.score, self.level.number)
+            if self.level_index + 1 < len(LEVELS):
+                self.save.unlock(self.level_index + 2)
+            self.record_rank = self.save.add_record(self.score, self.level_index + 1)
             self.achieve("CHAMPION")
             if self.level.finale:
                 self.begin_warp()
             else:
                 self.set_state(State.WIN)
+
+    def _spawn_boss(self):
+        self.boss = self.boss_entry.create()
+        self.boss_hurt = False
+        self.boss_thirds = 0
+        self.boss_kit_timer = BOSS_KIT_INTERVAL
+        self.set_phase(Phase.BOSS)
+
+    def _ambush(self):
+        """AMBUSH flow: no WARNING, no repair, the rocks keep falling. Only static warns."""
+        self.track_field_done()
+        self._spawn_boss()
+        self.radio_say([Line(UNKNOWN, "...CONTACT... IT WAS WAITING..."),
+                        "AMBUSH! IT WAS BEHIND THE GATE!"], delay=0.0)
+        self.shake.add(0.5)
+        self.audio.play("hijack")
 
     def _next_wave(self):
         self.wave_index += 1
@@ -190,41 +210,44 @@ class LevelFlowMixin:
         self.radio_say(self.wave.radio)
 
     def _begin_warning(self):
-        self.ship.hp = self.ship.max_hp              # full health for every boss fight
+        """Repair for the boss fight: full in galaxy 1, part of the hull later (the field's
+        damage carries into the fight)."""
+        repair = galaxy_of(self.level).boss_repair
+        self.ship.hp = min(self.ship.max_hp, self.ship.hp + self.ship.max_hp * repair)
         self.boss = None
         self.set_phase(Phase.WARNING)
         self.audio.play("warning")
 
     def is_final_boss(self):
-        """True for the very last boss of the game (an escape wave may still follow it)."""
+        """True for a galaxy's last boss (an escape wave may still follow it)."""
         level = self.level
         last = max(i for i, wave in enumerate(level.waves) if wave.bosses)
-        return (self.level_index == len(LEVELS) - 1 and self.wave_index == last
+        return (level.finale and self.wave_index == last
                 and self.boss_index == len(self.wave.bosses) - 1)
 
     def _spawn_field_extras(self, dt):
         """Repair kits, drone formations (from level 2) and diver squads (level 4)."""
         self.kit_timer -= dt
-        if self.kit_timer <= 0:
+        if self.kit_timer <= 0 and self.kits_allowed:
             self.kit_timer = random.uniform(*KIT_INTERVAL)
             kit = FullRepair if random.random() < FULL_KIT_CHANCE else RepairKit
             self.pickups.append(kit(random.uniform(30, LOW_W - 30), -8))
         interval = self.level.difficulty.formation_interval
         if interval and self.distance < self.wave.length - 4:
-            self.formation_timer -= dt * self.pressure
+            self.formation_timer -= dt * self.pressure * self.minion_rate
             if self.formation_timer <= 0:
                 self.formation_timer = interval * random.uniform(0.8, 1.2)
                 self.spawn_enemies(drone_formation())
         interval = self.level.difficulty.diver_interval
         if interval and self.distance < self.wave.length - 4:
-            self.diver_timer -= dt * self.pressure
+            self.diver_timer -= dt * self.pressure * self.minion_rate
             if self.diver_timer <= 0:
                 self.diver_timer = interval * random.uniform(0.8, 1.2)
                 self.spawn_enemies(diver_squad(random.choice((2, 3, 3, 4))))
         for i, (spawn, interval) in enumerate(self.level.difficulty.extras):
             if self.distance >= self.wave.length - 4:
                 break
-            self.extra_timers[i] -= dt * self.pressure
+            self.extra_timers[i] -= dt * self.pressure * self.minion_rate
             if self.extra_timers[i] <= 0:
                 self.extra_timers[i] = interval * random.uniform(0.8, 1.2)
                 self.spawn_enemies(spawn(self))
@@ -234,6 +257,9 @@ class LevelFlowMixin:
         k = self.level.difficulty.enemy_hp
         for enemy in enemies:
             enemy.max_hp = enemy.hp = enemy.hp * k
+        chance = self.elite_chance()
+        if chance and enemies and random.random() < chance * len(enemies):
+            random.choice(enemies).make_elite()      # at most one elite per group
         self.enemies += enemies
 
     def _level_label(self):

@@ -47,6 +47,7 @@ class CombatMixin:
         if missile_hits:
             self.audio.play("missile_hit")
         for hit in hits + missile_hits:
+            hit.damage *= self.glass                     # VEIL SHIFT "GLASS CANNON"
             if hit.target is self.boss or hit.target in boss_parts:
                 self._damage_boss(hit)
             elif isinstance(hit.target, Enemy):
@@ -183,7 +184,7 @@ class CombatMixin:
             self._minion_boost(enemy)
             if enemy.stat:
                 self.track_minion()
-            if random.random() < DRONE_KIT_CHANCE:
+            if random.random() < DRONE_KIT_CHANCE and self.kits_allowed:
                 self.pickups.append(RepairKit(enemy.x, enemy.y))
         enemy.on_death(self, scored)
 

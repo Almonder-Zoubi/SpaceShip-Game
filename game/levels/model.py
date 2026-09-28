@@ -20,6 +20,7 @@ class Difficulty:
     extras: tuple = ()                # (spawn(game) -> [Enemy], seconds between) per minion type
     rock_hp: float = 1.0              # rock toughness (later ship models hit much harder)
     enemy_hp: float = 1.0             # minion toughness
+    elite_chance: float = 0.0         # galaxy 2: share of minions that come as ELITES
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,7 @@ class Wave:
     radio: tuple = ()            # radio card lines when the wave starts (ui/radio.py)
     music: str = None            # its own field track (else the level's)
     escape: bool = False         # a timed escape run (the level's hazard collapses)
+    ambush: float = 0.0          # > 0: the boss arrives unannounced at this share of the field
 
 
 @dataclass(frozen=True)
@@ -59,6 +61,7 @@ class Level:
     hazard: type = None          # level-wide mechanic (hazards/)
     finale: bool = False         # the galaxy's last level: warp cut-scene + medal after it
     director: bool = False       # the DIRECTOR paces the fields (galaxy 2 on)
+    shifts: bool = False         # every attempt rolls a VEIL SHIFT (levels/shifts.py)
 
 
 @dataclass(frozen=True)
@@ -67,6 +70,7 @@ class Galaxy:
     number: int
     name: str
     levels: tuple                # Level, numbered 1.. inside the galaxy
+    boss_repair: float = 1.0     # share of max hull repaired before each boss
 
     def key(self, level):
         """Save-file key of one of its levels, e.g. "1-3"."""

@@ -1,7 +1,11 @@
-"""Base class for small enemy ships."""
+"""Base class for small enemy ships (and the ELITE version any of them can be)."""
+import math
+
 import pygame
 
 from ..config.display import LOW_H, LOW_W
+from ..config.palette import ELITE_GOLD
+from ..config.tuning import ELITE_GUARD, ELITE_HP, ELITE_SPEED
 
 
 class Enemy:
@@ -13,6 +17,7 @@ class Enemy:
     contact_damage = 0
     drops_coins = True
     stat = True                  # counts in the level's "destroyed" rating
+    elite = False                # galaxy 2: golden, tougher, faster, x3 coins, shrugs off hits
 
     def __init__(self, image, x, y, hp):
         self.image = image
@@ -23,6 +28,14 @@ class Enemy:
         self.max_hp = self.hp = hp
         self.flash = 0.0
         self.time = 0.0
+        self.guard = 0.0                 # elite: seconds until it can shrug off a hit again
+
+    def make_elite(self):
+        """The golden version: x3 hull, faster, and every ELITE_GUARD seconds one hit bounces."""
+        self.elite = True
+        self.max_hp = self.hp = self.hp * ELITE_HP
+        self._outline = self.mask.outline()
+        return self
 
     @property
     def bound(self):
@@ -58,11 +71,18 @@ class Enemy:
         """Hook: it was destroyed (scored = by the player)."""
 
     def damage(self, amount, flash=True):
+        if self.elite and self.guard <= 0:        # the golden shell takes this one
+            self.guard = ELITE_GUARD
+            self.flash = self.hit_flash
+            return
         self.hp -= amount
         if flash:
             self.flash = self.hit_flash
 
     def update(self, dt, world):
+        if self.elite:
+            self.guard = max(0.0, self.guard - dt)
+            dt *= ELITE_SPEED
         self.time += dt
         self.flash = max(0.0, self.flash - dt)
         self.move(dt, world)
@@ -76,4 +96,14 @@ class Enemy:
         raise NotImplementedError
 
     def draw(self, surf):
+        if self.elite:                            # golden aura (brighter while the guard is up)
+            left, top = self.topleft
+            k = 0.5 + 0.5 * math.sin(self.time * 8)
+            color = ELITE_GOLD[0 if self.guard <= 0 and k > 0.5 else 1 if self.guard <= 0 else 2]
+            for i, (x, y) in enumerate(self._outline):
+                if (i + int(self.time * 20)) % 3:
+                    surf.fill(color, (left + x - 1, top + y - 1, 1, 1),
+                              special_flags=pygame.BLEND_ADD)
+                    surf.fill(color, (left + x + 1, top + y + 1, 1, 1),
+                              special_flags=pygame.BLEND_ADD)
         surf.blit(self.white if self.flash > 0 else self.image, self.topleft)

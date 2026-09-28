@@ -221,6 +221,16 @@ class HangarMixin:
         if self.inventory.gift_options(self.level_key):
             self.offer_gift(self.level_key, ("map",))
         else:
+            self._to_next_map()
+
+    def _to_next_map(self):
+        """After a galaxy's end: the next galaxy's map (arriving at its gate), if there is one."""
+        nxt = self.level_index + 1
+        if nxt < len(LEVELS):
+            self.start_level = nxt
+            self.new_run(nxt)
+            self.open_star_map(nxt, at_gate=True)
+        else:
             self.new_run(self.level_index)
             self.open_star_map(self.level_index)
 
@@ -255,8 +265,7 @@ class HangarMixin:
         elif item.slot:
             self.equip_new_weapon(item)
         if self.gift_then[0] == "map":
-            self.new_run(self.level_index)
-            self.open_star_map(self.level_index)
+            self._to_next_map()
         else:
             _, level_index, score = self.gift_then
             self.open_hangar(level_index, score, focus=item.id,

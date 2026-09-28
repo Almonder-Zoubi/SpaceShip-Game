@@ -254,10 +254,12 @@ edge, ~+30%), `hp * firepower == 1` for hulls, all art + audio in code.
       the galaxy 2 levels)
 - [x] G17 Brains: `PlayerModel` (saved), DIRECTOR (peaks + breathers), bandit attack choice,
       lead shots, counters, "IT LEARNED" lines, journal KNOWN page + forget — pure logic + tests
-- [ ] G18 Galaxy plumbing: galaxy 2 star map, MK XI–XX, upgrade tiers 6–10, ELITES, VEIL
-      SHIFT modifiers, new bullet types (splitter, boomerang, rune, shadow, twinned, cage)
+- [x] G18 Galaxy plumbing: galaxy 2 star map + warp gates, MK XI, ELITES, VEIL SHIFT
+      modifiers, new bullet types (splitter, boomerang, rune, lead, shadow, twinned), 50% boss
+      repair, AMBUSH flow (still open: upgrade tiers 6–10, the CAGE pattern, MK XII+ per level)
 - [ ] G19 Abilities slot on SHIFT / right click + PHASE; 2nd wingman slot
-- [ ] G20–G29 Levels 1–10 (one per milestone, each with its FLOW: AMBUSH, PURSUIT, ESCORT,
+- [x] G20 Level 1 VEIL GATE (AMBUSH): wisps, rift portals, THE WARDEN (learning)
+- [ ] G21–G29 Levels 2–10 (one per milestone, each with its FLOW: AMBUSH, PURSUIT, ESCORT,
       DARKNESS, MIRROR, RHYTHM, CROSSROADS, SIEGE, GAUNTLET + DUEL, the NYX finale)
 
 ## Later / nice to have

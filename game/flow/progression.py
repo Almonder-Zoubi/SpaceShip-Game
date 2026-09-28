@@ -2,7 +2,7 @@
 import math
 import random
 
-from ..config.tuning import (BOSS_ROAR_TIME, COIN_BIG, COIN_BOSS_PHASE, COIN_TALLY_RATE,
+from ..config.tuning import (BOSS_ROAR_TIME, COIN_BIG, ELITE_COINS, COIN_BOSS_PHASE, COIN_TALLY_RATE,
                              WRECK_COINS)
 from ..levels.data import galaxy_of
 from ..pickups.types import BigCoin, Coin
@@ -54,11 +54,12 @@ class ProgressionMixin:
 
     def _drop_minion_coins(self, enemy):
         if enemy.drops_coins:
-            self.drop_coins(enemy.x, enemy.y, minion_coins() * self.coin_mult)
+            coins = minion_coins() * self.coin_mult * (ELITE_COINS if enemy.elite else 1)
+            self.drop_coins(enemy.x, enemy.y, coins)
 
     def _drop_boss_coins(self, boss, phase_change=False):
         """Big coins that home in on the ship: a boss's reward can't be missed."""
-        coins = COIN_BOSS_PHASE if phase_change else boss_coins(self.level.number,
+        coins = COIN_BOSS_PHASE if phase_change else boss_coins(self.level_index + 1,
                                                                  boss.spec.strength)
         self.drop_coins(boss.x, boss.y, max(1, coins // COIN_BIG), big=True, homing=True)
 
@@ -81,7 +82,8 @@ class ProgressionMixin:
         if self.level_rank == "S":
             self.achieve("RANK_S")
         first = not self.save.is_cleared(self.level_key)
-        self.payout = level_payout(self.pending_coins, self.level.number, self.level_rank, first)
+        self.pending_coins = self.shift_payout(self.pending_coins)      # a VEIL SHIFT pays more
+        self.payout = level_payout(self.pending_coins, self.level_index + 1, self.level_rank, first)
         self.bank_before = self.save.coins
         self.save.clear_level(self.level_key, self.level_rank, self.payout.total)
 

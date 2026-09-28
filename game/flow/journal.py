@@ -3,12 +3,12 @@ their link to VANTA (future heralds stay black), the ECHO mosaic, and every radi
 Opened with J from the title or the star map, so the story can be read in peace."""
 from dataclasses import dataclass
 
-from ..levels.data import LEVEL_KEYS, LEVELS, galaxy_of
+from ..levels.data import LEVEL_KEYS, LEVELS, galaxy_of, level_title
 from ..progression.achievements import ACHIEVEMENTS
 from ..progression.items import ITEMS, SHIP, SKIN, WEAPON, WINGMAN, items_of
 from ..progression.upgrades import TRACKS, power_ratio
 from ..brains.insight import insights
-from ..story.dialog import as_line
+from ..story.dialog import VEGA, as_line
 from ..story.lore import (CALLSIGN, DECODED, DOSSIER_BY_BOSS, ECHOES, HERALDS,
                           TRANSMISSIONS, VANTA_FILE, redact)
 from .states import State
@@ -165,17 +165,25 @@ class JournalMixin:
             out.append(("decoded", f"FIRST LETTERS: {DECODED}", False))
         reached = max(self.save.unlocked, self.start_level + 1)
         for level in LEVELS[:reached]:
-            out.append(("head", f"LEVEL {level.number}  {level.name}", False))
-            for i, text in enumerate(level.radio):
-                out.append(("line", text, i == 0 and self.decoder))
+            out.append(("head", f"{level_title(level)}  {level.name}", False))
+            first = galaxy_of(level).number == 1
+            for i, entry in enumerate(level.radio):
+                out.append(self._log_line(entry, i == 0 and first and self.decoder))
             for wave in level.waves:
-                for text in wave.radio:
-                    out.append(("line", text, False))
+                for entry in wave.radio:
+                    out.append(self._log_line(entry, False))
         for beat in self.save.story:
             out.append(("head", "INTERCEPTED TRANSMISSION", False))
             for line in map(as_line, TRANSMISSIONS.get(beat, ())):
                 out.append(("speaker", f"{line.speaker}: {line.text}", False))
         return out
+
+    @staticmethod
+    def _log_line(entry, highlight):
+        line = as_line(entry)
+        if line.speaker == VEGA:
+            return ("line", line.text, highlight)
+        return ("speaker", f"{line.speaker}: {line.text}", False)
 
     def journal_page(self):
         level = LEVELS[min(len(LEVELS), max(self.save.unlocked, 1)) - 1]

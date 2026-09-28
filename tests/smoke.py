@@ -32,7 +32,7 @@ from game.core.input import Keys
 from game.core.storage import SaveData
 from game.flow.game import Game
 from game.flow.states import Phase, State
-from game.levels.data import LEVELS
+from game.levels.data import GALAXIES, LEVELS
 from game.minions.diver import Diver
 from game.minions.drone import drone_formation
 from game.bosses.helios import Flare, Helios
@@ -78,13 +78,24 @@ from game.config.tuning import (BOSS_ROAR_TIME, ESCAPE_SPEED, LARVA_TIME, MAP_H,
 from game.hazards.hive import HiveTunnel
 from game.minions.swarm import SporePod, larva_flock
 from game.progression.items import PAINT
-from game.starmap.model import BLACK_HOLE, CACHES, GATE, NODES
+from game.starmap.model import BLACK_HOLE, CACHES, GATE, MAPS, NODES
 from game.bosses.gunship import GUNSHIP_SPEC, Gunship
 from game.bosses.learning import Learner
 from game.brains.bandit import Bandit
 from game.brains.director import Director
 from game.brains.insight import insights
 from game.brains.model import PlayerModel
+from game.bosses.warden import Warden
+from game.config.tuning import (BOOMERANG_TIME, BOSS_REPAIR_G2, ELITE_HP, RIFT_OPEN, RIFT_RADIUS,
+                                RUNE_SHOTS, RUNE_TIME, SHIFT_BONUS, SHIFT_GLASS, SHIFT_ROCK_SPEED,
+                                SPLIT_TIME)
+from game.hazards.rifts import RiftPortals
+from game.levels.data import level_title
+from game.levels.shifts import BY_ID as BY_SHIFT, SHIFTS
+from game.minions.bullets import bullet
+from game.minions.veil_bullets import (Boomerang, RuneMark, SplitterBullet, TwinBullet,
+                                      VeilBullet, twinned)
+from game.minions.wisp import Wisp
 from game.story.dialog import UNKNOWN, VANTA, VEGA, Line, cards, is_hijack
 from game.story.lore import (ACROSTIC, DECODED, DOSSIER_BY_BOSS, DOSSIERS, ECHOES, HERALDS,
                              TEXT_WIDTH, TRANSMISSIONS, VANTA_FILE)
@@ -1359,7 +1370,12 @@ def test_level10(h):
     h.shot("gift_swarmbane")
     h.post(pygame.K_RETURN)
     assert game.inventory.owns("SWARMBANE") and game.skin(PAINT).id == "SWARMBANE"
-    assert game.state == State.STAR_MAP and game.star_map.medal, "the gate is open"
+    assert game.state == State.STAR_MAP and game.star_map.gmap.galaxy == 2, "on to the Veil"
+    assert game.star_map.near_gate() and game.star_map.gate_open, "arrived through the gate"
+    h.run(10)
+    h.shot("starmap_veil_arrival")
+    game.open_star_map(9)                                # back home: the gate stands open
+    assert game.star_map.medal and game.star_map.gate_open
     h.run(10)
     h.shot("starmap_medal")
     game.save.skins = {}
@@ -1375,7 +1391,8 @@ def test_starmap(h):
     for cache in CACHES:                                 # every story line fits on its card
         assert len(cache.title) <= 40 and all(len(line) <= 40 for line in cache.lines), cache.id
         assert 0 <= cache.x <= MAP_W and 0 <= cache.y <= MAP_H
-    assert len(NODES) >= len(LEVELS)
+    for galaxy in GALAXIES:                              # a planet for every level
+        assert len(MAPS[galaxy.number].nodes) >= len(galaxy.levels)
     game.save.caches = []
     game.save.achievements = [a for a in game.save.achievements if a != "EXPLORER"]
     game.save.unlock(10)
@@ -1549,7 +1566,7 @@ def test_journal(h):
     game.journal_switch(1)
     page = game.journal_page()
     assert page.log[0][0] == "decoded" and DECODED in page.log[0][1]
-    assert sum(1 for kind, _, hl in page.log if hl) == min(save.unlocked, len(LEVELS))
+    assert sum(1 for kind, _, hl in page.log if hl) == min(save.unlocked, 10)   # galaxy 1 only
     for _ in range(30):
         h.post(pygame.K_DOWN)
     assert game.journal_cursor["LOG"] > 0
@@ -1699,6 +1716,220 @@ def test_brains(h):
     assert SaveData(h.save_path).brain["model"]["heat"] == [0.0] * 48
     h.post(pygame.K_ESCAPE)
     game.god = False
+
+
+def test_veil(h):
+    """Galaxy 2 THE VEIL, level 1 VEIL GATE: galaxy plumbing (labels, 50% boss repair, map
+    per galaxy + warp gates), VEIL SHIFTS (each effect), ELITES (x3, guard), WISPS dodge
+    lined-up shots, the new bullet types, RIFT portals carry rocks / bullets / your shots,
+    the AMBUSH flow, THE WARDEN (rings block, the gap turns away from your side, inner ring,
+    the saw), level end -> VEIL gift -> the Veil's map."""
+    game = h.game
+    g2 = GALAXIES[1]
+    index = LEVELS.index(g2.levels[0])
+    assert g2.boss_repair == BOSS_REPAIR_G2 and level_title(g2.levels[0]) == "G2 LEVEL 1"
+    game.save.unlock(index + 1)
+    game.choose_hull(ARROW)
+    game.start(index)
+    game.radio = None
+    assert game.ship.loadout.name == "MK XI" and isinstance(game.hazard, RiftPortals)
+    assert game.director_active and game.shift in SHIFTS and game._music_track() == "veil"
+    h.run(h.seconds(3.5))
+    h.shot("veil_shift_card")
+
+    # VEIL SHIFTS: every effect.
+    effects = {}
+    for shift in SHIFTS:
+        game.roll_shift(shift)
+        effects[shift.id] = (game.spawner.speed_scale, game.minion_rate, game.kits_allowed,
+                             game.shift_coins, game.elite_chance(), game.glass,
+                             game.overlay is not None)
+    base = game.level.difficulty.elite_chance
+    assert effects["ROCKS FAST"][0] == SHIFT_ROCK_SPEED and effects["DOUBLE MINIONS"][1] == 2
+    assert effects["NO KITS"][2] is False and effects["NO KITS"][3] == 2
+    assert effects["ELITE SQUAD"][4] == base * 3 and effects["GLASS CANNON"][5] == SHIFT_GLASS
+    assert effects["BLIND SPOTS"][6] and game.shift_payout(100) == round(100 * SHIFT_BONUS)
+    game.roll_shift(BY_SHIFT["GLASS CANNON"])
+    ship = game.ship
+    ship.invulnerable_time, game.shield, hp0 = 0, 0, ship.hp
+    game.hurt_ship(10, ship.x, ship.y)
+    assert abs((hp0 - ship.hp) - 10 * SHIFT_GLASS) < 1e-6
+    game.roll_shift(BY_SHIFT["BLIND SPOTS"])
+    h.run(5)
+    h.shot("blind_spots")
+    game.roll_shift(BY_SHIFT["ROCKS FAST"])
+    # 50% repair before a galaxy 2 boss (galaxy 1: full).
+    ship.hp = ship.max_hp * 0.1
+    game._begin_warning()
+    assert abs(ship.hp - ship.max_hp * 0.6) < 1
+    game.set_phase(Phase.FIELD)
+
+    # ELITES: x3 hull, the golden shell shrugs off one hit, faster.
+    wisp = Wisp(160, 60)
+    hp = wisp.hp
+    wisp.make_elite()
+    assert wisp.elite and wisp.hp == hp * ELITE_HP
+    wisp.damage(5)
+    assert wisp.hp == hp * ELITE_HP, "the first hit bounces"
+    wisp.damage(5)
+    assert wisp.hp == hp * ELITE_HP - 5
+    # WISP: steps out of a shot lined up on it.
+    game.enemies = [wisp]
+    game.enemy_bullets.clear()
+    ship.x, ship.y = 160, 200
+    h.run(12, clear_rocks=True)
+    assert abs(wisp.x - 160) > 8, "the wisp dodged"
+    h.shot("elite_wisp")
+    game.enemies.clear()
+
+    # The Veil's bullets (no minions around to add their own).
+    game.extra_timers = [99.0] * len(game.extra_timers)
+    game.enemies.clear()
+    game.enemy_bullets = [SplitterBullet(100, 40, 0, 30, 5)]
+    ship.x, ship.y = 300, 220
+    h.run(h.seconds(SPLIT_TIME + 0.1), clear_rocks=True)
+    assert sum(type(b) is VeilBullet for b in game.enemy_bullets) == 3, "burst into three"
+    boom = Boomerang(160, 40, 0, 120, 5)
+    game.enemy_bullets = [boom]
+    h.run(h.seconds(BOOMERANG_TIME * 0.5), clear_rocks=True)
+    far = boom.y
+    h.run(h.seconds(BOOMERANG_TIME * 0.5), clear_rocks=True)
+    assert far > 80 and abs(boom.y - 40) < 12, "it comes back"
+    rune = RuneMark(ship.x, ship.y, 50)
+    game.enemy_bullets = [rune]
+    ship.invulnerable_time, hp0 = 0, ship.hp
+    h.run(h.seconds(RUNE_TIME * 0.5), clear_rocks=True)
+    assert ship.hp == hp0, "a rune mark can't hurt"
+    h.shot("rune")
+    ship.x = 40
+    h.run(h.seconds(RUNE_TIME * 0.6), clear_rocks=True)
+    assert sum(type(b) is VeilBullet for b in game.enemy_bullets) == RUNE_SHOTS
+    pair = twinned(160, 60, math.pi / 2, 40, 5)
+    for _ in range(10):
+        for b in pair:
+            b.update(0.05)
+    assert abs(math.hypot(pair[0].x - pair[1].x, pair[0].y - pair[1].y) - 2 * TwinBullet.RADIUS) < 1
+    game.enemy_bullets.clear()
+
+    # RIFTS carry rocks, enemy bullets and your shots through.
+    rifts = game.hazard
+    rifts.rifts.clear()
+    a, b = rifts.open_pair()
+    for r in (a, b):
+        r.age = RIFT_OPEN + 0.1
+    rifts.timer = 99
+    rock = h.rock_ahead(5)
+    rock.x, rock.y, rock.vx, rock.vy = a.x, a.y, 0, 0
+    game.asteroids = [rock]
+    shot = GunBullet(a.x + 2, a.y, 0, 0)
+    game.weapons[0].bullets = [shot]
+    game.enemy_bullets = [bullet(a.x - 2, a.y, 0, 0, 0)]
+    rifts.update(1 / 60, game)
+    assert math.hypot(rock.x - b.x, rock.y - b.y) < RIFT_RADIUS + 2
+    assert math.hypot(shot.x - b.x, shot.y - b.y) < RIFT_RADIUS + 2 and rifts.jumps == 3
+    h.run(2)
+    h.shot("rifts")
+    game.enemy_bullets.clear()
+    game.asteroids.clear()
+
+    # AMBUSH: the Warden arrives mid-field without WARNING or repair; the rocks keep falling.
+    game.start(index, 0, 1)
+    game.radio = None
+    game.god = True
+    ship = game.ship
+    phases = set()
+    for _ in range(h.seconds(40)):
+        h.run(1)
+        phases.add(game.phase)
+        if game.phase == Phase.BOSS:
+            break
+    assert Phase.WARNING not in phases and game.phase == Phase.BOSS
+    assert game.distance < game.wave.length and game.radio.speaker == UNKNOWN
+    boss = game.boss
+    assert isinstance(boss, Warden) and game._music_track() == "warden"
+    h.run(h.seconds(Warden.ENTER_TIME + 0.2))
+    assert boss.fighting and game.asteroids, "the field goes on"
+    h.shot("warden_ambush")
+    # Rings block; only the core takes damage.
+    outer = boss.outer
+    assert outer in boss.parts() and boss.inner not in boss.parts()
+    hp = boss.hp
+    boss.hit_part(outer, 100)
+    assert abs((hp - boss.hp) - 100 * Warden.RING_PASS) < 1e-6, "the ring takes most of it"
+    hp = boss.hp
+    boss.hit_part(boss, 100)
+    assert abs((hp - boss.hp) - 100) < 1e-6, "through the gap: full damage"
+    # It read you: you keep to the left, so the gap turns to the right side.
+    game.player_model = PlayerModel()
+    game.player_model.observe(60, 30, 200, 0, 0, False)
+    for _ in range(h.seconds(3)):
+        h.run(1, clear_rocks=True)
+    off = (outer.angle - (math.pi / 2 - 0.8) + math.pi) % math.tau - math.pi
+    assert abs(off) < 0.5, f"gap turned away from your side ({outer.angle:.2f})"
+    game.load_brain()
+    boss.roar = 0
+    game._damage_boss(Hit(boss, boss.max_hp * 0.26, 0, 0, 0, -1, 0))
+    assert boss.phase == 1 and boss.inner in boss.parts()
+    h.run(h.seconds(BOSS_ROAR_TIME + 2), clear_rocks=True)
+    h.shot("warden_two_rings")
+    for _ in range(2):
+        boss.roar = 0
+        game._damage_boss(Hit(boss, boss.max_hp * 0.26, 0, 0, 0, -1, 0))
+    assert boss.phase == 3 and boss.saw
+    h.run(h.seconds(BOSS_ROAR_TIME + 2), clear_rocks=True)
+    assert math.hypot(outer.x - boss.x, outer.y - boss.y) > 10, "the ring saws loose"
+    assert boss.contact_damage > boss.bullet_damage
+    h.shot("warden_saw")
+    # The learning: its bandit gets rewarded by the damage it deals.
+    game.god = False
+    game.ship.hp = 10 ** 6
+    game.ship.invulnerable_time, game.shield = 0, 0
+    before = boss.attack if boss.attack != "rest" else None
+    boss.begin_attack(game, boss.OPTIONS[boss.phase])       # (start a slot of our own)
+    slot = boss._attack
+    boss.learn_tick(1.0)
+    game.hurt_ship(30, game.ship.x, game.ship.y)             # it hit you during that slot
+    boss.begin_attack(game, boss.OPTIONS[boss.phase])
+    assert game.bandit_for("THE WARDEN").arms[slot][1] > 0, (before, slot)
+    game.god = True
+    boss.roar = 0
+    h.kill(boss)
+    for _ in range(h.seconds(10)):
+        h.run(1, clear_rocks=True)
+        if game.state == State.WIN:
+            break
+    game.god = False
+    assert game.state == State.WIN and "THE WARDEN" in game.save.bosses
+    h.run(h.seconds(1.2))
+    h.shot("veil_clear")
+    game.save.gifts = [k for k in game.save.gifts if k != "2-1"]
+    if "VEIL" in game.save.owned:
+        game.save.owned.remove("VEIL")
+    h.post(pygame.K_RETURN)
+    assert game.state == State.REWARD and [i.id for i in game.gift_options] == ["VEIL"]
+    h.run(h.seconds(0.6))
+    h.post(pygame.K_RETURN)
+    assert game.state == State.STAR_MAP and game.star_map.gmap.galaxy == 2, (
+        game.state, getattr(game, "star_map", None) and game.star_map.gmap.galaxy)
+    game.save.skins = {}
+    game.choose_hull(ARROW)
+    # Warp gates between the maps.
+    game.star_map.place_at_gate()
+    h.post(pygame.K_RETURN)
+    assert game.state == State.STAR_MAP and game.star_map.gmap.galaxy == 1
+    h.run(5)
+    game.save.medals = [1]
+    game.open_star_map(0)
+    game.star_map.place_at_gate()
+    h.post(pygame.K_RETURN)
+    assert game.star_map.gmap.galaxy == 2 and game.star_map.near_node() is None
+    game.star_map.place_at(0)
+    h.run(5)
+    h.shot("veil_map")
+    h.post(pygame.K_RETURN)
+    assert game.state in (State.HANGAR, State.REWARD) and game.start_level == index
+    game.start_level = 0
+    game.to_title()
 
 
 def test_save(h):
@@ -2749,7 +2980,7 @@ SECTIONS = (
     ("level5", test_level5), ("level6", test_level6), ("level7", test_level7),
     ("level8", test_level8), ("level9", test_level9), ("level10", test_level10),
     ("starmap", test_starmap), ("journal", test_journal),
-    ("brains", test_brains), ("save", test_save), ("menus", test_title_menus),
+    ("brains", test_brains), ("veil", test_veil), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
     ("upgrades", test_upgrades), ("feel", test_feel),
     ("boosts", test_boosts), ("wingmen", test_wingmen),
