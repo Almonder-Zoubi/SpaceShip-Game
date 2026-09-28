@@ -58,6 +58,7 @@ class Level:
     event: type = None           # background event layer (background/events.py)
     hazard: type = None          # level-wide mechanic (hazards/)
     finale: bool = False         # the galaxy's last level: warp cut-scene + medal after it
+    director: bool = False       # the DIRECTOR paces the fields (galaxy 2 on)
 
 
 @dataclass(frozen=True)

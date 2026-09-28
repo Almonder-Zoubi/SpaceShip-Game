@@ -29,6 +29,7 @@ class LevelFlowMixin:
         self._reset_boosts()
         self._reset_wingmen()
         self._reset_achievements()
+        self._reset_brains()
         self.background.set_nebula(level.nebula)
         self.background.set_event(level.event)
         self.hazard = level.hazard() if level.hazard else None
@@ -69,6 +70,7 @@ class LevelFlowMixin:
     def start(self, level_index=0, score=0, wave_index=0, boss_index=None):
         """Start a level; optionally at a later wave, or straight at one of its bosses."""
         self.new_run(level_index, score)
+        self.begin_learning()
         if boss_index is None and self.skip_to_boss:
             wave_index = len(self.level.waves) - 1
             boss_index = len(self.level.waves[wave_index].bosses) - 1
@@ -118,6 +120,8 @@ class LevelFlowMixin:
         self.ship.equip(self.loadout_for(self.level), hull)
 
     def to_title(self):
+        if hasattr(self, "player_model"):
+            self.save_brain()                     # what they learned in that attempt
         self.new_run(self.start_level)
         self.set_state(State.DEV_MENU if self.dev else State.TITLE)
 
@@ -207,20 +211,20 @@ class LevelFlowMixin:
             self.pickups.append(kit(random.uniform(30, LOW_W - 30), -8))
         interval = self.level.difficulty.formation_interval
         if interval and self.distance < self.wave.length - 4:
-            self.formation_timer -= dt
+            self.formation_timer -= dt * self.pressure
             if self.formation_timer <= 0:
                 self.formation_timer = interval * random.uniform(0.8, 1.2)
                 self.spawn_enemies(drone_formation())
         interval = self.level.difficulty.diver_interval
         if interval and self.distance < self.wave.length - 4:
-            self.diver_timer -= dt
+            self.diver_timer -= dt * self.pressure
             if self.diver_timer <= 0:
                 self.diver_timer = interval * random.uniform(0.8, 1.2)
                 self.spawn_enemies(diver_squad(random.choice((2, 3, 3, 4))))
         for i, (spawn, interval) in enumerate(self.level.difficulty.extras):
             if self.distance >= self.wave.length - 4:
                 break
-            self.extra_timers[i] -= dt
+            self.extra_timers[i] -= dt * self.pressure
             if self.extra_timers[i] <= 0:
                 self.extra_timers[i] = interval * random.uniform(0.8, 1.2)
                 self.spawn_enemies(spawn(self))

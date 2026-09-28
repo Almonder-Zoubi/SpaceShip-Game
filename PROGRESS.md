@@ -18,7 +18,7 @@ THE VEIL — design first). NEMESIS (Phase 9) is parked behind Phase 10.
 **Starting a new session?** Read this file's Snapshot + Decisions, then CLAUDE.md (module map,
 "where to look when debugging", conventions). Run the smoke test once before changing anything.
 
-## Handoff — next session: G17 (brains: player model, DIRECTOR, learning bosses)
+## Handoff — next session: G18 (galaxy 2 plumbing: map, MK XI+, elites, VEIL SHIFT, bullets)
 
 State at hand-off (2026-09-28): branch `design`, everything committed and pushed, full smoke
 test green (31 sections), lint clean. Built in long cloud sessions without a real window:
@@ -246,6 +246,24 @@ the sounds into `sounds/generated/` (git-ignored, ~14 s now).
   the key is decided then.
 
 ## Log
+
+### 2026-09-28 — G17: the enemy's brains (player model, bandit, DIRECTOR)
+- `game/brains/` (pure Python, saved in `save.brain`): `PlayerModel` (8x6 heatmap of
+  seconds, dodge directions counted once per dodge under threat, weapon seconds, reaction
+  times after a telegraph, `forget()` 0.9 per level attempt), `Bandit` (UCB1 + 15% exploring,
+  step >= 0.2 so it re-learns when the player adapts), `Director` (BUILD -> PEAK 9 s ->
+  BREATHER 5 s; pressure 1.0..1.6 scaled by how well the player is doing; never below 1),
+  `insights()` (short lines, only claims what the numbers show).
+- `flow/brains.py`: observes every frame of flight in every level; DIRECTOR only where
+  `Level.director` is set (none in galaxy 1; dev key D forces it); `pressure` multiplies the
+  rock spawner and the minion timers; saved at level start, win, title and quit.
+- `bosses/learning.Learner` (for galaxy 2 bosses): `begin_attack()` via the saved bandit,
+  `credit()` from `hurt_ship`, `lead_aim()`, `counters()`. Leviathan, Mothership and
+  Overmind now call `world.telegraph()` (reaction timing; no gameplay change).
+- Game over in a thinking level: "IT LEARNED: YOU HIDE AT THE BOTTOM." Journal page KNOWN
+  (heatmap, dodges, weapons, reaction, notes; BACKSPACE twice = forget).
+- Bot check (level 5, DIRECTOR forced): pressure cycles 1.0 -> 1.5 -> 1.0 about every 20 s;
+  worst frame 1.6 ms. Smoke: new `brains` section (+ 3 seeds).
 
 ### 2026-09-28 — G16: story engine + the JOURNAL (the user's idea)
 - The user asked for a board to read the story in peace (achievements, strength, defeated

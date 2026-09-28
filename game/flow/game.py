@@ -38,6 +38,7 @@ from ..weapons.scatter import Scatter
 from ..weapons.secondary import RocketPod, SideCannons
 from ..weapons.specials import Blast, Ultimate
 from .boosts import BoostsMixin
+from .brains import BrainsMixin
 from .combat import CombatMixin
 from .dev import DevMixin
 from .events import EventsMixin
@@ -62,13 +63,13 @@ SIGNATURE_RADII = (9, 11, 13)   # big rocks prebuilt for every later colour (mag
 
 class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixin, HangarMixin,
            JuiceMixin, BoostsMixin, WingmenMixin, SkinsMixin, OptionsMixin, SoundMixin,
-           DevMixin, FinaleMixin, StarMapMixin, JournalMixin, ScreensMixin):
+           DevMixin, FinaleMixin, StarMapMixin, JournalMixin, BrainsMixin, ScreensMixin):
     """Owns the window, the world objects and the state machine.
 
     Mixins (one file each in flow/ and ui/) add: key handling, level flow, world update,
     combat, progression (coins, rank, payout), hangar + gifts, game feel (juice, damage
     numbers, radio), boosts + combo, wingmen, skins + achievements, options, sound, dev tools,
-    the galaxy finale, the star map, the journal and drawing. They all work on the attributes
+    the galaxy finale, the star map, the journal, the enemy's brains and drawing. They all work on the attributes
     created here.
     """
 
@@ -152,6 +153,7 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
         """Use this save file: bank, ranks and the inventory (dev mode owns everything)."""
         self.save = save
         self.inventory = Inventory(save, LEVEL_KEYS, everything=self.dev)
+        self.load_brain()
         if hasattr(self, "audio"):                # not during __init__ (no audio yet)
             self.load_options()
 
@@ -198,6 +200,7 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
             self.update(dt, self.held, self.mouse)
             self.draw()
             self._present()
+        self.save_brain()
         pygame.quit()
 
     def update(self, dt, keys, mouse=None):
@@ -227,6 +230,7 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
             self.library.build_step()
             self._update_star_map(real_dt, keys, mouse)
 
+        self._update_brains(dt, firing)
         world_speed = self._world_speed()
         edt = self.enemy_dt(dt)                   # SLOW-MO boost: the enemy side at half speed
         self.background.update(dt, world_speed)
@@ -264,6 +268,7 @@ class Game(EventsMixin, LevelFlowMixin, WorldMixin, CombatMixin, ProgressionMixi
 
         if self.state == State.DYING and self.state_time > DEATH_DELAY:
             self.set_state(State.GAME_OVER)
+            self.learn_from_death()
 
     def _world_speed(self):
         """Boosting (UP) speeds the world up, retro (DOWN) slows it (a hazard may rush it)."""

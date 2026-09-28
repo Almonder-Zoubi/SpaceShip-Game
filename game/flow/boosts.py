@@ -134,6 +134,7 @@ class BoostsMixin:
         if self.slingshot:
             points *= SLINGSHOT_SCORE
         before = self.combo_mult
+        self.note_kill()
         self.combo += 1
         self.combo_time = COMBO_WINDOW
         self.best_combo = max(self.best_combo, self.combo)

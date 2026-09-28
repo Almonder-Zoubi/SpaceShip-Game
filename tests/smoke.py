@@ -79,6 +79,12 @@ from game.hazards.hive import HiveTunnel
 from game.minions.swarm import SporePod, larva_flock
 from game.progression.items import PAINT
 from game.starmap.model import BLACK_HOLE, CACHES, GATE, NODES
+from game.bosses.gunship import GUNSHIP_SPEC, Gunship
+from game.bosses.learning import Learner
+from game.brains.bandit import Bandit
+from game.brains.director import Director
+from game.brains.insight import insights
+from game.brains.model import PlayerModel
 from game.story.dialog import UNKNOWN, VANTA, VEGA, Line, cards, is_hijack
 from game.story.lore import (ACROSTIC, DECODED, DOSSIER_BY_BOSS, DOSSIERS, ECHOES, HERALDS,
                              TEXT_WIDTH, TRANSMISSIONS, VANTA_FILE)
@@ -1576,6 +1582,125 @@ def test_journal(h):
     game.to_title()
 
 
+def test_brains(h):
+    """The enemy's brains: the player model counts where you fly, how you dodge and react;
+    the bandit learns which attack hurts you and re-learns when you adapt; the DIRECTOR
+    builds, peaks and gives breathers, never below the base; a learning boss aims ahead and
+    counters habits; it all survives a restart; a death in a thinking level says what it
+    learned; the journal's KNOWN page shows it and can make them forget."""
+    game = h.game
+    rng = random.Random(4)
+    m = PlayerModel()
+    m.observe(1.0, 20, 230, 0, 0, False, "LASER")
+    assert m.zone_share(rows=range(4, 6)) == 1.0 and m.weapon_share("LASER") == 1.0
+    m.observe(0.1, 100, 200, -120, 0, True)
+    m.observe(0.1, 90, 200, -120, 0, True)            # the same dodge: counted once
+    m.observe(0.1, 80, 200, 0, 0, False)
+    m.observe(0.1, 80, 200, 0, -150, True)
+    assert m.dodges["L"] == 1 and m.dodges["U"] == 1
+    m.telegraph()
+    m.observe(0.2, 80, 200, 0, 0, False)
+    m.observe(0.2, 80, 200, 90, 0, False)
+    assert abs(m.reaction - 0.4) < 1e-6
+    copy = PlayerModel.from_dict(m.to_dict())
+    assert copy.heat == [round(v, 2) for v in m.heat] and copy.reactions == m.reactions
+    before = m.seconds
+    m.forget()
+    assert abs(m.seconds - before * 0.9) < 1e-6
+    assert insights(PlayerModel()) == ["WE ARE STILL WATCHING."]
+    low = PlayerModel()
+    low.observe(60, 160, 230, 0, 0, False)
+    assert "YOU HIDE AT THE BOTTOM." in insights(low)
+    assert all(len(line) <= TEXT_WIDTH for line in insights(m) + insights(low))
+
+    # The bandit: FANS hurt this player, RINGS don't -> it picks FANS; then the player
+    # learns to dodge fans and it switches.
+    bandit = Bandit()
+    picks = []
+    for _ in range(80):
+        arm = bandit.choose(("FANS", "RINGS"), rng)
+        bandit.reward(arm, 10.0 if arm == "FANS" else 2.0)
+        picks.append(arm)
+    assert picks[-40:].count("FANS") >= 28 and "RINGS" in picks[-40:], "exploits, explores"
+    for _ in range(80):
+        arm = bandit.choose(("FANS", "RINGS"), rng)
+        bandit.reward(arm, 1.0 if arm == "FANS" else 6.0)
+        picks.append(arm)
+    assert picks[-30:].count("RINGS") >= 20 and bandit.best() == "RINGS", "it re-learns"
+
+    # The DIRECTOR: a player doing well gets peaks, then breathers; never below 1.
+    d = Director()
+    states, lowest = set(), 9.0
+    for _ in range(60 * 60):
+        p = d.update(1 / 60, 1.0, 0.0, 2.0)
+        states.add(d.state)
+        lowest = min(lowest, p)
+    assert states == {Director.BUILD, Director.PEAK, Director.BREATHER} and lowest >= 1.0
+    struggling = Director()
+    top = max(struggling.update(1 / 60, 0.2, 0.05, 0.0) for _ in range(60 * 30))
+    assert top < 1.4, "a struggling player gets less pressure"
+
+    # In game: the DIRECTOR speeds the field up.
+    game.force_director = True
+    game.start(0)
+    game.radio = None
+    game.god = True
+    pressures = []
+    for _ in range(h.seconds(25)):
+        h.run(1, FIRE)
+        pressures.append(game.pressure)
+    assert max(pressures) > 1.2 and min(pressures) >= 1.0
+    assert game.player_model.seconds > 20 and game.player_model.weapon_share("GUN") > 0.5
+    # A death in a thinking level: "IT LEARNED: ..."
+    game.god = False
+    h.die()
+    h.run(h.seconds(1.0))
+    assert game.state == State.GAME_OVER and game.death_insight
+    h.shot("it_learned")
+    game.force_director = False
+    saved = SaveData(h.save_path)
+    assert saved.brain["model"]["heat"], "it remembers across sessions"
+    assert PlayerModel.from_dict(saved.brain["model"]).seconds > 20
+
+    # A learning boss: picks with the saved bandit, is credited for damage, aims ahead.
+    class Student(Learner, Gunship):
+        pass
+    game.start(0, 0, 0, 0)
+    game.radio = None
+    boss = Student(GUNSHIP_SPEC)
+    first = boss.begin_attack(game, ("FAN", "RING"))
+    boss.learn_tick(1.0)
+    game.boss = boss
+    boss.state = "fight"
+    game.ship.invulnerable_time = 0
+    game.shield = 0
+    game.hurt_ship(12, game.ship.x, game.ship.y)
+    assert boss._dealt == 12
+    boss.begin_attack(game, ("FAN", "RING"))
+    assert game.bandit_for("GUNSHIP").arms[first][1] == 12
+    ship = game.ship
+    ship.x, ship.y, ship.vx, ship.vy = 160, 200, 100, 0
+    straight = math.atan2(200 - 50, 160 - 160)
+    assert boss.lead_aim(game, 160, 50, 120) < straight, "it aims ahead of a moving rocket"
+    game.player_model = low
+    assert "floor" in boss.counters(game)
+    game.load_brain()
+
+    # The journal's KNOWN page, and FORGET.
+    game.to_title()
+    game.open_journal()
+    game.journal_tab = 4
+    h.run(3)
+    h.shot("journal_known")
+    h.post(pygame.K_BACKSPACE)
+    assert game.player_model.seconds > 0 and game.journal_forget
+    h.post(pygame.K_BACKSPACE)
+    assert game.player_model.seconds == 0 and not game.bandits
+    assert SaveData(h.save_path).brain["model"]["heat"] == [0.0] * 48
+    h.post(pygame.K_ESCAPE)
+    game.god = False
+
+
 def test_save(h):
     """Records, unlocks and the ship survive a reload; a corrupt file doesn't crash."""
     game = h.game
@@ -2623,7 +2748,8 @@ SECTIONS = (
     ("campaign", test_campaign), ("level4", test_level4),
     ("level5", test_level5), ("level6", test_level6), ("level7", test_level7),
     ("level8", test_level8), ("level9", test_level9), ("level10", test_level10),
-    ("starmap", test_starmap), ("journal", test_journal), ("save", test_save), ("menus", test_title_menus),
+    ("starmap", test_starmap), ("journal", test_journal),
+    ("brains", test_brains), ("save", test_save), ("menus", test_title_menus),
     ("economy", test_economy), ("inventory", test_inventory),
     ("upgrades", test_upgrades), ("feel", test_feel),
     ("boosts", test_boosts), ("wingmen", test_wingmen),

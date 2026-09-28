@@ -7,12 +7,13 @@ from ..levels.data import LEVEL_KEYS, LEVELS, galaxy_of
 from ..progression.achievements import ACHIEVEMENTS
 from ..progression.items import ITEMS, SHIP, SKIN, WEAPON, WINGMAN, items_of
 from ..progression.upgrades import TRACKS, power_ratio
+from ..brains.insight import insights
 from ..story.dialog import as_line
 from ..story.lore import (CALLSIGN, DECODED, DOSSIER_BY_BOSS, ECHOES, HERALDS,
                           TRANSMISSIONS, VANTA_FILE, redact)
 from .states import State
 
-TABS = ("PILOT", "BOSSES", "ECHOES", "LOG")
+TABS = ("PILOT", "BOSSES", "ECHOES", "LOG", "KNOWN")
 
 
 @dataclass
@@ -46,6 +47,7 @@ class JournalPage:
     echoes: tuple                 # (Echo, found)
     decoder: bool
     log: tuple                    # (kind, text, highlight): kind "head" / "line" / "speaker"
+    known: dict = None            # KNOWN: what the enemy's player model says about you
 
 
 class JournalMixin:
@@ -55,6 +57,7 @@ class JournalMixin:
         self.journal_back = self.state
         self.journal_tab = 0
         self.journal_cursor = {tab: 0 for tab in TABS}
+        self.journal_forget = False           # KNOWN: BACKSPACE asked once already
         self.audio.play("page")
         self.set_state(State.JOURNAL)
 
@@ -68,9 +71,33 @@ class JournalMixin:
     def journal_move(self, step):
         tab = TABS[self.journal_tab]
         size = {"PILOT": len(ACHIEVEMENTS), "BOSSES": len(self._boss_files()),
-                "ECHOES": len(ECHOES), "LOG": len(self._journal_log())}[tab]
+                "ECHOES": len(ECHOES), "LOG": len(self._journal_log()), "KNOWN": 1}[tab]
         self.journal_cursor[tab] = max(0, min(size - 1, self.journal_cursor[tab] + step))
         self.audio.play("select")
+
+    def journal_forget_key(self):
+        """BACKSPACE on KNOWN: ask once, then wipe what the enemy learned."""
+        if TABS[self.journal_tab] != "KNOWN":
+            return
+        if self.journal_forget:
+            self.reset_brain()
+            self.journal_forget = False
+            self.audio.play("hijack")
+        else:
+            self.journal_forget = True
+            self.audio.play("denied")
+
+    def _known(self):
+        m = self.player_model
+        top = max(m.heat) or 1.0
+        weapons = sorted(m.weapons, key=lambda n: -m.weapons[n])[:3]
+        return {"heat": [v / top for v in m.heat], "cols": m.cols, "rows": m.rows,
+                "dodges": {d: m.dodge_share(d) for d in m.dodges},
+                "dodge_count": int(m.dodge_count),
+                "weapons": [(n, m.weapon_share(n)) for n in weapons],
+                "reaction": m.reaction, "minutes": m.seconds / 60,
+                "insights": insights(m)[:4], "forget": self.journal_forget,
+                "bosses": sorted(n for n, b in self.bandits.items() if b.best())}
 
     # --- what the player knows ------------------------------------------------------------
     @property
@@ -172,5 +199,5 @@ class JournalMixin:
             achievements, tuple(self.save.medals), tuple(self.save.shards),
             tuple(self._boss_files()),
             tuple((e, e.cache in self.save.caches) for e in ECHOES), self.decoder,
-            tuple(self._journal_log()))
+            tuple(self._journal_log()), self._known())
 

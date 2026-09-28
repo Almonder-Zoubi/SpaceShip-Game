@@ -71,6 +71,7 @@ class ProgressionMixin:
     def _bank_level(self):
         """The level is won: coins still on screen are collected, the rank is decided and
         pending coins + clear bonus go into the bank."""
+        self.save_brain()
         for pickup in self.pickups:
             if isinstance(pickup, Coin):
                 self.pending_coins += pickup.value

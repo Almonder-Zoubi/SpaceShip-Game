@@ -252,8 +252,8 @@ edge, ~+30%), `hp * firepower == 1` for hulls, all art + audio in code.
       boss files with margin notes, heralds + VANTA's file, ECHO mosaic + decoder, radio
       acrostic, ghost record, Dawn Key shard 1 (reactive taunts + level-clear lines come with
       the galaxy 2 levels)
-- [ ] G17 Brains: `PlayerModel` (saved), DIRECTOR (peaks + breathers), bandit attack choice,
-      lead shots, "IT LEARNED" lines (the NEMESIS plan, reused) — pure logic + tests
+- [x] G17 Brains: `PlayerModel` (saved), DIRECTOR (peaks + breathers), bandit attack choice,
+      lead shots, counters, "IT LEARNED" lines, journal KNOWN page + forget — pure logic + tests
 - [ ] G18 Galaxy plumbing: galaxy 2 star map, MK XI–XX, upgrade tiers 6–10, ELITES, VEIL
       SHIFT modifiers, new bullet types (splitter, boomerang, rune, shadow, twinned, cage)
 - [ ] G19 Abilities slot on SHIFT / right click + PHASE; 2nd wingman slot

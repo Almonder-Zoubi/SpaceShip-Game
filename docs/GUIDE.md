@@ -110,6 +110,7 @@ loop. Its behaviour is split into **mixins**, one file each, all working on the 
 | `SoundMixin` | `flow/sound.py` | which music plays in which state, engine / laser loops |
 | `DevMixin` | `flow/dev.py` | dev menu items, god mode, hotkeys |
 | `FinaleMixin` | `flow/finale.py` | the galaxy finale: WARP cut-scene, medal, then the win results |
+| `BrainsMixin` | `flow/brains.py` | the enemy's brains: player model per frame, DIRECTOR pressure, bandits per boss, saved |
 | `JournalMixin` | `flow/journal.py` | the JOURNAL (J): builds a `JournalPage` (pilot, boss files, echoes, radio log) for `ui/journal.py` |
 | `StarMapMixin` | `flow/starmap.py` | the STAR MAP: fly between planets, data caches (coins once, EXPLORER), landing opens the hangar |
 | `ScreensMixin` | `ui/screens.py` | drawing every frame and every state's overlay |
@@ -304,6 +305,16 @@ colours shared by several things go in `config/palette.py`.
 - **A puzzle piece:** read the answer in the `story/lore.py` docstring first. A clue must agree
   with it (a player who reads everything must find no contradiction). Kinds so far: ECHOES
   (mosaic tiles in caches), margin notes, the radio ACROSTIC, the ghost record, dossier lines.
+
+### A boss that learns (galaxy 2)
+
+`class MyBoss(Learner, Boss)` (`bosses/learning.py`). When a pattern slot starts, ask
+`name = self.begin_attack(world, options)` instead of cycling `PATTERNS`; call
+`self.learn_tick(dt)` every fight frame. The game credits it with the damage it deals, and
+the bandit (saved per boss name) favours what hurts this player. Aim with
+`self.lead_aim(world, x, y, speed)`; check `self.counters(world)` ("floor", "left",
+"right", "mirror") to add a punishing pattern. Call `world.telegraph()` when an attack is
+shown, so the model learns the player's reaction time. Balance stays `BossSpec`.
 
 ### A star map secret (data cache)
 

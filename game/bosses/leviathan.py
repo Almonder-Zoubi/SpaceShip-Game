@@ -407,6 +407,7 @@ class Leviathan(Boss):
         if self.dive == 0:
             self.dive = 1
             world.audio.play("lock_on")
+            world.telegraph()
         if self.dive == 1:
             if ship.alive and self.attack_time < self.DIVE_WARN - 0.25:
                 self.dive_target = (ship.x, ship.y)          # frozen for the last moment

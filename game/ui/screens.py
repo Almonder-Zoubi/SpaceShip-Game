@@ -164,6 +164,9 @@ class ScreensMixin:
             self.font.draw(c, f"SCORE {self.score}", (LOW_W // 2, LOW_H // 2 + 40),
                            TEXT_DIM, shadow=TEXT_SHADOW, center=True)
             self._draw_record_rank(c, LOW_H // 2 + 52)
+            if self.death_insight:                      # a thinking enemy says what it saw
+                self.font.draw(c, f"IT LEARNED: {self.death_insight}", (LOW_W // 2, LOW_H // 2 + 76),
+                               (200, 120, 255), shadow=TEXT_SHADOW, center=True)
             if self.pending_coins:                      # coins only count when a level is won
                 self.font.draw(c, f"{self.pending_coins} CREDITS LOST", (LOW_W // 2, LOW_H // 2 + 64),
                                DANGER, shadow=TEXT_SHADOW, center=True)

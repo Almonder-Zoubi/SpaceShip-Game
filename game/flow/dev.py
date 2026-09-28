@@ -42,6 +42,10 @@ class DevMixin:
             self.ship.hp = self.ship.max_hp
         elif key == pygame.K_4:
             self.collect_coins(50)
+        elif key == pygame.K_d:                        # the DIRECTOR on any level
+            self.force_director = not getattr(self, "force_director", False)
+            self.popups.append(Popup(f"DIRECTOR {'ON' if self.force_director else 'OFF'}",
+                                     self.ship.x, self.ship.y - 24, DANGER))
         else:
             return False
         return True

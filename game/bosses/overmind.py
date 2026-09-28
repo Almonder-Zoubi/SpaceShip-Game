@@ -459,6 +459,7 @@ class Overmind(Boss):
         if t.state == 0:
             t.state = 1
             world.audio.play("lock_on")
+            world.telegraph()
         if t.state == 1:
             if ship.alive and self.attack_time < t.WARN - 0.25:
                 t.target = (ship.x, ship.y)                   # frozen for the last moment

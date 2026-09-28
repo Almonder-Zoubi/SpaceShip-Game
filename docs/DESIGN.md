@@ -326,6 +326,12 @@ pure-Python online learning, no neural network, visible to the player, and teste
 6. **Fairness rails:** a capped learning rate, `BossSpec` strength unchanged, every attack
    telegraphed, and a "RESET WHAT THEY LEARNED" option.
 
+**Built in G17 (2026-09-28):** `game/brains/` (player model, bandit, DIRECTOR, insights),
+saved in `save.json` and shown on the journal's **KNOWN** page ("WHAT THEY KNOW ABOUT YOU":
+a heatmap of where you fly, dodge directions, weapon shares, reaction time, their notes,
+BACKSPACE twice to make them forget). A death in a thinking level shows "IT LEARNED: ...".
+The model already watches galaxy 1 play, so galaxy 2 starts out knowing the player.
+
 ### 4.5 New minions, obstacles and boss shots
 
 **Minions (the HOLLOW, VANTA's army, plus Swarm remnants):**

@@ -338,3 +338,20 @@ MAP_DRAG = 2.2                   # velocity lost per second (drifts to a stop)
 MAP_REACH = 22                   # px: close enough to a planet to open its card
 MAP_CACHE_SEEN = 46              # px: a hidden data cache becomes visible this close
 MAP_GRAVITY = 240                # the black hole planet's pull (px/s^2 at its core, fades out)
+
+# --- Brains (galaxy 2: the player model, learning bosses, the DIRECTOR) --------------------
+BRAIN_GRID = (8, 6)              # heatmap cells over the screen
+BRAIN_DODGE_SPEED = 40           # px/s: moving faster than this under threat = a dodge
+BRAIN_REACTIONS = 20             # reaction times kept
+BRAIN_FORGET = 0.9               # at each level start old habits keep this weight
+BRAIN_THREAT = 34                # px: an enemy bullet / body this close (and coming) = a threat
+BRAIN_EXPLORE = 0.15             # a learning boss still tries a random attack this often
+BRAIN_UCB = 0.35                 # how much it values trying rarely used attacks
+BRAIN_MIN_STEP = 0.2             # recent fights weigh at least this much (it can re-learn)
+BRAIN_MIN_SECONDS = 20           # seconds watched before it claims to know anything
+BRAIN_MIN_DODGES = 8
+DIRECTOR_MAX = 1.6               # spawn rate at the peak for a player doing very well
+DIRECTOR_RISE = 0.05             # pressure gained per second while building up
+DIRECTOR_PEAK = 9.0              # seconds a peak lasts
+DIRECTOR_BREATHER = 5.0          # seconds of breathing room after a peak
+LEAD_AIM = 0.8                   # learning bosses aim this much of the way to where you'll be

@@ -44,6 +44,7 @@ class SaveData:
         self.bosses = []         # boss names defeated at least once (the journal's files)
         self.shards = []         # Dawn Key shards carried (galaxy numbers)
         self.story = []          # story beats already played (lore.TRANSMISSIONS ids)
+        self.brain = {}          # what the enemy learned about the player (flow/brains.py)
         self.load()
 
     @property
@@ -86,6 +87,8 @@ class SaveData:
             self.bosses = _strings(data.get("bosses", []))
             self.shards = [int(s) for s in data.get("shards", [])]
             self.story = _strings(data.get("story", []))
+            brain = data.get("brain", {})
+            self.brain = brain if isinstance(brain, dict) else {}
         except (OSError, ValueError, TypeError, KeyError, AttributeError):
             self._reset()                               # unreadable: start fresh
 
@@ -99,6 +102,7 @@ class SaveData:
         self.skins, self.achievements, self.minion_kills = {}, [], 0
         self.medals, self.caches = [], []
         self.bosses, self.shards, self.story = [], [], []
+        self.brain = {}
 
     def save(self):
         if not self.path:
@@ -116,7 +120,8 @@ class SaveData:
                            "achievements": self.achievements,
                            "minion_kills": self.minion_kills, "medals": self.medals,
                            "caches": self.caches, "bosses": self.bosses,
-                           "shards": self.shards, "story": self.story}, f, indent=2)
+                           "shards": self.shards, "story": self.story,
+                           "brain": self.brain}, f, indent=2)
             os.replace(tmp, self.path)
         except OSError:
             pass                                        # read-only folder: play on without saving

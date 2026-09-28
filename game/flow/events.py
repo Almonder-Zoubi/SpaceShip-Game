@@ -77,6 +77,8 @@ class EventsMixin:
             self.journal_move(1 if key in DOWN_KEYS else -1)
         elif key in START_KEYS:
             self.journal_switch(1)
+        elif key in (pygame.K_BACKSPACE, pygame.K_DELETE):
+            self.journal_forget_key()
         elif key in (pygame.K_ESCAPE, pygame.K_j):
             self.close_journal()
 

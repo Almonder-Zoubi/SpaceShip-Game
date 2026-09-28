@@ -229,6 +229,8 @@ class Mothership(Boss):
     def _beam(self, dt, world, duration):
         """Warning line, then a column straight down from the beam cannon."""
         if self.attack_time < self.BEAM_WARN:
+            if self.beam != 1:
+                world.telegraph()
             self.beam = 1
             return
         if self.attack_time > duration - 0.2:

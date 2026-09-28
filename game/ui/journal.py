@@ -13,7 +13,7 @@ from ..story.lore import MOSAIC
 from .medal import draw_medal
 from .portraits import Portraits
 
-TABS = ("PILOT", "BOSSES", "ECHOES", "LOG")
+TABS = ("PILOT", "BOSSES", "ECHOES", "LOG", "KNOWN")
 PAPER = (14, 12, 26)
 NOTE = (230, 70, 80)             # the margin notes: someone else's hand
 VIOLET = (170, 110, 255)
@@ -86,12 +86,12 @@ class JournalView:
             f.draw(surf, "LEFT/RIGHT PAGE   UP/DOWN SELECT   ESC BACK", (LOW_W // 2, LOW_H - 9),
                    TEXT_DIM, center=True)
 
-    def _note(self, surf, text, pos, time):
+    def _note(self, surf, text, pos, time, color=NOTE):
         """A margin note: red, a little crooked, as if written by hand."""
         x, y = pos
         for i, ch in enumerate(text):
             dy = (i * 7 + i // 3) % 3 - 1
-            self.font.draw(surf, ch, (x + i * 6, y + dy), NOTE)
+            self.font.draw(surf, ch, (x + i * 6, y + dy), color)
 
     # --- PILOT ----------------------------------------------------------------------------
     def _draw_pilot(self, surf, page, time):
@@ -244,6 +244,46 @@ class JournalView:
             size = max(4, int(h * LOG_ROWS / len(page.log)))
             surf.fill((40, 36, 60), (LOW_W - 5, 32, 2, h))
             surf.fill(ACCENT, (LOW_W - 5, top, 2, size))
+
+    # --- KNOWN ----------------------------------------------------------------------------
+    def _draw_known(self, surf, page, time):
+        """What they know about you: where you fly, how you dodge, what you fire."""
+        f, k = self.font, page.known
+        f.draw(surf, "WHAT THEY KNOW ABOUT YOU", (8, 32), VIOLET, shadow=TEXT_SHADOW)
+        cell = 12
+        frame = pygame.Rect(10, 44, k["cols"] * cell + 2, k["rows"] * cell + 2)
+        surf.fill(INK, frame)
+        for i, v in enumerate(k["heat"]):
+            col, row = i % k["cols"], i // k["cols"]
+            color = (int(30 + 200 * v), int(10 + 40 * v * v), int(40 + 60 * (1 - v)))
+            surf.fill(color, (frame.x + 1 + col * cell, frame.y + 1 + row * cell, cell - 1, cell - 1))
+        pygame.draw.rect(surf, VIOLET, frame, 1)
+        f.draw(surf, "WHERE YOU FLY", (10, frame.bottom + 3), TEXT_DIM)
+        f.draw(surf, f"WATCHED {k['minutes']:.0f} MIN", (10, frame.bottom + 13), TEXT_DIM)
+        x = 118
+        f.draw(surf, f"DODGES ({k['dodge_count']})", (x, 44), TEXT_DIM)
+        for i, (d, share) in enumerate(k["dodges"].items()):
+            y = 55 + i * 9
+            f.draw(surf, d, (x, y), TEXT)
+            surf.fill((40, 36, 60), (x + 10, y + 1, 60, 5))
+            surf.fill(VIOLET, (x + 10, y + 1, int(60 * share), 5))
+            f.draw(surf, f"{round(share * 100)}%", (x + 74, y), TEXT_DIM)
+        x2 = 222
+        f.draw(surf, "WEAPONS", (x2, 44), TEXT_DIM)
+        for i, (name, share) in enumerate(k["weapons"]):
+            f.draw(surf, f"{name[:7]} {round(share * 100)}%", (x2, 55 + i * 9), TEXT)
+        reaction = k["reaction"]
+        f.draw(surf, "REACTION", (x2, 85), TEXT_DIM)
+        f.draw(surf, f"{reaction:.2f} S" if reaction is not None else "-", (x2, 94), TEXT)
+        if k["bosses"]:
+            f.draw(surf, "STUDIED YOU: " + ", ".join(k["bosses"])[:30], (x, 112), TEXT_DIM)
+        f.draw(surf, "THEIR NOTES", (x, 126), VIOLET)
+        for i, line in enumerate(k["insights"]):
+            self._note(surf, line, (x, 138 + i * 11), time, VIOLET)
+        if k["forget"]:
+            f.draw(surf, "BACKSPACE AGAIN: THEY FORGET ALL", (10, 214), DANGER)
+        else:
+            f.draw(surf, "BACKSPACE: MAKE THEM FORGET", (10, 214), TEXT_DIM)
 
 
 def _wrap(text, width):

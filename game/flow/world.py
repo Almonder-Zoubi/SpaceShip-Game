@@ -14,7 +14,7 @@ class WorldMixin:
         # Rocks spawn in the asteroid field (and on the title screen as ambience).
         if self.state in MENU_STATES or (self.state == State.PLAYING
                                          and self.phase == Phase.FIELD):
-            self.asteroids += self.spawner.update(dt, world_speed)
+            self.asteroids += self.spawner.update(dt * self.pressure, world_speed)
         for rock in self.asteroids:
             rock.update(dt, world_speed)
         kept = []
@@ -116,6 +116,9 @@ class WorldMixin:
         hp = self.ship.hp
         died = self.ship.take_hit(damage, from_x, from_y, **kwargs)
         self.stats.damage_taken += max(0, hp - self.ship.hp)
+        self.note_damage(max(0, hp - self.ship.hp))
+        if self.boss and hasattr(self.boss, "credit"):       # a learning boss scores it
+            self.boss.credit(max(0, hp - self.ship.hp))
         self.last_hurt = self.time
         if self.phase == Phase.BOSS and self.ship.hp < hp:
             self.boss_hurt = True
