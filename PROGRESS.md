@@ -18,7 +18,7 @@ THE VEIL — design first). NEMESIS (Phase 9) is parked behind Phase 10.
 **Starting a new session?** Read this file's Snapshot + Decisions, then CLAUDE.md (module map,
 "where to look when debugging", conventions). Run the smoke test once before changing anything.
 
-## Handoff — next session: the user's answers to DESIGN 4.8, then G16 (story engine)
+## Handoff — next session: G16 (story engine), then G17 (brains)
 
 State at hand-off (2026-09-28): branch `design`, everything committed and pushed, full smoke
 test green (31 sections), lint clean. Built in long cloud sessions without a real window:
@@ -40,7 +40,7 @@ whether +3% upgrade tiers feel worth it, wingman strength, prices.
 
 G16+ plan: DESIGN section 4 (galaxy 2 THE VEIL, the villain VANTA, level flows, the
 DIRECTOR) and ROADMAP G16–G29. The user played level 10 ("perfect") and asked for this;
-the 5 open questions are in DESIGN 4.8. The warp gate on the
+the answers are in DESIGN section 15 (design approved). The warp gate on the
 star map (`starmap/model.GATE`) is where galaxy 2's map would begin.
 
 Working headless (cloud): `pip install -r requirements.txt pyflakes`, then
@@ -215,7 +215,11 @@ the sounds into `sounds/generated/` (git-ignored, ~14 s now).
   Only the ±30° diagonal lean is allowed.
 - Both weapons; **R** switches, **SPACE** fires (or the left mouse button).
 - **Mouse control** (user's request): move by tracking the mouse, left click fires, R / T stay.
-- Player has a **health bar** for the whole level; it is **refilled to max before every boss**.
+- Player has a **health bar** for the whole level; it is **refilled to max before every boss**
+  in galaxy 1, **to 50% in galaxy 2** (2026-09-28).
+- **Abilities (galaxy 2): one new key, SHIFT or the right mouse button** (2026-09-28).
+- **Learning bosses remember the player across sessions** (saved, resettable); **VANTA's
+  twist is kept** (the scout before you, left behind by Vega) (2026-09-28).
 - Bosses are **3–5x stronger than the rocket** (damage race, see `BossSpec`): level 1 boss 3x,
   level 2 boss 4x, level 3 boss 5x. Earlier bosses re-appear **weakened (~1.5x)** as a warm-up.
 - **3 levels**: L1 = Boss 1; L2 = Boss 1 (weak) → Boss 2; L3 = Boss 1 (weak) → Boss 2 (weak) → Boss 3.
@@ -255,8 +259,9 @@ the sounds into `sounds/generated/` (git-ignored, ~14 s now).
   gauntlet, mirror, rhythm) + a random VEIL SHIFT per attempt; the DIRECTOR and learning
   bosses (the NEMESIS plan); new minions / obstacles / bullet types; the 10 levels and NYX,
   THE FIRST HERALD; abilities; heralds of galaxies 3–5.
-- ROADMAP: G16–G29 plan. **Waiting on the 5 questions in DESIGN 4.8** (ability key, repair
-  before bosses, learning memory, VANTA's twist, build order).
+- ROADMAP: G16–G29 plan. The user answered DESIGN 4.8 (all four recommended options):
+  SHIFT / right click for abilities, 50% repair before galaxy 2 bosses, learning bosses
+  remember across sessions, VANTA's twist kept (DESIGN section 15, PROGRESS Decisions).
 
 ### 2026-09-28 — G15: level 10 SWARM HEART, THE OVERMIND, the warp finale + the STAR MAP
 - `hazards/hive.HiveTunnel`: breathing flesh walls (width by row and time), contact hurts +

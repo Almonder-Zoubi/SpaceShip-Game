@@ -41,7 +41,7 @@ code, and pygame as the only dependency.
 
 ```
 GALAXY 1  ORION REACH      levels 1-10   done
-GALAXY 2  THE VEIL         levels 1-10   designed in section 4 (waiting for the go)
+GALAXY 2  THE VEIL         levels 1-10   designed in section 4 (approved)
 GALAXY 3  BLOOM            levels 1-10   sketch below
 ...
 ```
@@ -183,7 +183,7 @@ whole top of the screen, then tears open. Boss rush: Mothership, Leviathan, Heli
 
 ---
 
-## 4. Galaxy 2 — THE VEIL (design for G16+, waiting for the user's go)
+## 4. Galaxy 2 — THE VEIL (design for G16+, approved 2026-09-28)
 
 The user's brief (2026-09-28): galaxy 2 must be **harder** than galaxy 1, with **new kinds of
 minions, obstacles and boss shots**, **smarter enemies**, and levels whose **flow** is new and
@@ -245,7 +245,7 @@ holds: everything is telegraphed.
 | Enemy bullets | one pattern at a time | from phase 3, **two patterns overlap** |
 | Bullet speed | base | +15% |
 | Repair kits in the field | every 13–20 s | every 22–30 s, and elites can steal them |
-| Repair before a boss | full | **full — a binding decision; the user may change it** (4.8) |
+| Repair before a boss | full | **50%** (decided, 4.8) |
 | Minions | fixed stats | **ELITES** (4.5) and the DIRECTOR (4.4) |
 | Rank S | no-hit is rare | needs a no-hit boss phase and a combo of 40 or more |
 
@@ -390,7 +390,14 @@ The proposal: **SHIFT** (or right click), with a cooldown ring around the rocket
 Without a key, abilities could instead fire **automatically** (PHASE when a hit would land,
 once per 12 s): simpler, but less skill.
 
-### 4.8 Open questions for the user (G16 starts after the answers)
+### 4.8 Decisions (the user's answers, 2026-09-28)
+
+1. **Ability key: SHIFT or right click**, with a cooldown ring. 2. **Repair before bosses:
+50% in galaxy 2** (galaxy 1 stays full). 3. **The learning bosses remember across sessions**
+(saved, with a reset option). 4. **VANTA's twist stays** (the scout before you, left behind
+by Vega). 5. Build order not asked: default is story engine + brains first (G16, G17).
+
+The questions as they were asked:
 
 1. **Ability key:** SHIFT / right click, or automatic abilities?
 2. **Repair before bosses** (binding decision now: always full): keep it, or 50% in galaxy 2
@@ -716,3 +723,10 @@ Tests: a smoke-test section for each area (`economy`, `rewards`, `wingmen`, `boo
 8. **Build order: systems first** (save v2, coins, rank, gifts, hangar/inventory, upgrades,
    juice, boosts, wingmen, weapons, skins), **then a full playtest from level 1 to 4 with all
    systems, then level 5** onward (ROADMAP Phase 10).
+
+## 15. Decisions for galaxy 2 (the user's answers, 2026-09-28)
+
+1. **Abilities use one new key: SHIFT or the right mouse button** (cooldown ring on the rocket).
+2. **Galaxy 2 repairs the hull to 50% before a boss** (galaxy 1 keeps the full repair).
+3. **Learning bosses remember the player across sessions** (saved; a reset option exists).
+4. **VANTA's twist is kept:** it was the scout before you, left behind by Vega.
