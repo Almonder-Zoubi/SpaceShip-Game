@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+save.json
+save.json.tmp
+sounds/generated/
